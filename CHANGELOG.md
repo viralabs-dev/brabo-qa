@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Docs: `README.md` and `e2e/README.md` are in English (AT-745). Headings that the code cites literally (`e2e/suporte/api.ts`, `turno-pelo-canal.spec.ts`) keep their pt-BR text.
 - `politica.yml`: pins do `brabo-ci` sobem para `b030fbf` (dispensa da PR do bot, ADR 0255; AT-733).
 - `tag.yml` carimba as tags pelo `brabo-ci` (1ª = `v1.0.0`).
 - CI: job `actionlint`.
