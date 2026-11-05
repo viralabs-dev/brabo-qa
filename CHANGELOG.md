@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `politica.yml`: pins do `brabo-ci` sobem para `b030fbf` (dispensa da PR do bot, ADR 0255; AT-733).
 - `tag.yml` carimba as tags pelo `brabo-ci` (1ª = `v1.0.0`).
 - CI: job `actionlint`.
 - Extração de `e2e/`, `docker/smoke.sh`, `scripts/jev/`, `scripts/idioma/`, dos workflows `golden-set-qa.yml` e `golden-set-rag.yml` e dos golden-sets ExUnit (com os `floor.json`) do monorepo `daneiel/brabo` (AT-703, ADR 0252), com o histórico dos caminhos.
