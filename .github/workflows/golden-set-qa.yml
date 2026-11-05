@@ -103,6 +103,7 @@ jobs:
     env:
       DATABASE_URL: postgres://brabo:brabo@localhost:5432/brabo
       OLLAMA_HOST: http://localhost:11434
+      MIX_ENV: test
       GOLDEN_SET_QA_MODEL: 'qwen2.5-coder:latest'
       API_URL: http://localhost:3000
       # Literal de CI, não segredo: api, engine e broker só escutam no
@@ -273,7 +274,7 @@ jobs:
         run: |
           set -o pipefail
           inicio=$(date +%s)
-          MIX_ENV=test mix test --only golden_set_qa 2>&1 | tee /tmp/golden-qa.log
+          mix test --only golden_set_qa 2>&1 | tee /tmp/golden-qa.log
           status=$?
           echo "TEMPO mix golden_set.qa: $(( $(date +%s) - inicio ))s"
           exit $status
@@ -301,8 +302,9 @@ jobs:
           n=$(psql "$DATABASE_URL" -tAc "select count(*) from proposed_actions where action_type = 'terminal' and execution_result::text like '%RN-502%'")
           e=$(psql "$DATABASE_URL" -tAc "select count(*) from session_events where payload::text like '%RN-502%'")
           echo "terminal recusados pela RN-502: $n; eventos de sessão citando RN-502: $e"
-          [ "$n" = "0" ] && [ "$e" = "0" ] \
-            || { echo "::error::houve recusa da RN-502 — o placar não mede o julgamento do QA"; exit 1; }
+          if [ "$n" != "0" ] || [ "$e" != "0" ]; then
+            echo "::error::houve recusa da RN-502 — o placar não mede o julgamento do QA"; exit 1
+          fi
 
       # Os logs só interessam quando algo acima falhou — e aí "api fora",
       # "broker recusou a subida" e "engine não executou" têm causas
