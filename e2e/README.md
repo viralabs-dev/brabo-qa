@@ -86,7 +86,7 @@ consumer breaks where it stands, and not in the next spec.
 The FOURTH, when the three already have an owner: `turno-pelo-canal.spec.ts` (AT-338) runs after all of them and needs a browser session. It opts out and does its
 OWN login (`cookiesDeUmLoginProprio()`), which is NOT memoized — memoizing would hand the same refresh to two consumers. It costs one login from the lockout bucket, counted below.
 
-## Qual ação o spec de aprovação propõe, e por quê
+## Which action the approval spec proposes, and why
 
 `write_file`, with actor `user`, and the spec **refuses** — it never approves. Measured in the code, not chosen by guess (AT-068):
 
@@ -137,7 +137,7 @@ Ways out, in order of preference:
 `suporte/api.ts` already recognizes this 401 and returns a message saying this —
 without it, the next person hunts a credential bug that does not exist. That is what almost happened while writing this layer.
 
-## O que NÃO está coberto
+## What is NOT covered
 
 Declared, not forgotten (see the Consequences of ADR 0120): differences
 between browsers (only chromium runs) and the **turn streaming** — the `agent.delta`. The inline approval left this list in AT-068, and the turn CYCLE

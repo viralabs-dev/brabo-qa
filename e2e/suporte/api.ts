@@ -212,8 +212,8 @@ function usuarioDoToken(token: string): string {
  * Propõe na sessão uma ação que a política deixa `pending`, e devolve o id.
  *
  * O TIPO é `write_file`, escolhido por MEDIÇÃO e não por palpite — o motivo
- * inteiro está em `e2e/README.md` ("Qual ação o spec de aprovação propõe"). Em
- * resumo: `decide()` dá `require_approval` a todo tipo sem regra, e o
+ * inteiro está em `e2e/README.md` ("Which action the approval spec proposes, and why").
+ * Em resumo: `decide()` dá `require_approval` a todo tipo sem regra, e o
  * `permissions.json` de um projeto recém-criado é vazio; entre os tipos que
  * ficam `pending`, `write_file` é um dos que NÃO têm executor na api
  * (`ApproveActionUseCase` o devolve aprovado sem efeito), e com ator `user`
