@@ -51,8 +51,15 @@ env:
   OTP_VERSION: '29.1.1'
 
 jobs:
+  imagens:
+    name: Imagens de terceiro do compose
+    # Preso a SHA do brabo-infra `dev` (ADR 0197): as imagens de `services:` vêm do compose de lá.
+    uses: viralabs-dev/brabo-infra/.github/workflows/imagens-do-compose.yml@7efd2fc28b65a2107531c1c116184168ce600708  # dev
+
   golden-set-qa:
     name: Golden-set do QA (ExUnit, contra Ollama real, container pelo broker)
+    needs: imagens
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     # Job-level SUBSTITUI o topo: `issues: write` é só do alarme final (AT-667).
     permissions:
@@ -70,7 +77,7 @@ jobs:
       postgres:
         # pgvector, não `postgres:16` puro — mesmo motivo do `test-engine` em
         # ci.yml: as migrations criam a extensão.
-        image: pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a
+        image: ${{ needs.imagens.outputs.pgvector }}
         env:
           POSTGRES_USER: brabo
           POSTGRES_PASSWORD: brabo
@@ -86,7 +93,7 @@ jobs:
         # A MESMA imagem de docker/docker-compose.yml, lida do serviço
         # `ollama` dele (ADR 0197) — o piso de `floor.json` é chaveado por
         # MODELO, não por ambiente.
-        image: ollama/ollama:0.40.13@sha256:b2f0122c476bc9fe7ce679d8bb4bd555351e25e2554eefb156f61cb0a89cf429
+        image: ${{ needs.imagens.outputs.ollama }}
         ports:
           - 11434:11434
         # Os mesmos do compose de dev: o modelo fica carregado entre os

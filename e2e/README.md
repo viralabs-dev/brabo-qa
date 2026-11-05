@@ -10,7 +10,7 @@ Decisão completa: [ADR 0120](../docs/adr/0120-e2e-de-navegador-contra-o-compose
 
 ```bash
 pnpm e2e:navegadores                      # uma vez: baixa o chromium
-SMOKE_KEEP_UP=1 bash docker/smoke.sh      # sobe o stack e DEIXA de pé
+SMOKE_KEEP_UP=1 bash "${BRABO_INFRA_DIR:-../brabo-infra}/docker/smoke.sh"      # sobe o stack e DEIXA de pé
 pnpm e2e                                  # roda os specs contra ele
 docker compose -f docker/docker-compose.prod.yml down -v
 ```
@@ -55,7 +55,7 @@ decide; a decisão prova o CORS cruzado com `Authorization`.
   e essa falha não fala sobre o produto.
 - **Asserção sobre mecanismo, não sobre tela.** Um indicador de "conectado"
   muda de cor, rótulo e idioma sem que o socket mude nada.
-- **Semeadura por HTTP** (`suporte/api.ts`), espelhando `docker/smoke.sh`. O
+- **Semeadura por HTTP** (`suporte/api.ts`), espelhando `${BRABO_INFRA_DIR:-../brabo-infra}/docker/smoke.sh`. O
   navegador é caro, e preparo lento é preparo que fica desligado.
 
 ## Só UM spec por execução pode usar o estado do `setup`
@@ -159,7 +159,7 @@ Saídas, em ordem de preferência:
 
 1. esperar a janela drenar (o primeiro degrau são 30 segundos);
 2. subir o compose com o teto mais permissivo só para a sessão de trabalho:
-   `AUTH_LOCKOUT_IP_THRESHOLDS=200:5 SMOKE_KEEP_UP=1 bash docker/smoke.sh`.
+   `AUTH_LOCKOUT_IP_THRESHOLDS=200:5 SMOKE_KEEP_UP=1 bash "${BRABO_INFRA_DIR:-../brabo-infra}/docker/smoke.sh"`.
 
 `suporte/api.ts` já reconhece esse 401 e devolve uma mensagem dizendo isto —
 sem ela, a próxima pessoa caça um bug de credencial que não existe. Foi o que

@@ -16,12 +16,12 @@ import { defineConfig, devices } from '@playwright/test';
  *   que o handshake sobe exige um WebSocket real.
  *
  * O que ele NÃO é: uma segunda suite funcional. `apps/web` já testa
- * componente a componente e `docker/smoke.sh` já prova que as imagens de
+ * componente a componente e `${BRABO_INFRA_DIR:-../brabo-infra}/docker/smoke.sh` já prova que as imagens de
  * produção sobem e conversam por HTTP. Aqui a pergunta é a terceira:
  * "um navegador de verdade, em outra origem, consegue entrar e ficar
  * dentro?".
  *
- * Roda contra o compose de PRODUÇÃO (`docker/smoke.sh` com
+ * Roda contra o compose de PRODUÇÃO (`${BRABO_INFRA_DIR:-../brabo-infra}/docker/smoke.sh` com
  * `SMOKE_KEEP_UP=1`), não contra o `vite dev`: as origens cruzadas
  * (`:8088` → `:3000`) só existem lá, e é exatamente delas que os últimos
  * bugs de cookie/CORS/socket vieram.
