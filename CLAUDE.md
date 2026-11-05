@@ -14,7 +14,7 @@ próprios; aqui só entra o que precisa de MAIS DE UM repositório ou do sistema
 - Capability só é declarada quando provada pela suíte; sem prova, declara-se `false` e degrada.
 
 ## E2E (`e2e/`)
-- Playwright, só chromium. Roda contra o compose de PRODUÇÃO (`docker/smoke.sh` com `SMOKE_KEEP_UP=1`), nunca contra o `vite dev`:
+- Playwright, só chromium. Roda contra o compose de PRODUÇÃO (`${BRABO_INFRA_DIR:-../brabo-infra}/docker/smoke.sh` com `SMOKE_KEEP_UP=1`), nunca contra o `vite dev`:
   refresh em cookie `httpOnly`, CSRF em origem cruzada `:8088`→`:3000` e ticket de uso único do socket (RN-108) contra o engine
   numa terceira origem só existem com as três origens distintas, e jsdom não alcança nenhuma.
 - NÃO é membro de workspace: lockfile próprio, `pnpm --dir e2e`, nunca `pnpm --filter`.

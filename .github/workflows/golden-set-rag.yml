@@ -29,8 +29,17 @@ env:
   OTP_VERSION: '29.1.1'
 
 jobs:
+  imagens:
+    name: Imagens de terceiro do compose
+    # Preso a SHA do brabo-infra `dev` (ADR 0197): as imagens de `services:` vêm do compose de lá.
+    uses: viralabs-dev/brabo-infra/.github/workflows/imagens-do-compose.yml@04519644fcb75419c5b2f01c76417a0906792d54  # dev (brabo-infra PR #2)
+    with:
+      infra_ref: 04519644fcb75419c5b2f01c76417a0906792d54
+
   golden-set-rag:
     name: Golden-set do RAG (ExUnit, contra Ollama real)
+    needs: imagens
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # Job-level SUBSTITUI o `permissions:` do topo: `contents: read` volta
@@ -44,7 +53,7 @@ jobs:
         # pgvector, não `postgres:16` puro — mesmo motivo do `test-engine` em
         # ci.yml: as migrations criam a extensão e o corpus indexado depende
         # dela pra busca vetorial.
-        image: pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a
+        image: ${{ needs.imagens.outputs.pgvector }}
         env:
           POSTGRES_USER: brabo
           POSTGRES_PASSWORD: brabo
@@ -62,7 +71,7 @@ jobs:
         # não por ambiente) continuar válido aqui. Até o ADR 0197 isso era uma
         # PROMESSA, guardada por um literal igual ao do compose; agora é
         # CONSTRUÇÃO: a referência é lida do serviço `ollama` do compose.
-        image: ollama/ollama:0.40.13@sha256:b2f0122c476bc9fe7ce679d8bb4bd555351e25e2554eefb156f61cb0a89cf429
+        image: ${{ needs.imagens.outputs.ollama }}
         ports:
           - 11434:11434
         # `ollama list` como health-cmd, não `curl` — `curl` roda DENTRO do
