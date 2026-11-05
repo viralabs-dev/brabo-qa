@@ -26,7 +26,7 @@ import {
  * seletor estrutural (`data-testid`/`data-origem`), nunca sobre texto de tela.
  *
  * O que NÃO prova, e não se chama de streaming: o `agent.delta`, que só um
- * provider de verdade emite (ver "O que NÃO está coberto" no README).
+ * provider de verdade emite (ver "What is NOT covered" no README).
  *
  * Sessão de navegador própria (`cookiesDeUmLoginProprio`): o estado do `setup`
  * é de `socket-da-sessao.spec.ts` e os cookies da semeadura são de
