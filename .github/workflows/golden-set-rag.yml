@@ -29,12 +29,7 @@ env:
   OTP_VERSION: '29.1.1'
 
 jobs:
-  # pgvector e ollama vêm do compose de dev, não de um literal aqui (ADR 0197).
-  imagens:
-    uses: ./.github/workflows/imagens-do-compose.yml
-
   golden-set-rag:
-    needs: imagens
     name: Golden-set do RAG (ExUnit, contra Ollama real)
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -49,7 +44,7 @@ jobs:
         # pgvector, não `postgres:16` puro — mesmo motivo do `test-engine` em
         # ci.yml: as migrations criam a extensão e o corpus indexado depende
         # dela pra busca vetorial.
-        image: ${{ needs.imagens.outputs.pgvector }}
+        image: pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a
         env:
           POSTGRES_USER: brabo
           POSTGRES_PASSWORD: brabo
@@ -67,7 +62,7 @@ jobs:
         # não por ambiente) continuar válido aqui. Até o ADR 0197 isso era uma
         # PROMESSA, guardada por um literal igual ao do compose; agora é
         # CONSTRUÇÃO: a referência é lida do serviço `ollama` do compose.
-        image: ${{ needs.imagens.outputs.ollama }}
+        image: ollama/ollama:0.40.13@sha256:b2f0122c476bc9fe7ce679d8bb4bd555351e25e2554eefb156f61cb0a89cf429
         ports:
           - 11434:11434
         # `ollama list` como health-cmd, não `curl` — `curl` roda DENTRO do
@@ -87,6 +82,18 @@ jobs:
       OLLAMA_HOST: http://localhost:11434
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          path: qa
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-api
+          ref: dev
+          path: brabo-api
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-engine
+          ref: dev
+          path: brabo-engine
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413  # v6.1.0
         with:
@@ -96,6 +103,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+          cache-dependency-path: brabo-api/pnpm-lock.yaml
 
       - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124  # v1
         with:
@@ -109,15 +117,16 @@ jobs:
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: |
-            apps/engine/deps
-            apps/engine/_build
-          key: ${{ runner.os }}-mix-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('apps/engine/mix.lock') }}
+            brabo-engine/deps
+            brabo-engine/_build
+          key: ${{ runner.os }}-mix-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('brabo-engine/mix.lock') }}
           restore-keys: ${{ runner.os }}-mix-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-
 
       # node_modules completo da api: `seed-golden-set-rag.ts` roda por
       # `ts-node`, dentro de `mix golden_set.rag` (System.cmd), e precisa do
       # NestFactory + Drizzle + todo o resto que o AppModule importa.
       - run: pnpm install --frozen-lockfile
+        working-directory: brabo-api
 
       # `/api/pull` com `stream:false` bloqueia até completar e devolve o
       # JSON final — sem loop de polling. ~274MB; --max-time generoso pra
@@ -135,7 +144,8 @@ jobs:
       # chamam migration nenhuma) — confirmado lendo db/migrate.ts, que é
       # script separado.
       - name: Migrations da api
-        run: pnpm --filter api db:migrate
+        working-directory: brabo-api
+        run: pnpm run db:migrate
 
       # O golden-set PULA (não falha) quando a api não responde em `API_URL`,
       # e essa é a pré-condição de AMBIENTE que o ADR 0132 declara — num job
@@ -148,10 +158,11 @@ jobs:
       # `HybridSearchUseCase` direto. Esta instância existe para responder ao
       # `/health` que o teste exige antes de aceitar medir.
       - name: Build da api
-        run: pnpm --filter api build
+        working-directory: brabo-api
+        run: pnpm run build
 
       - name: Subir a api e esperar o /health
-        working-directory: apps/api
+        working-directory: brabo-api
         run: |
           set -euo pipefail
           node dist/main.js > /tmp/api.log 2>&1 &
@@ -167,12 +178,16 @@ jobs:
           tail -50 /tmp/api.log
           exit 1
 
+      # Os golden-sets moram aqui (AT-703) e rodam DENTRO do engine: copia-os para o test/ dele.
+      - name: Copiar os golden-sets para o engine
+        run: cp -r qa/golden/engine/test/. brabo-engine/test/
+
       - name: mix deps.get
-        working-directory: apps/engine
+        working-directory: brabo-engine
         run: mix deps.get
 
       - name: Compilar com --warnings-as-errors
-        working-directory: apps/engine
+        working-directory: brabo-engine
         run: mix compile --warnings-as-errors
 
       # Só o `:golden_set_rag` — não a suíte inteira (isso é o `test-engine`
@@ -184,8 +199,8 @@ jobs:
       # ser gerado aqui, ao contrário de docker/smoke.sh (que sobe com
       # NODE_ENV=production de propósito).
       - name: mix golden_set.rag
-        working-directory: apps/engine
-        run: mix golden_set.rag 2>&1 | tee /tmp/golden-rag.log
+        working-directory: brabo-engine
+        run: MIX_ENV=test mix test --only golden_set_rag 2>&1 | tee /tmp/golden-rag.log
 
       # Guarda do falso-verde, a mesma de `ci.yml` ("Nenhum teste pode ter
       # sido excluído além dos golden-sets"), aplicada ao caso inverso: lá o
@@ -229,5 +244,5 @@ jobs:
           JOB: ${{ job.status }}
         run: |
           set -euo pipefail
-          source scripts/ci/alarmar-prova.sh
+          source qa/scripts/ci/alarmar-prova.sh
           alarmar 'golden-set-rag' "${JOB}" 'o passo "mix golden_set.rag" tem a contagem de casos e o log da api'

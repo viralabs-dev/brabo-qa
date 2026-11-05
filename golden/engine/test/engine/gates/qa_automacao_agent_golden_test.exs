@@ -36,7 +36,7 @@ defmodule Engine.Gates.QaAutomacaoAgentGoldenTest do
   duplicasse, este módulo usa `Engine.DataCase` (banco `engine_test`,
   isolado), enquanto a api de verdade grava no banco de DEV
   (`DATABASE_URL`). São bancos DIFERENTES: nada que `Engine.Repo` leia aqui
-  seria visível para a api, e vice-versa. `apps/api/scripts/seed-golden-set-qa.ts`
+  seria visível para a api, e vice-versa. `brabo-api/scripts/seed-golden-set-qa.ts`
   roda DENTRO do processo da api (mesmo banco, mesmos casos de uso reais) e
   devolve, pronto, tudo que este teste precisa — inclusive o CAMINHO do
   worktree já materializado em disco (o script faz o próprio `git clone` do
@@ -68,7 +68,7 @@ defmodule Engine.Gates.QaAutomacaoAgentGoldenTest do
   # chamada.
   @moduletag ownership_timeout: :infinity
 
-  # apps/engine/test/engine/gates/ -> raiz do monorepo.
+  # apps/engine/test/engine/gates/ -> pasta do brabo-api, irmã do brabo-engine.
   @repo_root Path.expand("../../../../..", __DIR__)
   @floor_path Path.expand("../../fixtures/golden_set_qa/floor.json", __DIR__)
 
@@ -203,8 +203,8 @@ defmodule Engine.Gates.QaAutomacaoAgentGoldenTest do
       {"DATABASE_URL", System.get_env("DATABASE_URL")}
     ]
 
-    case System.cmd("pnpm", ["--filter", "api", "golden-set:qa-seed"],
-           cd: @repo_root,
+    case System.cmd("pnpm", ["run", "golden-set:qa-seed"],
+           cd: @api_dir,
            env: env,
            stderr_to_stdout: false
          ) do

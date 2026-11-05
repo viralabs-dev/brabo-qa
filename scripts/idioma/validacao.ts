@@ -30,12 +30,12 @@ import { AMPLIADA, PARAMETROS_AT080, classificar, type Idioma, type Veredito } f
 // --- Leitura do código do produto -------------------------------------------
 
 export const FONTES = {
-  orientacao: 'apps/engine/lib/engine/harness/idioma_da_resposta.ex',
-  resumo: 'apps/engine/lib/engine/harness/context_manager.ex',
-  persona: 'apps/api/src/db/seeds/criativo-instructions.ts',
-  emitArtifact: 'apps/engine/lib/engine/harness/tools/emit_artifact.ex',
-  perguntas: 'apps/engine/lib/engine/harness/tools/ask_structured_questions.ex',
-  schemas: 'apps/engine/lib/engine/harness/artifact_schemas.ex',
+  orientacao: '../brabo-engine/lib/engine/harness/idioma_da_resposta.ex',
+  resumo: '../brabo-engine/lib/engine/harness/context_manager.ex',
+  persona: '../brabo-api/src/db/seeds/criativo-instructions.ts',
+  emitArtifact: '../brabo-engine/lib/engine/harness/tools/emit_artifact.ex',
+  perguntas: '../brabo-engine/lib/engine/harness/tools/ask_structured_questions.ex',
+  schemas: '../brabo-engine/lib/engine/harness/artifact_schemas.ex',
 } as const;
 
 export interface TextosDaOrientacao {

@@ -1,0 +1,31 @@
+{
+  "name": "@brabo/qa-scripts",
+  "private": true,
+  "license": "MIT",
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@11.3.0",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p idioma && tsc --noEmit -p jev/vivo",
+    "idioma:medir": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON idioma/medir.ts",
+    "idioma:extrair": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON idioma/extrair.ts",
+    "idioma:rotular": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON idioma/rotular.ts",
+    "jev:replay": "node jev/replay.ts",
+    "jev:analise": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON jev/analise.ts",
+    "jev:menu": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON jev/menu-relatorio.ts",
+    "jev:vivo": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON jev/vivo/vivo.ts",
+    "idioma:validar": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON idioma/validar.ts",
+    "idioma:diagnosticar": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON idioma/diagnostico-haiku.ts",
+    "idioma:revisar": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON idioma/revisao.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.12"
+  },
+  "dependencies": {
+    "picomatch": "^4.0.5",
+    "yaml": "^2.9.0"
+  }
+}

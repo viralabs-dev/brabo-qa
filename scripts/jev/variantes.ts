@@ -5,7 +5,7 @@
  * ferramenta escolhida, nem o argumento, nem o resultado, nem o texto que o
  * modelo escreveu naquele passo (`Passo.texto` só é lido dos passos ANTERIORES).
  *
- * Fonte no produto (`ToolLoop.Default.loop/1`, `apps/engine/lib/engine/harness/tool_loop.ex`):
+ * Fonte no produto (`ToolLoop.Default.loop/1`, `../brabo-engine/lib/engine/harness/tool_loop.ex`):
  *   - `kickoff`: `ctx.messages[0]`, a mensagem inicial do laço (`initial_message/2` de cada agente);
  *   - `resultado` completo: a mensagem `role: tool` que o próprio laço anexa
  *     (`concluir_despacho/5`, tool_loop.ex) — o event log a corta em 2 000;

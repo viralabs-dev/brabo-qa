@@ -16,7 +16,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COMPOSE_FILE="${REPO_ROOT}/docker/docker-compose.prod.yml"
+# O compose de produção mora no brabo-infra (irmão); BRABO_INFRA_DIR aponta para ele.
+COMPOSE_FILE="${COMPOSE_FILE:-${BRABO_INFRA_DIR:-${REPO_ROOT}/../brabo-infra}/docker/docker-compose.prod.yml}"
 COMPOSE=(docker compose -f "${COMPOSE_FILE}")
 
 # Portas: os defaults do compose. Sobrescrevíveis pra rodar ao lado do stack de

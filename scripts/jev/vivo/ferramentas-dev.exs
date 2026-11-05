@@ -17,7 +17,7 @@
 
 defmodule FerramentasDev do
   @raiz File.cwd!()
-  @registro Path.join(@raiz, "apps/engine/lib/engine/dev/tools.ex")
+  @registro Path.join(@raiz, "../brabo-engine/lib/engine/dev/tools.ex")
 
   def run do
     fonte = File.read!(@registro)
@@ -33,7 +33,7 @@ defmodule FerramentasDev do
       end)
 
     IO.puts(json(%{
-      "fonte" => "apps/engine/lib/engine/dev/tools.ex (@registry) + spec/0 de cada módulo",
+      "fonte" => "../brabo-engine/lib/engine/dev/tools.ex (@registry) + spec/0 de cada módulo",
       "ferramentas" => Enum.map(specs, fn {arquivo, s} -> Map.put(s, "arquivo", Path.relative_to(arquivo, @raiz)) end)
     }))
   end
@@ -78,7 +78,7 @@ defmodule FerramentasDev do
       |> Enum.map(&Macro.underscore/1)
       |> Path.join()
 
-    caminho = Path.join([@raiz, "apps/engine/lib/engine", relativo <> ".ex"])
+    caminho = Path.join([@raiz, "../brabo-engine/lib/engine", relativo <> ".ex"])
     if File.exists?(caminho), do: caminho, else: raise("fonte de #{completo} não encontrada: #{caminho}")
   end
 

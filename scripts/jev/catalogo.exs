@@ -29,9 +29,9 @@ registros = %{
 alias Engine.Harness.Tools, as: H
 
 inline = %{
-  # apps/engine/lib/engine/agents/criativo_server.ex:111
+  # ../brabo-engine/lib/engine/agents/criativo_server.ex:111
   "criativo" => [{H.EmitArtifact, :spec}, {H.AskStructuredQuestions, :spec}],
-  # apps/engine/lib/engine/agents/po_server.ex:116
+  # ../brabo-engine/lib/engine/agents/po_server.ex:116
   "po" =>
     Enum.map(
       [
@@ -47,7 +47,7 @@ inline = %{
       ],
       &{&1, :spec}
     ),
-  # apps/engine/lib/engine/agents/arquiteto_server.ex:108
+  # ../brabo-engine/lib/engine/agents/arquiteto_server.ex:108
   "arquiteto" =>
     Enum.map(
       [
@@ -62,17 +62,17 @@ inline = %{
       ],
       &{&1, :spec}
     ),
-  # apps/engine/lib/engine/agents/dev_lead_server.ex:171
+  # ../brabo-engine/lib/engine/agents/dev_lead_server.ex:171
   "dev-lead" => [
     {Engine.Agents.DevLeadTools, :spec},
     {Engine.Agents.DevLeadTools, :spec_assess_implementability},
     {H.EmitArtifact, :spec}
   ],
-  # apps/engine/lib/engine/agents/ux_designer_server.ex:112
+  # ../brabo-engine/lib/engine/agents/ux_designer_server.ex:112
   "ux-designer" => [{Engine.Agents.UxDesignerTools, :spec}, {H.EmitArtifact, :spec}],
-  # apps/engine/lib/engine/agents/staff_server.ex:112
+  # ../brabo-engine/lib/engine/agents/staff_server.ex:112
   "staff" => [{Engine.Agents.StaffTools, :spec}, {H.EmitArtifact, :spec}],
-  # apps/engine/lib/engine/infra/infra_lead_server.ex:179 (o ator gravado é "infra")
+  # ../brabo-engine/lib/engine/infra/infra_lead_server.ex:179 (o ator gravado é "infra")
   "infra" =>
     Enum.map(
       [

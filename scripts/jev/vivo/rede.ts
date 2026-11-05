@@ -4,11 +4,11 @@
  *
  * - `chamarChat`: `POST /api/v1/chat/completions`, com as mensagens no fio
  *   como a api as põe (`toWireMessage`/`toWireTool` de
- *   `apps/api/src/infrastructure/llm/openai-compatible-provider.ts`, portadas —
+ *   `../brabo-api/src/infrastructure/llm/openai-compatible-provider.ts`, portadas —
  *   o arquivo tem decorador do Nest e o Node não o executa daqui). O custo é o
  *   `usage.cost` da resposta, o número que a RN-665 (ADR 0188) pôs no metering.
  * - `chamarJev`: o adaptador `JevToolRouter`
- *   (`apps/api/src/infrastructure/llm/jev-tool-router.ts`), portado pelo mesmo
+ *   (`../brabo-api/src/infrastructure/llm/jev-tool-router.ts`), portado pelo mesmo
  *   motivo, com o MESMO teto (`TOOL_ROUTER_TIMEOUT_MS`, padrão 2 000 ms) e a
  *   MESMA leitura da resposta (`lerRespostaDoJev`, importada do produto).
  *

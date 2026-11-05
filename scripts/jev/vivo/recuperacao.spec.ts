@@ -6,7 +6,7 @@ import { recuperar } from './recuperacao.ts';
 const RAIZ = join(import.meta.dirname, '..', '..', '..');
 const FERRAMENTAS = ['write_file', 'read_file', 'terminal', 'emit_qa_verdict'];
 
-// Os casos de `apps/engine/test/engine/harness/tool_call_recovery_test.exs`, um a um.
+// Os casos de `../brabo-engine/test/engine/harness/tool_call_recovery_test.exs`, um a um.
 describe('recuperar (porta de ToolCallRecovery.from_content/2)', () => {
   it('bloco ```json com várias chamadas concatenadas', () => {
     const conteudo = [
@@ -64,8 +64,8 @@ describe('recuperar (porta de ToolCallRecovery.from_content/2)', () => {
 });
 
 describe('a regra do engine não mudou (trechos-âncora do .ex)', () => {
-  const ex = readFileSync(join(RAIZ, 'apps/engine/lib/engine/harness/tool_call_recovery.ex'), 'utf8');
-  const laco = readFileSync(join(RAIZ, 'apps/engine/lib/engine/harness/tool_loop.ex'), 'utf8');
+  const ex = readFileSync(join(RAIZ, '../brabo-engine/lib/engine/harness/tool_call_recovery.ex'), 'utf8');
+  const laco = readFileSync(join(RAIZ, '../brabo-engine/lib/engine/harness/tool_loop.ex'), 'utf8');
 
   it('nome ancorado no registro e `parameters` como sinônimo', () => {
     expect(ex).toContain('do: name in tool_names');

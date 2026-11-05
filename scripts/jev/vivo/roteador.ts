@@ -1,6 +1,6 @@
 /**
  * A política do roteador MORA NA API (AT-238, ADR 0179, RN-625):
- * `apps/api/src/domain/llm/tool-router.ts`. Este arquivo só a reexporta para o
+ * `../brabo-api/src/domain/llm/tool-router.ts`. Este arquivo só a reexporta para o
  * teste ao vivo da AT-239 rodar a MESMA régua que o produto roda — o recorte do
  * `state`, o pedido ao Jev, a leitura da resposta e o menu P3 —, nunca uma
  * cópia que diverge no primeiro ajuste. Mesmo desenho de
@@ -19,10 +19,10 @@ export {
   montarPedidoAoJev,
   recortarEstado,
   temColisaoDeNome,
-} from '../../../apps/api/src/domain/llm/tool-router.ts';
+} from '../../../../brabo-api/src/domain/llm/tool-router.ts';
 export type {
   EstadoParaOJev,
   MotivoDaQueda,
   OrigemDaQueda,
   PedidoAoJev,
-} from '../../../apps/api/src/domain/llm/tool-router.ts';
+} from '../../../../brabo-api/src/domain/llm/tool-router.ts';

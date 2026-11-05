@@ -1,6 +1,6 @@
 /**
  * PORTA de `Engine.Harness.ToolCallRecovery.from_content/2`
- * (`apps/engine/lib/engine/harness/tool_call_recovery.ex`) para o teste ao vivo
+ * (`../brabo-engine/lib/engine/harness/tool_call_recovery.ex`) para o teste ao vivo
  * da AT-239: o engine não roda neste instrumento, e a pergunta "quantos passos
  * passaram pela recuperação" só se responde aplicando a MESMA regra à resposta
  * do modelo. `recuperacao.spec.ts` traz os casos do `tool_call_recovery_test.exs`

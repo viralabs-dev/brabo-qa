@@ -72,7 +72,7 @@ export interface RespostaDoChat {
   transporte?: boolean;
 }
 
-/** A forma de `ResultadoDoRoteador` (`apps/api/src/application/ports/tool-router.port.ts`). */
+/** A forma de `ResultadoDoRoteador` (`../brabo-api/src/application/ports/tool-router.port.ts`). */
 export type ResultadoDoJev =
   | {
       status: 'decidido';

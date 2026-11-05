@@ -20,7 +20,7 @@ import type { Historia, Modulo, Tarefa } from './dados.ts';
 const lista = (itens: readonly string[]): string => (itens.length === 0 ? '(nenhum declarado)' : itens.map((i) => `- ${i}`).join('\n'));
 const listaOuNenhum = (itens: readonly string[]): string => (itens.length === 0 ? '(nenhum)' : itens.map((i) => `- ${i}`).join('\n'));
 
-/** `apps/engine/lib/engine/dev/dev_agent_server.ex:484` (`initial_message/2`). */
+/** `../brabo-engine/lib/engine/dev/dev_agent_server.ex:484` (`initial_message/2`). */
 export function kickoffDoDev(tarefa: Pick<Tarefa, 'title'>, historia: Pick<Historia, 'title'> | null): string {
   return (
     `Implemente a task "${tarefa.title}" da story "${historia?.title ?? ''}". ` +
@@ -37,7 +37,7 @@ export function kickoffDoDev(tarefa: Pick<Tarefa, 'title'>, historia: Pick<Histo
   );
 }
 
-/** `apps/engine/lib/engine/gates/qa_automacao_agent.ex:108` (`initial_message/2`). */
+/** `../brabo-engine/lib/engine/gates/qa_automacao_agent.ex:108` (`initial_message/2`). */
 export function kickoffDaQaAutomacao(tarefa: Pick<Tarefa, 'title'>, historia: Pick<Historia, 'title' | 'rf' | 'rnf'> | null): string {
   const regras = [...(historia?.rf ?? []), ...(historia?.rnf ?? [])];
   const listaRegras = regras.map((r, i) => `${i + 1}. ${r}`).join('\n');
@@ -72,7 +72,7 @@ const descreverModulos = (mods: readonly Modulo[]): string =>
     : mods.map((m) => `- ${m.name} (${m.stack ?? '?'}): ${m.responsibility ?? ''}`).join('\n');
 
 /**
- * `apps/engine/lib/engine/gates/qa_estrategia_agent.ex` (`initial_message`).
+ * `../brabo-engine/lib/engine/gates/qa_estrategia_agent.ex` (`initial_message`).
  * Desde o ADR 0192 (AT-269, RN-674) a QA-estratégia roda DEPOIS da entrega do
  * dev, sobre a task entregue e a lista de arquivos que ela tocou (`git diff
  * dev...HEAD`, até 40 nomes) — não mais sobre o mapa de módulos, antes do
@@ -134,7 +134,7 @@ Você tem poucas iterações: duas ou três leituras e então
 `;
 }
 
-/** `apps/engine/lib/engine/gates/appsec_agent.ex:79` — mesma limitação de história da QA-estratégia. */
+/** `../brabo-engine/lib/engine/gates/appsec_agent.ex:79` — mesma limitação de história da QA-estratégia. */
 export function kickoffDoAppsec(historia: Historia | null, modulos: readonly Modulo[]): string {
   return `Você é o appsec — o SecOps num segundo momento, de DESIGN, ANTES de
 existir código ou PR para a story "${historia?.title ?? '(story não recuperável do event log)'}". Você

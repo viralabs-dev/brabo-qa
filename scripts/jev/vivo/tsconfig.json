@@ -1,6 +1,6 @@
 {
   // O teste ao vivo da AT-239 (`jev:vivo`) reexporta a política do roteador
-  // que MORA NA API (`apps/api/src/domain/llm/tool-router.ts`, ver
+  // que MORA NA API (`../brabo-api/src/domain/llm/tool-router.ts`, ver
   // `roteador.ts`). Aquele arquivo é CommonJS (a api não tem
   // `"type": "module"`), e com `verbatimModuleSyntax` o TypeScript recusa cada
   // `export` dele (TS1287) — o mesmo caso de `../../idioma/tsconfig.json`, com

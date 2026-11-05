@@ -8,7 +8,7 @@ name: Golden-set do QA (agendado)
 #   chamado pela api em `POST /internal/actions/execute`;
 # - o BROKER de pé, nativo no runner — desde a RN-502 um projeto `container`
 #   sem container `running` não roda comando nenhum, e o seed
-#   (`apps/api/scripts/golden-set-qa-container.ts`) sobe o container de cada
+#   (`brabo-api/scripts/golden-set-qa-container.ts`) sobe o container de cada
 #   caso pelo caminho de produção. O broker é o ÚNICO processo deste job que
 #   fala com o Docker do runner; api e engine não o tocam;
 # - a MESMA pasta gerenciada nos três lados: api e engine rodam no host, então
@@ -51,12 +51,7 @@ env:
   OTP_VERSION: '29.1.1'
 
 jobs:
-  # pgvector e ollama vêm do compose de dev, não de um literal aqui (ADR 0197).
-  imagens:
-    uses: ./.github/workflows/imagens-do-compose.yml
-
   golden-set-qa:
-    needs: imagens
     name: Golden-set do QA (ExUnit, contra Ollama real, container pelo broker)
     runs-on: ubuntu-latest
     # Job-level SUBSTITUI o topo: `issues: write` é só do alarme final (AT-667).
@@ -75,7 +70,7 @@ jobs:
       postgres:
         # pgvector, não `postgres:16` puro — mesmo motivo do `test-engine` em
         # ci.yml: as migrations criam a extensão.
-        image: ${{ needs.imagens.outputs.pgvector }}
+        image: pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a
         env:
           POSTGRES_USER: brabo
           POSTGRES_PASSWORD: brabo
@@ -91,7 +86,7 @@ jobs:
         # A MESMA imagem de docker/docker-compose.yml, lida do serviço
         # `ollama` dele (ADR 0197) — o piso de `floor.json` é chaveado por
         # MODELO, não por ambiente.
-        image: ${{ needs.imagens.outputs.ollama }}
+        image: ollama/ollama:0.40.13@sha256:b2f0122c476bc9fe7ce679d8bb4bd555351e25e2554eefb156f61cb0a89cf429
         ports:
           - 11434:11434
         # Os mesmos do compose de dev: o modelo fica carregado entre os
@@ -117,6 +112,23 @@ jobs:
       BROKER_URL: http://localhost:8090
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          path: qa
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-api
+          ref: dev
+          path: brabo-api
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-engine
+          ref: dev
+          path: brabo-engine
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-broker
+          ref: dev
+          path: brabo-broker
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413  # v6.1.0
         with:
@@ -126,6 +138,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
+          cache-dependency-path: brabo-api/pnpm-lock.yaml
 
       - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124  # v1
         with:
@@ -137,12 +150,13 @@ jobs:
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: |
-            apps/engine/deps
-            apps/engine/_build
-          key: ${{ runner.os }}-mix-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('apps/engine/mix.lock') }}
+            brabo-engine/deps
+            brabo-engine/_build
+          key: ${{ runner.os }}-mix-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-${{ hashFiles('brabo-engine/mix.lock') }}
           restore-keys: ${{ runner.os }}-mix-${{ env.OTP_VERSION }}-${{ env.ELIXIR_VERSION }}-
 
       - run: pnpm install --frozen-lockfile
+        working-directory: brabo-api
 
       - name: Puxar qwen2.5-coder:latest no Ollama do job
         run: |
@@ -164,9 +178,9 @@ jobs:
         run: |
           set -euo pipefail
           imagem=$(sed -nE "s/^[[:space:]]*'(node:[^']+@sha256:[0-9a-f]{64})';$/\1/p" \
-            apps/api/scripts/golden-set-qa-container.ts)
+            brabo-api/scripts/golden-set-qa-container.ts)
           [ -n "$imagem" ] \
-            || { echo "::error::IMAGEM_DO_GOLDEN_SET_QA não encontrada (ou sem digest) em apps/api/scripts/golden-set-qa-container.ts"; exit 1; }
+            || { echo "::error::IMAGEM_DO_GOLDEN_SET_QA não encontrada (ou sem digest) em brabo-api/scripts/golden-set-qa-container.ts"; exit 1; }
           echo "imagem: $imagem"
           inicio=$(date +%s)
           docker pull "$imagem"
@@ -174,13 +188,15 @@ jobs:
           mkdir -p "$PROJECT_WORKSPACES_ROOT"
 
       - name: Migrations da api
-        run: pnpm --filter api db:migrate
+        working-directory: brabo-api
+        run: pnpm run db:migrate
 
       - name: Build da api
-        run: pnpm --filter api build
+        working-directory: brabo-api
+        run: pnpm run build
 
       - name: Subir a api e esperar o /health
-        working-directory: apps/api
+        working-directory: brabo-api
         run: |
           set -euo pipefail
           node dist/main.js > /tmp/api.log 2>&1 &
@@ -198,8 +214,12 @@ jobs:
       # daemon. Sem porta publicada nem rede `internal` aqui — as camadas de
       # contenção do compose não existem num runner efêmero, e o que sobra é
       # o que o broker aceita (cinco operações, spec computada pela api).
+      - name: Dependências do broker
+        working-directory: brabo-broker
+        run: pnpm install --frozen-lockfile
+
       - name: Subir o broker (nativo, com o Docker do runner) e esperar o /health
-        working-directory: apps/broker
+        working-directory: brabo-broker
         env:
           PROJECT_WORKSPACES_HOST_ROOT: /tmp/brabo-project-workspaces
           BROKER_PORT: '8090'
@@ -216,16 +236,20 @@ jobs:
           cat /tmp/broker.log
           exit 1
 
+      # Os golden-sets moram aqui (AT-703) e rodam DENTRO do engine: copia-os para o test/ dele.
+      - name: Copiar os golden-sets para o engine
+        run: cp -r qa/golden/engine/test/. brabo-engine/test/
+
       - name: mix deps.get
-        working-directory: apps/engine
+        working-directory: brabo-engine
         run: mix deps.get
 
       - name: Compilar com --warnings-as-errors
-        working-directory: apps/engine
+        working-directory: brabo-engine
         run: mix compile --warnings-as-errors
 
       - name: Subir o engine (servidor) e esperar o /health
-        working-directory: apps/engine
+        working-directory: brabo-engine
         run: |
           set -euo pipefail
           mix ecto.migrate
@@ -245,11 +269,11 @@ jobs:
       # (ratchet, só humano escreve), e reprova quando a api está de pé mas o
       # seed falha (`ContainerDoGoldenSetNaoSubiuError`, AT-076).
       - name: mix golden_set.qa
-        working-directory: apps/engine
+        working-directory: brabo-engine
         run: |
           set -o pipefail
           inicio=$(date +%s)
-          mix golden_set.qa 2>&1 | tee /tmp/golden-qa.log
+          MIX_ENV=test mix test --only golden_set_qa 2>&1 | tee /tmp/golden-qa.log
           status=$?
           echo "TEMPO mix golden_set.qa: $(( $(date +%s) - inicio ))s"
           exit $status
@@ -301,5 +325,5 @@ jobs:
           JOB: ${{ job.status }}
         run: |
           set -euo pipefail
-          source scripts/ci/alarmar-prova.sh
+          source qa/scripts/ci/alarmar-prova.sh
           alarmar 'golden-set-qa' "${JOB}" 'o passo "mix golden_set.qa" tem o placar e os logs da api, do broker e do engine'

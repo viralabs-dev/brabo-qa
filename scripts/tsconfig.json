@@ -1,0 +1,21 @@
+{
+  // O Node executa os `.ts` por type stripping (apaga tipos, não os verifica): este typecheck é o que dá sentido à anotação.
+  // `idioma/` e `jev/vivo/` têm tsconfig PRÓPRIO (segundo e terceiro passos do `typecheck`): reexportam código CommonJS do
+  // brabo-api (irmão, em checkout ao lado), que `verbatimModuleSyntax` recusaria.
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["jev/**/*.ts", "*.config.ts"],
+  "exclude": ["jev/vivo/**"]
+}

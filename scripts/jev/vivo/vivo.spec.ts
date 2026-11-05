@@ -8,7 +8,7 @@ const RAIZ = join(import.meta.dirname, '..', '..', '..');
 
 describe('ferramentas-dev.json (gerado de apps/engine por ferramentas-dev.exs)', () => {
   const ferramentas = lerFerramentas();
-  const registro = readFileSync(join(RAIZ, 'apps/engine/lib/engine/dev/tools.ex'), 'utf8');
+  const registro = readFileSync(join(RAIZ, '../brabo-engine/lib/engine/dev/tools.ex'), 'utf8');
   const lista = /@registry \[([^\]]*)\]/.exec(registro)?.[1] ?? '';
   const modulos = lista.split(',').map((s) => s.trim()).filter(Boolean);
 

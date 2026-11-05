@@ -1,0 +1,121 @@
+name: ci
+
+# CI do brabo-qa (AT-703, ADR 0252). Só roda em PR o que NÃO precisa do sistema de pé: typecheck e specs dos
+# scripts (leem arquivos dos irmãos em checkout ao lado), typecheck do e2e, actionlint e a conferência de que os
+# caminhos dos irmãos que os golden-sets usam existem. Os golden-sets são AGENDADOS (ADR 0138/0168) e o E2E de
+# navegador exige o compose de produção do brabo-infra: ficam fora do PR de propósito.
+on:
+  pull_request:
+  push:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '26.10.0'
+  PNPM_VERSION: '11.3.0'
+  ACTIONLINT_VERSION: '1.7.12'
+  ACTIONLINT_SHA256: '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8'
+
+jobs:
+  scripts:
+    name: Scripts (jev, idioma)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          path: qa
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-api
+          ref: dev
+          path: brabo-api
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-engine
+          ref: dev
+          path: brabo-engine
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413  # v6.1.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: pnpm install --frozen-lockfile
+        working-directory: qa/scripts
+      - name: Typecheck
+        working-directory: qa/scripts
+        run: pnpm typecheck
+      - name: Specs
+        working-directory: qa/scripts
+        run: pnpm test
+
+  e2e:
+    name: E2E (typecheck)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413  # v6.1.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: pnpm install --frozen-lockfile
+        working-directory: e2e
+      - run: pnpm typecheck
+        working-directory: e2e
+
+  workflows:
+    name: actionlint e caminhos dos irmãos
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          path: qa
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-api
+          ref: dev
+          path: brabo-api
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-engine
+          ref: dev
+          path: brabo-engine
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-broker
+          ref: dev
+          path: brabo-broker
+      - name: actionlint
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/actionlint.tar.gz \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          echo "${ACTIONLINT_SHA256}  /tmp/actionlint.tar.gz" | sha256sum -c -
+          sudo tar -xzf /tmp/actionlint.tar.gz -C /usr/local/bin actionlint
+          cd qa && actionlint
+      # Os golden-sets só rodam agendados: aqui se prova que o que eles pedem aos irmãos existe.
+      - name: Caminhos dos irmãos que os golden-sets usam
+        run: |
+          set -euo pipefail
+          for f in \
+            brabo-api/scripts/seed-golden-set-qa.ts brabo-api/scripts/seed-golden-set-rag.ts \
+            brabo-api/scripts/golden-set-qa-container.ts brabo-api/package.json \
+            brabo-engine/mix.exs brabo-engine/mix.lock brabo-engine/test/test_helper.exs \
+            brabo-broker/src/index.ts brabo-broker/package.json; do
+            [ -f "$f" ] || { echo "::error::falta $f no irmão"; exit 1; }
+          done
+          grep -q 'golden-set:qa-seed' brabo-api/package.json
+          grep -q 'golden-set:rag-seed' brabo-api/package.json
+          [ -f qa/golden/engine/test/fixtures/golden_set_qa/floor.json ]
+          [ -f qa/golden/engine/test/fixtures/golden_set_rag/floor.json ]

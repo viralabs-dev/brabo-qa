@@ -14,7 +14,7 @@ defmodule Engine.Rag.RagGoldenTest do
   peso + corte por limiar). Reimplementar a busca em Elixir só para este
   teste testaria uma SEGUNDA implementação, nunca a real — o mesmo erro que
   o ADR 0123 evitou usando o cliente LLM real em vez de simular o
-  julgamento. Por isso `apps/api/scripts/seed-golden-set-rag.ts` faz as DUAS
+  julgamento. Por isso `brabo-api/scripts/seed-golden-set-rag.ts` faz as DUAS
   coisas — provisiona o projeto/corpus E roda a busca para as 17 perguntas —
   e devolve o resultado já pronto; este módulo só invoca o script (mesmo
   mecanismo `System.cmd` do lado QA) e aplica o piso sobre o JSON que volta.
@@ -45,7 +45,7 @@ defmodule Engine.Rag.RagGoldenTest do
   @moduletag timeout: :infinity
   @moduletag ownership_timeout: :infinity
 
-  # apps/engine/test/engine/rag/ -> raiz do monorepo.
+  # apps/engine/test/engine/rag/ -> pasta do brabo-api, irmã do brabo-engine.
   @repo_root Path.expand("../../../../..", __DIR__)
   @floor_path Path.expand("../../fixtures/golden_set_rag/floor.json", __DIR__)
 
@@ -143,8 +143,8 @@ defmodule Engine.Rag.RagGoldenTest do
       {"DATABASE_URL", System.get_env("DATABASE_URL")}
     ]
 
-    case System.cmd("pnpm", ["--filter", "api", "golden-set:rag-seed"],
-           cd: @repo_root,
+    case System.cmd("pnpm", ["run", "golden-set:rag-seed"],
+           cd: @api_dir,
            env: env,
            stderr_to_stdout: false
          ) do

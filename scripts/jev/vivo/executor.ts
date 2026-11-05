@@ -27,7 +27,7 @@ export interface ResultadoDaFerramenta {
   ok: boolean;
 }
 
-/** `apps/engine/lib/engine/harness/tools/listar_contratos_de_modulos.ex` (`renderizar/3` sem contrato + `@sem_contrato`). */
+/** `../brabo-engine/lib/engine/harness/tools/listar_contratos_de_modulos.ex` (`renderizar/3` sem contrato + `@sem_contrato`). */
 const SEM_CONTRATO =
   'Nenhum contrato entre módulos foi declarado pelo Arquiteto neste projeto.\n\n' +
   'Sem contrato, a interface desse módulo NÃO está fixada. Não a deduza do\n' +

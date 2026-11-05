@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { kickoffDaQaAutomacao, kickoffDaQaEstrategia, kickoffDoAppsec, kickoffDoDev } from './kickoff.ts';
 
-const ENGINE = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'apps', 'engine', 'lib', 'engine');
+const ENGINE = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'brabo-engine', 'lib', 'engine');
 const fonte = (rel: string) => readFileSync(join(ENGINE, rel), 'utf8');
 
 const historia = { id: 'h', title: 'Recorde', description: 'Guardar o recorde.', rf: ['RF um', 'RF dois'], rnf: ['RNF um'], dod: ['DoD um'] };

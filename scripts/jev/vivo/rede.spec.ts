@@ -31,10 +31,10 @@ describe('o fio (porta de toWireMessage/toWireTool)', () => {
   });
 
   it('a porta segue o arquivo da api (trechos-âncora)', () => {
-    const fonte = readFileSync(join(RAIZ, 'apps/api/src/infrastructure/llm/openai-compatible-provider.ts'), 'utf8');
+    const fonte = readFileSync(join(RAIZ, '../brabo-api/src/infrastructure/llm/openai-compatible-provider.ts'), 'utf8');
     expect(fonte).toContain("tool_call_id: message.toolCallId ?? '',");
     expect(fonte).toContain('arguments: JSON.stringify(chamada.arguments),');
-    const adaptador = readFileSync(join(RAIZ, 'apps/api/src/infrastructure/llm/jev-tool-router.ts'), 'utf8');
+    const adaptador = readFileSync(join(RAIZ, '../brabo-api/src/infrastructure/llm/jev-tool-router.ts'), 'utf8');
     expect(adaptador).toContain('export const TETO_PADRAO_DO_JEV_MS = 2000;');
     expect(adaptador).toContain("nome === 'TimeoutError' || nome === 'AbortError'");
   });
