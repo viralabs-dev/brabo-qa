@@ -1,12 +1,12 @@
-# E2E de navegador
+# Browser E2E
 
-A quarta camada da pirâmide. As três de baixo já rodam com `pnpm test`;
-esta precisa de um **navegador de verdade** e do **compose de produção de
-pé**, porque o que ela prova só existe lá.
+The fourth layer of the pyramid. The three below already run with `pnpm test`;
+this one needs a **real browser** and the **production compose up**,
+because what it proves only exists there.
 
-Decisão completa: [ADR 0120](../docs/adr/0120-e2e-de-navegador-contra-o-compose-de-producao.md).
+Full decision: [ADR 0120](../docs/adr/0120-e2e-de-navegador-contra-o-compose-de-producao.md).
 
-## Como rodar
+## How to run
 
 ```bash
 pnpm e2e:navegadores                      # uma vez: baixa o chromium
@@ -15,202 +15,153 @@ pnpm e2e                                  # roda os specs contra ele
 docker compose -f docker/docker-compose.prod.yml down -v
 ```
 
-Da raiz, sempre por `pnpm e2e` / `pnpm --dir e2e ...`. **`pnpm --filter e2e`
-não funciona** — e não é bug, é o desenho abaixo.
+From the root, always via `pnpm e2e` / `pnpm --dir e2e ...`. **`pnpm --filter e2e`
+does not work** — and that is not a bug, it is the design below.
 
-## Por que fora do workspace
+## Why outside the workspace
 
-`e2e/` tem `pnpm-workspace.yaml` e `pnpm-lock.yaml` próprios, instalados com
-`pnpm install` de dentro desta pasta. É o mesmo desenho do `website/`
-([ADR 0117](../docs/adr/0117-lockfile-proprio-para-o-website.md)), pelo mesmo
-motivo: a árvore do Playwright não chega a imagem nenhuma, e deixá-la no
-lockfile da raiz faria o `pnpm audit` do produto reportar ferramenta de teste
-como se fosse superfície do que embarca.
+`e2e/` has its own `pnpm-workspace.yaml` and `pnpm-lock.yaml`, installed with
+`pnpm install` from inside this folder. It is the same design as `website/`
+([ADR 0117](../docs/adr/0117-lockfile-proprio-para-o-website.md)), for the same
+reason: the Playwright dependency tree does not reach any image, and leaving it in the root
+lockfile would make the product's `pnpm audit` report a test tool as if it were the surface of what ships.
 
-Que este pacote TESTE o produto não muda o argumento — o que decide é para
-onde a dependência **vai**, não sobre o que ela fala.
+That this package TESTS the product does not change the argument — what decides is where the
+dependency **goes**, not what it talks about.
 
-## O que estes testes provam, e por que só aqui
+## What these tests prove, and why only here
 
-| mecanismo | por que jsdom não alcança |
+| mechanism | why jsdom does not reach it |
 |---|---|
-| refresh em cookie `httpOnly` | `httpOnly` é garantia do BROWSER; em jsdom o cookie seria legível e a asserção passaria mentindo |
-| CSRF + origem cruzada (`:8088` → `:3000`) | não há origem de verdade nem preflight — o `main.ts` da api registra: "teste não faz preflight" |
-| sessão que sobrevive ao reload | é o único jeito de provar que o access em memória foi RECONSTRUÍDO do cookie, e não que nunca sumiu |
-| ticket de uso único do socket (RN-108) | exige handshake de WebSocket real contra o engine, numa TERCEIRA origem |
-| o CICLO do turno pelo canal (`turno-pelo-canal.spec.ts`, AT-338) | o `agent.status` (`working`, depois `idle`) e o `agent.error` só existem como frames do WebSocket real que a página abriu com o ticket de uso único, contra o engine numa TERCEIRA origem; a suite do web dubla o canal. O spec lê os FRAMES (`framereceived`) do tópico `session:<id>`, na ordem, e a bolha de falha pelo seletor estrutural `data-testid="falha-de-turno"` com `data-origem` |
-| a aprovação INLINE (`aprovacao-inline.spec.ts`, AT-068) | a decisão sai do `ApprovalCard` do chat da sessão como POST cruzado `:8088` → `:3000`, com o `Authorization` do access que a página reconstruiu do cookie httpOnly pelo double-submit; jsdom não tem preflight nem origem, e a suite do web testa o card com a api dublada. O spec asserta a REQUISIÇÃO observada (origem, Bearer, 201 com `denied`, refresh fora dela) e a FILA pela api — nunca o card sumindo |
+| refresh in an `httpOnly` cookie | `httpOnly` is a guarantee of the BROWSER; in jsdom the cookie would be readable and the assertion would pass while lying |
+| CSRF + cross-origin (`:8088` → `:3000`) | there is no real origin and no preflight — the api's `main.ts` records: "teste não faz preflight" |
+| session that survives reload | it is the only way to prove that the in-memory access token was REBUILT from the cookie, and not that it never disappeared |
+| single-use socket ticket (RN-108) | requires a real WebSocket handshake against the engine, from a THIRD origin |
+| the turn CYCLE through the channel (`turno-pelo-canal.spec.ts`, AT-338) | `agent.status` (`working`, then `idle`) and `agent.error` only exist as WebSocket frames from the real socket the page opened with the single-use ticket, against the engine on a THIRD origin; the web suite stubs the channel. The spec reads the FRAMES (`framereceived`) of the topic `session:<id>`, in order, and the failure bubble by the structural selector `data-testid="falha-de-turno"` with `data-origem` |
+| INLINE approval (`aprovacao-inline.spec.ts`, AT-068) | the decision leaves the `ApprovalCard` of the session chat as a cross-origin POST `:8088` → `:3000`, with the `Authorization` of the access token the page rebuilt from the httpOnly cookie via double-submit; jsdom has no preflight nor origin, and the web suite tests the card with the api stubbed. The spec asserts the OBSERVED REQUEST (origin, Bearer, 201 with `denied`, refresh outside it) and the QUEUE through the api — never the card disappearing |
 
-A medição da AT-068 corrigiu o enunciado da aprovação inline: o POST de
-DECISÃO **não** leva CSRF. `X-CSRF-Token` só é exigido nas rotas de `/auth`
-(`apps/api/src/interfaces/http/auth/session-cookies.ts`: o access fica fora do
-cookie justamente para não exigir CSRF em toda rota autenticada). O CSRF que o
-spec prova é o do `POST /auth/refresh` que dá à página o access com que ela
-decide; a decisão prova o CORS cruzado com `Authorization`.
+The AT-068 measurement corrected the statement of inline approval: the DECISION POST does **not** carry
+CSRF. `X-CSRF-Token` is only required on the `/auth` routes
+(`apps/api/src/interfaces/http/auth/session-cookies.ts`: the access token stays out of the cookie precisely so
+CSRF is not required on every authenticated route). The CSRF that the spec proves is the one of the
+`POST /auth/refresh` that gives the page the access token it decides with; the decision proves cross-origin
+CORS with `Authorization`.
 
-## Convenções
+## Conventions
 
-- **Seletor estrutural, nunca texto.** O idioma da interface é decisão do
-  SERVIDOR; um teste preso a "Sign in" quebraria ao mudar o idioma da conta,
-  e essa falha não fala sobre o produto.
-- **Asserção sobre mecanismo, não sobre tela.** Um indicador de "conectado"
-  muda de cor, rótulo e idioma sem que o socket mude nada.
-- **Semeadura por HTTP** (`suporte/api.ts`), espelhando `${BRABO_INFRA_DIR:-../brabo-infra}/docker/smoke.sh`. O
-  navegador é caro, e preparo lento é preparo que fica desligado.
+- **Structural selector, never text.** The interface language is a decision of the
+  SERVER; a test tied to "Sign in" would break when the account's language changes,
+  and that failure says nothing about the product.
+- **Assertion about the mechanism, not the screen.** A "connected" indicator
+  changes color, label and language without the socket changing anything.
+- **Seeding over HTTP** (`suporte/api.ts`), mirroring `${BRABO_INFRA_DIR:-../brabo-infra}/docker/smoke.sh`. The
+  browser is expensive, and slow setup is setup that gets turned off.
 
-## Só UM spec por execução pode usar o estado do `setup`
+## Only ONE spec per run may use the `setup` state
 
-O `brabo_refresh` gravado em `suporte/.estado-autenticado.json` vale **uma
-vez**. `RefreshUseCase` rotaciona e tem **detecção de reuso**, que revoga a
-FAMÍLIA inteira — então um segundo contexto de navegador carregando o app com
-o mesmo cookie não apenas falha: ele derruba a sessão para todos os specs
-seguintes, que passam a cair no login.
+The `brabo_refresh` stored in `suporte/.estado-autenticado.json` is valid **once**. `RefreshUseCase` rotates it and has **reuse detection**, which revokes the
+entire FAMILY — so a second browser context loading the app with the same cookie does not just fail: it knocks the session out for every
+following spec, which start falling to the login.
 
-A punição é enganosa, como a do lockout: o spec vermelho é o **próximo** da
-ordem alfabética, e ele acusa o mecanismo dele (um socket que não subiu),
-nunca o cookie. Foi assim que apareceu, ao acrescentar
-`chave-de-dispositivo.spec.ts` — o spec da chave gerada no NAVEGADOR, que saiu
-junto com aquele fluxo no ADR 0203 (ver abaixo).
+The punishment is misleading, like the lockout's: the red spec is the **next** one in
+alphabetical order, and it blames its own mechanism (a socket that did not come up),
+never the cookie. That is how it appeared, when `chave-de-dispositivo.spec.ts` was added — the spec for the key generated in the BROWSER, which left
+together with that flow in ADR 0203 (see below).
 
-Regra prática: quem precisa de sessão de NAVEGADOR fica com o estado
-(`socket-da-sessao.spec.ts`); quem só precisa da ORIGEM `:8088` e fala com a
-api por Bearer opta por sair, com
-`test.use({ storageState: { cookies: [], origins: [] } })` e um comentário
-dizendo por quê — são DOIS motivos diferentes de optar por sair, e o de
-`autenticacao.spec.ts` (precisa de origem limpa para provar o login) não é
-este.
+Practical rule: whoever needs a BROWSER session keeps the state
+(`socket-da-sessao.spec.ts`); whoever only needs the `:8088` ORIGIN and talks to the
+api by Bearer opts out, with
+`test.use({ storageState: { cookies: [], origins: [] } })` and a comment
+saying why — these are TWO different reasons to opt out, and the one in
+`autenticacao.spec.ts` (needs a clean origin to prove the login) is not this one.
 
-Há uma TERCEIRA saída, para quem precisa de sessão de navegador e não pode
-ficar com o estado: `aprovacao-inline.spec.ts` roda ANTES de
-`socket-da-sessao.spec.ts` na ordem alfabética, então usar o estado ali
-derrubaria o socket. Ele opta por sair e injeta no contexto os cookies do
-login de SEMEADURA (`cookiesDaSemeadura()` em `suporte/api.ts`) — o mesmo login
-memoizado de `autenticar()`, cujo refresh a semeadura nunca usa, porque ela
-fala só por Bearer. Não custa login a mais, e vale a MESMA regra: uma vez.
-`cookiesDaSemeadura()` LANÇA na segunda chamada, nomeando o motivo, para que
-um segundo consumidor quebre onde está, e não no spec seguinte.
+There is a THIRD way out, for whoever needs a browser session and cannot keep the state:
+`aprovacao-inline.spec.ts` runs BEFORE `socket-da-sessao.spec.ts` in alphabetical order, so using the state there
+would knock out the socket. It opts out and injects into the context the cookies of the SEEDING login
+(`cookiesDaSemeadura()` in `suporte/api.ts`) — the same login memoized by `autenticar()`, whose refresh the seeding never
+uses, because it talks only by Bearer. It costs no extra login, and the SAME rule applies: once.
+`cookiesDaSemeadura()` THROWS on the second call, naming the reason, so that a second
+consumer breaks where it stands, and not in the next spec.
 
-A QUARTA, quando as três já têm dono: `turno-pelo-canal.spec.ts` (AT-338) roda
-depois de todos e precisa de sessão de navegador. Ele opta por sair e faz um
-login PRÓPRIO (`cookiesDeUmLoginProprio()`), que NÃO é memoizado — memoizar
-entregaria o mesmo refresh a dois consumidores. Custa um login do balde do
-lockout, contado abaixo.
+The FOURTH, when the three already have an owner: `turno-pelo-canal.spec.ts` (AT-338) runs after all of them and needs a browser session. It opts out and does its
+OWN login (`cookiesDeUmLoginProprio()`), which is NOT memoized — memoizing would hand the same refresh to two consumers. It costs one login from the lockout bucket, counted below.
 
 ## Qual ação o spec de aprovação propõe, e por quê
 
-`write_file`, com ator `user`, e o spec **recusa** — nunca aprova. Medido no
-código, não escolhido por palpite (AT-068):
+`write_file`, with actor `user`, and the spec **refuses** — it never approves. Measured in the code, not chosen by guess (AT-068):
 
-- **Fica `pending`.** `decide()` (`apps/api/src/domain/actions/decide.ts`)
-  parte de `require_approval` para todo tipo sem regra; o `permissions.json`
-  de projeto recém-criado é vazio (`permissions-file.ts`), e com ator `user`
-  nenhuma `agent_autonomy` é consultada. `proporAcaoPendente()` LANÇA se a ação
-  não nascer `pending`, dizendo a política que decidiu — uma mudança que a
-  auto-aprovasse deixaria o card sem botões, e o spec acusaria a tela.
-- **Não tem efeito nem se aprovada.** `ApproveActionUseCase` executa só
-  `terminal`, as duas PRs, os quatro de container, `instruction_patch`, os dois
-  de paralelismo e o git tipado; `write_file` volta aprovada sem executor na
-  api. Quem escreveria o arquivo é o agente que a propôs, ao receber o
-  desfecho, e o aviso ao engine só sai para ator `agent`.
-- **Nenhum teto foi tocado.** A escolha é do tipo, não da política: o teto de
-  merge em branch protegida, o de efeito externo e os demais seguem
-  `require_approval` incondicional, e o spec não configura autonomia nem
-  `permissions.json`.
+- **It stays `pending`.** `decide()` (`apps/api/src/domain/actions/decide.ts`)
+  starts from `require_approval` for every type without a rule; the `permissions.json`
+  of a newly created project is empty (`permissions-file.ts`), and with actor `user`
+  no `agent_autonomy` is consulted. `proporAcaoPendente()` THROWS if the action does not come out
+  `pending`, naming the policy that decided — a change that auto-approved it would leave the card without buttons, and the spec would blame the screen.
+- **It has no effect even if approved.** `ApproveActionUseCase` executes only
+  `terminal`, the two PRs, the four container ones, `instruction_patch`, the two parallelism ones and the typed git; `write_file` comes back approved with no executor in the
+  api. Whoever would write the file is the agent that proposed it, on receiving the
+  outcome, and the notice to the engine only goes out for actor `agent`.
+- **No ceiling was touched.** The choice is of the type, not of the policy: the merge ceiling on a protected branch, the one for external effect and the others
+  remain `require_approval` unconditionally, and the spec configures no autonomy nor `permissions.json`.
 
-Os descartados, com o motivo: `terminal` e o git tipado têm executor (o
-terminal rodaria no container do projeto, e o git falharia sem repositório —
-efeito ou ruído); os de container batem no broker, que o compose de produção
-sobe desligado (`sem_broker_na_instalacao`); `spend` exige `owner` e é o tipo
-de gasto, que ninguém quer ver aprovado por engano num teste.
+The discarded ones, with the reason: `terminal` and the typed git have an executor (the terminal would run in the project's container, and git would fail without a repository — effect or noise);
+the container ones hit the broker, which the production compose starts disabled (`sem_broker_na_instalacao`); `spend` requires `owner` and is the kind of spending nobody wants approved by mistake in a test.
 
-## Quanto os specs custam ao job `images`
+## How much the specs cost the `images` job
 
-O acréscimo da AT-068 é **um** teste, cujo trabalho é uma navegação, um
-refresh, um clique e uma leitura da fila — a mesma ordem de grandeza de
-`socket-da-sessao.spec.ts`. O da AT-338 também é um: uma navegação, um envio
-e um turno que falha na api antes de qualquer chamada de rede ao provider —
-segundos, sem modelo, sem download e sem token gasto.
+AT-068's addition is **one** test, whose work is a navigation, a refresh, a click and a read of the queue — the same order of magnitude as
+`socket-da-sessao.spec.ts`. AT-338's is also one: a navigation, a send and a turn that fails in the api before any network call to the provider —
+seconds, no model, no download and no token spent.
 
-> **TODO(humano):** o número medido. A AT-068 não conseguiu subir o compose
-> de produção no ambiente em que foi escrita: `hex.pm`,
-> `dl-cdn.alpinelinux.org` e os blobs do GHCR são recusados pela política de
-> saída de rede de lá, então nem o engine se constrói nem a imagem publicada
-> se baixa, e a AT-338 esbarrou na mesma política. O número sai do passo
-> `pnpm e2e` do job `images` da primeira execução destes specs no CI (a linha `N passed (Xs)` do reporter `list`),
-> comparado com a execução anterior da `dev`.
+> **TODO(humano):** the measured number. AT-068 could not bring up the production compose in the environment where it was written:
+> `hex.pm`,
+> `dl-cdn.alpinelinux.org` and the GHCR blobs are refused by that environment's network egress policy, so neither the engine builds nor the published image is downloaded, and AT-338 hit
+> the same policy. The number comes from the `pnpm e2e` step of the `images` job on the first run of these specs in CI (the `N passed (Xs)` line of the `list` reporter),
+> compared with the previous run on `dev`.
 
-## Se o login começar a falhar rodando várias vezes seguidas
+## If the login starts failing after running several times in a row
 
-Não é bug de credencial, e a senha não mudou. É o **lockout progressivo por
-IP** do próprio produto (`AUTH_LOCKOUT_IP_THRESHOLDS`, default
-`20:30,30:120`, janela de 15 minutos), que responde com o **mesmo 401
-uniforme** de senha errada — de propósito: distinguir os dois diria ao
-atacante quando ele acertou o e-mail.
+It is not a credential bug, and the password has not changed. It is the product's own **progressive lockout per IP**
+(`AUTH_LOCKOUT_IP_THRESHOLDS`, default
+`20:30,30:120`, 15-minute window), which answers with the **same uniform 401** as a wrong password — on purpose:
+telling the two apart would tell the attacker when they got the email right.
 
-Cada execução gasta exatamente **4 logins** (o `setup`, o spec de
-autenticação, a semeadura por HTTP e o login próprio de
-`turno-pelo-canal.spec.ts`). A semeadura continua custando UM por mais specs
-que existam: `autenticar()` memoiza o token pela execução inteira, e com
-`workers: 1` os arquivos rodam no mesmo processo. Só um spec que precise de
-sessão de navegador NOVA acrescenta um login, e o diz. Uma execução por vez, como
-no CI, fica muito longe do teto; iterar dez vezes em quinze minutos, não.
+Each run spends exactly **4 logins** (the `setup`, the authentication spec, the seeding over HTTP and the
+own login of `turno-pelo-canal.spec.ts`). The seeding keeps costing ONE no matter how many specs there are: `autenticar()` memoizes the token for the whole run, and with `workers: 1` the files run in the same process. Only a spec that needs a NEW browser session adds a login, and says so. One run at a time, as in
+CI, stays very far from the ceiling; iterating ten times in fifteen minutes does not.
 
-Saídas, em ordem de preferência:
+Ways out, in order of preference:
 
-1. esperar a janela drenar (o primeiro degrau são 30 segundos);
-2. subir o compose com o teto mais permissivo só para a sessão de trabalho:
+1. wait for the window to drain (the first step is 30 seconds);
+2. bring up the compose with a more permissive ceiling just for the working session:
    `AUTH_LOCKOUT_IP_THRESHOLDS=200:5 SMOKE_KEEP_UP=1 bash "${BRABO_INFRA_DIR:-../brabo-infra}/docker/smoke.sh"`.
 
-`suporte/api.ts` já reconhece esse 401 e devolve uma mensagem dizendo isto —
-sem ela, a próxima pessoa caça um bug de credencial que não existe. Foi o que
-quase aconteceu ao escrever esta camada.
+`suporte/api.ts` already recognizes this 401 and returns a message saying this —
+without it, the next person hunts a credential bug that does not exist. That is what almost happened while writing this layer.
 
 ## O que NÃO está coberto
 
-Declarado, não esquecido (ver as Consequências do ADR 0120): diferenças
-entre navegadores (só chromium roda) e o **streaming do turno** — o
-`agent.delta`. A aprovação inline saiu desta lista na AT-068, e o CICLO do
-turno pelo canal (`working` → `agent.error` → `idle`) saiu na AT-338; o delta
-continua.
+Declared, not forgotten (see the Consequences of ADR 0120): differences
+between browsers (only chromium runs) and the **turn streaming** — the `agent.delta`. The inline approval left this list in AT-068, and the turn CYCLE
+through the channel (`working` → `agent.error` → `idle`) left it in AT-338; the delta remains.
 
-O streaming ficou de fora por MEDIÇÃO, não por esquecimento. O que o faria
-ser streaming — o `agent.delta` chegando pelo canal numa terceira origem — só
-é emitido pelo `on_delta` que os servidores conversacionais passam ao
-`llm_turn_stream` (`criativo_server.ex`, `po_server.ex`, `arquiteto_server.ex`
-e irmãos), ou seja, por chunk de um provider de LLM de verdade. E não há
-provider de mentira: `apps/api/src/infrastructure/llm/` tem os nove
-providers reais e nenhum dublê, o compose de produção não tem serviço de LLM
-fora do profile `llm` (Ollama, ~2 GB de modelos), e `scripts/dev/` não tem
-stub de engine. As saídas conhecidas são decisão de custo, do dono:
+Streaming was left out by MEASUREMENT, not by oversight. What would make it streaming — the `agent.delta` arriving through the channel from a third origin — is only
+emitted by the `on_delta` that the conversational servers pass to `llm_turn_stream` (`criativo_server.ex`, `po_server.ex`, `arquiteto_server.ex`
+and siblings), that is, per chunk from a real LLM provider. And there is no fake provider: `apps/api/src/infrastructure/llm/` has the nine
+real providers and no double, the production compose has no LLM service outside the `llm` profile (Ollama, ~2 GB of models), and `scripts/dev/` has no
+engine stub. The known ways out are a cost decision, the owner's:
 
-1. ligar o profile `llm` no job `images` (download de modelo, curadoria e
-   binding de um modelo com tool calling para o agente) — streaming de
-   verdade, custo de minutos e de disco no job;
-2. um provider DUBLÊ na api, só para teste — contradiz a regra de que
-   capability se prova contra o provider real (ADRs 0041/0042), e precisaria de
-   ADR próprio;
-3. o turno que FALHA sem credencial: `agent.status: working`, `agent.error` e
-   `idle` chegam pelo canal sem gastar nada — prova o ciclo do turno na
-   terceira origem, mas NÃO o `agent.delta`, e por isso não foi chamado de
-   streaming aqui.
+1. turn on the `llm` profile in the `images` job (model download, curation and
+   binding of a model with tool calling for the agent) — real streaming, minutes of cost and disk in the job;
+2. a DOUBLE provider in the api, just for testing — contradicts the rule that a capability is proven against the real provider (ADRs 0041/0042), and would need its own ADR;
+3. the turn that FAILS without a credential: `agent.status: working`, `agent.error` and
+   `idle` arrive through the channel without spending anything — proves the turn cycle on the third origin, but NOT the `agent.delta`, and so it was not called streaming here.
 
-O dono escolheu a terceira (AT-338), e ela é o `turno-pelo-canal.spec.ts`. O
-que ele usa foi lido no código: sem credencial do DONO do workspace para o
-provider do modelo vinculado (RN-058), `StreamLlmTurnUseCase` fecha o turno com
-o frame final `Nenhuma credencial cadastrada para <provider>`, e
-`Engine.Agents.FalhaDeTurno` classifica `credencial` como origem `politica`
-(RN-059). O workspace da semeadura ganha um modelo de NUVEM com tool calling
-de um provider sem credencial (`semearSessaoSemCredencial`): sem binding o
-texto seria outro (`Nenhum modelo vinculado`), e o workspace do seed vincula o
-`ollama`, que não pede credencial e cairia em `infra`. As saídas 1 e 2 seguem
-de pé para o delta, com o mesmo custo.
+The owner chose the third (AT-338), and it is `turno-pelo-canal.spec.ts`. What it uses was read in the code: without a credential of the workspace OWNER for the provider of the bound model (RN-058), `StreamLlmTurnUseCase` closes the turn with
+the final frame `Nenhuma credencial cadastrada para <provider>`, and
+`Engine.Agents.FalhaDeTurno` classifies `credencial` as origin `politica`
+(RN-059). The seeding workspace gets a CLOUD model with tool calling from a provider without a credential (`semearSessaoSemCredencial`): without a binding the text would be different (`Nenhum modelo vinculado`), and the seed workspace binds
+`ollama`, which asks for no credential and would fall into `infra`. Ways out 1 and 2 remain in place for the delta, at the same cost.
 
-Houve outro spec, `chave-de-dispositivo.spec.ts`, que gerava num Chromium
-de verdade o par Ed25519 do fluxo do navegador (ADR 0118) e provava o `kid` da
-RN-475 contra o `PatAuthGuard`. Ele saiu no ADR 0203 (RN-687), junto com o
-fluxo e com a rota `POST .../runner-device-keys` de que dependia: a chave nasce
-agora NA MÁQUINA (`brabo-runner device-key create`, RN-551), em Node, onde
-`crypto` gera Ed25519 sem dublê — e a cadeia `kid` → JWT → `PatAuthGuard`, com
-chave real, é coberta por `apps/api/test/interfaces/pat-auth.guard.spec.ts` e
-`apps/runner/src/criar-chave-de-dispositivo.spec.ts`. Nada do que restou é
-mecanismo de NAVEGADOR, que é a única pergunta desta camada.
+There was another spec, `chave-de-dispositivo.spec.ts`, which generated in a real Chromium
+the Ed25519 pair of the browser flow (ADR 0118) and proved the `kid` of RN-475 against the `PatAuthGuard`. It left in ADR 0203 (RN-687), together with the flow and with the route `POST .../runner-device-keys` it depended on: the key is now born ON THE MACHINE (`brabo-runner device-key create`, RN-551), in Node, where
+`crypto` generates Ed25519 without a double — and the `kid` → JWT → `PatAuthGuard` chain, with a real key, is covered by `apps/api/test/interfaces/pat-auth.guard.spec.ts` and
+`apps/runner/src/criar-chave-de-dispositivo.spec.ts`. Nothing that remains is a BROWSER mechanism, which is the only question of this layer.

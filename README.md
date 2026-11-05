@@ -1,23 +1,23 @@
 # brabo-qa
 
-Testes que atravessam repositórios do Brabo: E2E de navegador, golden-sets, smoke das imagens de produção e os
-instrumentos de medição (Jev, idioma). Extraído do monorepo `daneiel/brabo` (AT-703, ADR 0252). `#N` nos commits aponta
-para `viralabs-dev/brabo-legacy`.
+Tests that cross repositories of Brabo: browser E2E, golden-sets, smoke of the production images and the
+measurement instruments (Jev, language). Extracted from the `daneiel/brabo` monorepo (AT-703, ADR 0252). `#N` in the commits points
+to `viralabs-dev/brabo-legacy`.
 
-| Pasta | O que é |
+| Folder | What it is |
 | --- | --- |
-| `e2e/` | Playwright (só chromium, ADR 0120). Lockfile próprio, **não** é membro de workspace. |
-| `golden/engine/test/` | Golden-sets ExUnit (`qa_automacao_agent_golden_test.exs`, `rag_golden_test.exs`) e os `floor.json`. Rodam **dentro** do `brabo-engine` (o workflow os copia para `test/`) e chamam o seed do `brabo-api`. |
-| `scripts/jev/`, `scripts/idioma/` | Instrumentos de medição. Leem e reexportam fontes de `brabo-api` e `brabo-engine` em checkout **irmão** (`../brabo-api`, `../brabo-engine`); nunca copiam. |
-| `.github/workflows/golden-set-*.yml` | AGENDADOS (ADR 0138/0168), nunca em PR. Fazem checkout dos irmãos na `dev`. |
+| `e2e/` | Playwright (chromium only, ADR 0120). Its own lockfile, **not** a workspace member. |
+| `golden/engine/test/` | ExUnit golden-sets (`qa_automacao_agent_golden_test.exs`, `rag_golden_test.exs`) and the `floor.json` files. They run **inside** `brabo-engine` (the workflow copies them to `test/`) and call the seed of `brabo-api`. |
+| `scripts/jev/`, `scripts/idioma/` | Measurement instruments. They read and re-export sources from `brabo-api` and `brabo-engine` in a **sibling** checkout (`../brabo-api`, `../brabo-engine`); they never copy. |
+| `.github/workflows/golden-set-*.yml` | SCHEDULED (ADR 0138/0168), never on PR. They check out the siblings on `dev`. |
 
-O roteiro do TP-01 mora no Vault (`personal/projetos/brabo/`), não aqui.
+The TP-01 script lives in the Vault (`personal/projetos/brabo/`), not here.
 
-## CI de PR
+## PR CI
 
-`scripts` (typecheck + specs), `e2e` (typecheck), `actionlint` e a conferência dos caminhos dos irmãos.
+`scripts` (typecheck + specs), `e2e` (typecheck), `actionlint` and the check of the sibling paths.
 
-## Fica para depois da AT-701 (não rodado na extração)
+## Left for after AT-701 (not run during the extraction)
 
 ```bash
 # E2E contra o compose de produção do brabo-infra
