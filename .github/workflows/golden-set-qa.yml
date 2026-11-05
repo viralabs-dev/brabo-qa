@@ -54,7 +54,9 @@ jobs:
   imagens:
     name: Imagens de terceiro do compose
     # Preso a SHA do brabo-infra `dev` (ADR 0197): as imagens de `services:` vêm do compose de lá.
-    uses: viralabs-dev/brabo-infra/.github/workflows/imagens-do-compose.yml@7efd2fc28b65a2107531c1c116184168ce600708  # dev
+    uses: viralabs-dev/brabo-infra/.github/workflows/imagens-do-compose.yml@04519644fcb75419c5b2f01c76417a0906792d54  # dev (brabo-infra PR #2)
+    with:
+      infra_ref: 04519644fcb75419c5b2f01c76417a0906792d54
 
   golden-set-qa:
     name: Golden-set do QA (ExUnit, contra Ollama real, container pelo broker)
