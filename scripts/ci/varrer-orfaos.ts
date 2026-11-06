@@ -23,6 +23,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const { montarCheck } = await import(new URL('../../.brabo-ci/scripts/ci/qa-e2e-resumo.ts', import.meta.url).href);
   const urlDoRun = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
   for (const repo of REPOS) {
+   try {
     const prs = json<{ head: { sha: string } }[]>(`repos/viralabs-dev/${repo}/pulls?state=open&base=main&per_page=100`);
     for (const pr of prs) {
       const { check_runs } = json<{ check_runs: { id: number; name: string; status: string; started_at: string }[] }>(
@@ -37,5 +38,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         console.log(`órfão fechado: ${repo} check ${id}`);
       }
     }
+   } catch (e) {
+    // Um repo com erro não impede a varredura dos outros.
+    console.error(`::warning::varredura de ${repo} falhou: ${String(e)}`);
+   }
   }
 }

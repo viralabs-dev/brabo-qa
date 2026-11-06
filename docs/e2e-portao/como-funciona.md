@@ -40,12 +40,12 @@ só entra com o check **`E2E do brabo-qa`** verde (ruleset "main exige E2E"). O 
 | `ambiente` | imagem ausente, compose que não subiu, head sem tag `-dev` | sim |
 | `digest` | um container roda outra imagem que a verificada | nunca |
 | `assinatura` | o `cosign verify` falhou | nunca |
-| `sem-resposta` | o check ficou em andamento por mais de 90 min (fechado por `varrer-orfaos.yml`, de hora em hora) | não: rode de novo |
+| `sem-resposta` | o check ficou em andamento por mais de 90 min (fechado por `varrer-orfaos.yml`, de hora em hora) | sim |
 
 ## Aceitar com justificativa
 
 Só o `OWNER_HANDLE` comenta na PR `/qa-aceitar <justificativa>` (mínimo de 20 caracteres), e só com o check do head atual
-vermelho por `spec` ou `ambiente`. O check vira verde com o título `Aceito com justificativa`, a PR ganha a label
+vermelho por `spec`, `ambiente` ou `sem-resposta`. O check vira verde com o título `Aceito com justificativa`, a PR ganha a label
 `qa-aceito-com-justificativa` e o resumo registra a justificativa, quem aceitou, quando e o link do run vermelho.
 Comentário editado, comentário de review e segundo `/qa-aceitar` no mesmo head são ignorados ou recusados.
 

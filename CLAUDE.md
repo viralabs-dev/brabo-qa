@@ -25,7 +25,7 @@ próprios; aqui só entra o que precisa de MAIS DE UM repositório ou do sistema
 - O check `E2E do brabo-qa` é exigido pelo ruleset "main exige E2E" nas PRs para a `main` de api, engine, web, broker, infra e qa (não o contracts).
   O gatilho mora no `brabo-ci` (`qa-e2e-gatilho.yml`); aqui roda o `.github/workflows/e2e-pr.yml` (evento `e2e-pr`) e o `varrer-orfaos.yml`.
 - O E2E roda sobre as imagens por DIGEST, com `cosign verify` antes e conferência do digest em execução depois. Nunca troque o digest por tag
-  nem pule a conferência: `digest` e `assinatura` não são aceitáveis com `/qa-aceitar`; `spec` e `ambiente` são (só o `OWNER_HANDLE`).
+  nem pule a conferência: `digest` e `assinatura` não são aceitáveis com `/qa-aceitar`; `spec`, `ambiente` e `sem-resposta` são (só o `OWNER_HANDLE`).
 - Na PR do próprio brabo-qa as specs são as do `head_sha`; nas outras, as da `dev`. O resumo do check vem do `montarCheck` do `brabo-ci` (checkout `.brabo-ci`).
 - Detalhe e prints: `docs/e2e-portao/como-funciona.md`.
 

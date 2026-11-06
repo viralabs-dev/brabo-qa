@@ -21,11 +21,11 @@ on:
         description: 'Id do check run E2E do brabo-qa já criado'
         required: true
       compose_ref:
-        description: 'Ref do brabo-infra com o docker-compose.install.yml'
+        description: 'SHA (40 hex) ou tag vX.Y.Z do brabo-infra com o docker-compose.install.yml'
         required: true
-        default: dev
+        default: v1.0.0
       imagens:
-        description: 'JSON {"api":"ghcr.io/viralabs-dev/brabo-api@sha256:...","engine":...,"web":...,"broker":...,"backup":...}'
+        description: 'JSON por TAG {"api":"ghcr.io/viralabs-dev/brabo-api:v1.2.3-dev.4","engine":...,"web":...,"broker":...,"backup":...}'
         required: true
 
 permissions:
@@ -45,27 +45,39 @@ jobs:
     name: E2E do brabo-qa
     runs-on: ubuntu-latest
     timeout-minutes: 75
+    # Valores CRUS: só o passo `validar` os lê (por env, nunca interpolados em script). Os validados vão ao GITHUB_ENV.
     env:
-      REPO: ${{ github.event.client_payload.repo || inputs.repo }}
-      HEAD_SHA: ${{ github.event.client_payload.head_sha || inputs.head_sha }}
-      CHECK_RUN_ID: ${{ github.event.client_payload.check_run_id || inputs.check_run_id }}
-      COMPOSE_REF: ${{ github.event.client_payload.compose_ref || inputs.compose_ref }}
-      IMAGENS: ${{ github.event_name == 'workflow_dispatch' && inputs.imagens || toJSON(github.event.client_payload.imagens) }}
+      RAW_REPO: ${{ github.event.client_payload.repo || inputs.repo }}
+      RAW_PR: ${{ github.event.client_payload.pr || inputs.pr }}
+      RAW_HEAD_SHA: ${{ github.event.client_payload.head_sha || inputs.head_sha }}
+      RAW_CHECK_RUN_ID: ${{ github.event.client_payload.check_run_id || inputs.check_run_id }}
+      RAW_COMPOSE_REF: ${{ github.event.client_payload.compose_ref || inputs.compose_ref }}
+      RAW_IMAGENS: ${{ github.event_name == 'workflow_dispatch' && inputs.imagens || toJSON(github.event.client_payload.imagens) }}
     steps:
+      # Scripts e workflow vêm SEMPRE da `dev` (inclusive na PR do brabo-qa): código de PR não roda com o token do App.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: dev
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Validar o payload
+        id: validar
+        run: node scripts/ci/validar-payload.ts
+
+      # Escrita no brabo-qa equivale a poder aprovar o portão (README). Escopo: o repo validado + o que o job faz checkout.
       - name: Token do App
         id: app
+        if: ${{ always() && steps.validar.outputs.repo != '' }}
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510  # v3.3.0
         with:
           app-id: ${{ secrets.BRABO_APP_ID }}
           private-key: ${{ secrets.BRABO_APP_PRIVATE_KEY }}
           owner: viralabs-dev
+          repositories: ${{ steps.validar.outputs.repo }},brabo-qa,brabo-ci,brabo-infra
           permission-checks: write
           permission-contents: read
 
-      # Na PR do próprio brabo-qa as specs são as do head; nas outras, as da `dev`.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          ref: ${{ env.REPO == 'brabo-qa' && env.HEAD_SHA || 'dev' }}
       # repinar no merge da L1 (AT-765 Task 10)
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -73,12 +85,15 @@ jobs:
           ref: feature/e2e-portao-da-main
           path: .brabo-ci
           token: ${{ steps.app.outputs.token }}
+      # Só as specs (`e2e/`) vêm do head da PR do brabo-qa; nas outras PRs valem as da `dev`.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        if: ${{ env.REPO == 'brabo-qa' }}
+        with:
+          ref: ${{ env.HEAD_SHA }}
+          path: e2e-da-pr
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413  # v6.1.0
         with:
           version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
       - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6  # v4
         with:
@@ -119,20 +134,24 @@ jobs:
         working-directory: brabo-infra/docker
         run: |
           set -euo pipefail
+          umask 077
+          : > .env
+          put() { echo "::add-mask::$2"; echo "$1=$2" >> .env; }
           b64() { openssl rand -base64 "$1" | tr -d '\n'; }
-          {
-            for s in api engine web broker backup; do
-              echo "BRABO_${s^^}_IMAGE=$(jq -r --arg s "$s" '.[$s]' "$GITHUB_WORKSPACE/digests.json")"
-            done
-            echo "GIT_OAUTH_STATE_SECRET=$(b64 32)"
-            echo "AUTH_JWT_SECRET=$(b64 32)"
-            echo "AUTH_TOKEN_PEPPER=$(b64 32)"
-            echo "BRABO_SERVICE_TOKEN=$(b64 32)"
-            echo "CREDENTIALS_MASTER_KEY=$(b64 32)"
-            echo "SECRET_KEY_BASE=$(b64 64)"
-            echo "NEO4J_PASSWORD=$(openssl rand -hex 24)"
-          } > .env
-          chmod 600 .env
+          for s in api engine web broker backup; do
+            echo "BRABO_${s^^}_IMAGE=$(jq -r --arg s "$s" '.[$s]' "$GITHUB_WORKSPACE/digests.json")" >> .env
+          done
+          put GIT_OAUTH_STATE_SECRET "$(b64 32)"
+          put AUTH_JWT_SECRET "$(b64 32)"
+          put AUTH_TOKEN_PEPPER "$(b64 32)"
+          put BRABO_SERVICE_TOKEN "$(b64 32)"
+          put CREDENTIALS_MASTER_KEY "$(b64 32)"
+          put SECRET_KEY_BASE "$(b64 64)"
+          put NEO4J_PASSWORD "$(openssl rand -hex 24)"
+          # Senha do usuário do E2E: aleatória por run, usada pelo seed e pelas specs.
+          senha="$(openssl rand -hex 16)"
+          echo "::add-mask::$senha"
+          echo "E2E_PASSWORD=$senha" >> "$GITHUB_ENV"
 
       - name: Subir o compose
         id: subir
@@ -152,17 +171,17 @@ jobs:
         working-directory: brabo-infra
         run: >
           docker compose -f docker/docker-compose.install.yml exec -T
-          -e BRABO_SEED_PASSWORD=brabo12345678 -e BRABO_FORCE_SEED=1 api node db/seed.js
+          -e BRABO_SEED_PASSWORD="$E2E_PASSWORD" -e BRABO_FORCE_SEED=1 api node db/seed.js
 
       - name: Instalar o Playwright
-        working-directory: e2e
+        working-directory: ${{ env.E2E_DIR }}
         run: |
           pnpm install --frozen-lockfile
           pnpm exec playwright install --with-deps chromium
 
       - name: Specs do E2E
         id: spec
-        working-directory: e2e
+        working-directory: ${{ env.E2E_DIR }}
         env:
           CI: 'true'
           E2E_WEB_URL: http://localhost:8088
@@ -182,22 +201,31 @@ jobs:
           name: e2e-${{ github.run_id }}
           if-no-files-found: ignore
           path: |
-            e2e/playwright-report
-            e2e/test-results
-            e2e/resultado.json
+            ${{ env.E2E_DIR }}/playwright-report
+            ${{ env.E2E_DIR }}/test-results
+            ${{ env.E2E_DIR }}/resultado.json
             digests.json
             assinaturas.json
             conferencia.json
             containers.log
 
-      - name: Fechar o check
-        if: always()
+      # Dois passos: `cancelled()` não vale em `env:`.
+      - name: Fechar o check (cancelado)
+        if: ${{ cancelled() }}
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
-          AGUARDAR: ${{ steps.aguardar.outcome }}
+          APP_ID: ${{ secrets.BRABO_APP_ID }}
+          CANCELADO: 'true'
+        run: node scripts/ci/fechar-check.ts
+
+      - name: Fechar o check
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          APP_ID: ${{ secrets.BRABO_APP_ID }}
+          CANCELADO: 'false'
+          JOB: ${{ job.status }}
           ASSINATURA: ${{ steps.assinatura.outcome }}
-          SUBIR: ${{ steps.subir.outcome }}
           DIGEST: ${{ steps.digest.outcome }}
           SPEC: ${{ steps.spec.outcome }}
-          CANCELADO: ${{ cancelled() }}
         run: node scripts/ci/fechar-check.ts
