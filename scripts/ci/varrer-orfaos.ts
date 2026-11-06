@@ -27,7 +27,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const prs = json<{ head: { sha: string } }[]>(`repos/viralabs-dev/${repo}/pulls?state=open&base=main&per_page=100`);
     for (const pr of prs) {
       const { check_runs } = json<{ check_runs: { id: number; name: string; status: string; started_at: string }[] }>(
-        `repos/viralabs-dev/${repo}/commits/${pr.head.sha}/check-runs?check_name=${encodeURIComponent(NOME_DO_CHECK)}`,
+        `repos/viralabs-dev/${repo}/commits/${pr.head.sha}/check-runs?check_name=${encodeURIComponent(NOME_DO_CHECK)}&app_id=${process.env.BRABO_APP_ID}`,
       );
       const ids = orfaos(check_runs.map((c) => ({ id: c.id, status: c.status, startedAt: c.started_at })), new Date());
       for (const id of ids) {

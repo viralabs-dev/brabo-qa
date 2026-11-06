@@ -47,4 +47,5 @@ jobs:
       - name: Varrer
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
+          BRABO_APP_ID: ${{ secrets.BRABO_APP_ID }}
         run: node scripts/ci/varrer-orfaos.ts

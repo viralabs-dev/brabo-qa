@@ -43,7 +43,7 @@ env:
 jobs:
   # Executa código de PR (specs, pnpm install, compose): por isso NÃO tem o token do App. O `fechar` é que o tem.
   e2e:
-    name: E2E do brabo-qa
+    name: Rodar o E2E
     runs-on: ubuntu-latest
     timeout-minutes: 75
     outputs:

@@ -6,8 +6,9 @@ só entra com o check **`E2E do brabo-qa`** verde (ruleset "main exige E2E"). O 
 ## O fluxo
 
 1. A PR para a `main` abre (ou recebe um push). O reutilizável `qa-e2e-gatilho.yml` do `brabo-ci` escolhe as tags `-dev.N`
-   do head, resolve o digest das cinco imagens (`api`, `engine`, `web`, `broker`, `backup`), cria o check `E2E do brabo-qa`
-   em andamento e dispara o evento `e2e-pr` neste repositório.
+   do head, cria o check `E2E do brabo-qa` em andamento e dispara o evento `e2e-pr` neste repositório mandando as imagens
+   (`api`, `engine`, `web`, `broker`, `backup`) **por tag**. O brabo-qa espera, resolve tag→digest uma vez e, daí em diante,
+   usa só o digest.
    Sem tag `-dev` apontando para o head, o check nasce vermelho por `ambiente`, com a mensagem dizendo qual tag falta.
 
    <!-- print P1 -->

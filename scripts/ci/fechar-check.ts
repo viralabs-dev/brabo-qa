@@ -106,7 +106,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const res = await fetch(api, {
     method: 'PATCH',
     headers: cab,
-    body: JSON.stringify({ status: 'completed', conclusion: c.conclusion, external_id: c.external_id, output: { title: c.title, summary: c.summary } }),
+    body: JSON.stringify({ status: 'completed', conclusion: c.conclusion, external_id: c.external_id, details_url: urlDoRun, output: { title: c.title, summary: c.summary } }),
   });
   if (!res.ok) throw new Error(`falha ao fechar o check: ${res.status} ${await res.text()}`);
   console.log(`check ${p.check_run_id} fechado: ${c.conclusion} (${c.title})`);
