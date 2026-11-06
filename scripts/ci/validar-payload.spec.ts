@@ -50,4 +50,9 @@ describe('validarPayload', () => {
     expect(validarPayload({ ...base(), head_sha: 'abc' }).ok).toBe(false);
     expect(validarPayload({ ...base(), compose_ref: 'dev' }).ok).toBe(false);
   });
+  it('recusa chaves desconhecidas em imagens', () => {
+    const p = base();
+    p.imagens.extra = img('api');
+    expect(validarPayload(p).ok).toBe(false);
+  });
 });

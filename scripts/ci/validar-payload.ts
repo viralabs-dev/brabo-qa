@@ -25,6 +25,7 @@ export function validarPayload(p: Payload): { ok: true; repo: string } | { ok: f
   if (!/^[0-9a-f]{40}$/.test(String(p.head_sha))) erros.push('head_sha não é um SHA de 40 hex');
   if (!/^[0-9a-f]{40}$/.test(String(p.compose_ref)) && !REF_DE_VERSAO.test(String(p.compose_ref)))
     erros.push('compose_ref deve ser SHA de 40 hex ou tag vX.Y.Z[-dev.N]');
+  for (const k of Object.keys(p.imagens ?? {})) if (!SERVICOS.includes(k)) erros.push(`chave desconhecida em imagens: ${JSON.stringify(k)}`);
   for (const s of SERVICOS) {
     const ref = p.imagens?.[s];
     const base = `ghcr\\.io/viralabs-dev/brabo-${s}`;

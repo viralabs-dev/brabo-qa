@@ -41,10 +41,21 @@ env:
   PNPM_VERSION: '11.3.0'
 
 jobs:
+  # Executa código de PR (specs, pnpm install, compose): por isso NÃO tem o token do App. O `fechar` é que o tem.
   e2e:
     name: E2E do brabo-qa
     runs-on: ubuntu-latest
     timeout-minutes: 75
+    outputs:
+      validar: ${{ steps.validar.outcome }}
+      assinatura: ${{ steps.assinatura.outcome }}
+      digest: ${{ steps.digest.outcome }}
+      spec: ${{ steps.spec.outcome }}
+      job: ${{ steps.situacao.outputs.job }}
+      digests: ${{ steps.resultados.outputs.digests }}
+      assinaturas: ${{ steps.resultados.outputs.assinaturas }}
+      conferencia: ${{ steps.resultados.outputs.conferencia }}
+      specs_falhas: ${{ steps.resultados.outputs.specs_falhas }}
     # Valores CRUS: só o passo `validar` os lê (por env, nunca interpolados em script). Os validados vão ao GITHUB_ENV.
     env:
       RAW_REPO: ${{ github.event.client_payload.repo || inputs.repo }}
@@ -54,10 +65,11 @@ jobs:
       RAW_COMPOSE_REF: ${{ github.event.client_payload.compose_ref || inputs.compose_ref }}
       RAW_IMAGENS: ${{ github.event_name == 'workflow_dispatch' && inputs.imagens || toJSON(github.event.client_payload.imagens) }}
     steps:
-      # Scripts e workflow vêm SEMPRE da `dev` (inclusive na PR do brabo-qa): código de PR não roda com o token do App.
+      # Scripts e workflow vêm SEMPRE da `dev` (inclusive na PR do brabo-qa); só `e2e/` vem do head da PR.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: dev
+          persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -65,32 +77,13 @@ jobs:
         id: validar
         run: node scripts/ci/validar-payload.ts
 
-      # Escrita no brabo-qa equivale a poder aprovar o portão (README). Escopo: o repo validado + o que o job faz checkout.
-      - name: Token do App
-        id: app
-        if: ${{ always() && steps.validar.outputs.repo != '' }}
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510  # v3.3.0
-        with:
-          app-id: ${{ secrets.BRABO_APP_ID }}
-          private-key: ${{ secrets.BRABO_APP_PRIVATE_KEY }}
-          owner: viralabs-dev
-          repositories: ${{ steps.validar.outputs.repo }},brabo-qa,brabo-ci,brabo-infra
-          permission-checks: write
-          permission-contents: read
-
-      # repinar no merge da L1 (AT-765 Task 10)
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          repository: viralabs-dev/brabo-ci
-          ref: feature/e2e-portao-da-main
-          path: .brabo-ci
-          token: ${{ steps.app.outputs.token }}
       # Só as specs (`e2e/`) vêm do head da PR do brabo-qa; nas outras PRs valem as da `dev`.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         if: ${{ env.REPO == 'brabo-qa' }}
         with:
           ref: ${{ env.HEAD_SHA }}
           path: e2e-da-pr
+          persist-credentials: false
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413  # v6.1.0
         with:
           version: ${{ env.PNPM_VERSION }}
@@ -126,7 +119,7 @@ jobs:
           repository: viralabs-dev/brabo-infra
           ref: ${{ env.COMPOSE_REF }}
           path: brabo-infra
-          token: ${{ steps.app.outputs.token }}
+          persist-credentials: false
 
       # Mesmos campos do `gerar_segredos` do install.sh do brabo (que não é invocável à parte), com `openssl rand`,
       # novos a cada run. O NEO4J_PASSWORD é hex: uma `/` quebraria o parse de NEO4J_AUTH. base64 sem quebra de linha.
@@ -209,23 +202,84 @@ jobs:
             conferencia.json
             containers.log
 
-      # Dois passos: `cancelled()` não vale em `env:`.
-      - name: Fechar o check (cancelado)
-        if: ${{ cancelled() }}
-        env:
-          GH_TOKEN: ${{ steps.app.outputs.token }}
-          APP_ID: ${{ secrets.BRABO_APP_ID }}
-          CANCELADO: 'true'
-        run: node scripts/ci/fechar-check.ts
+      # Resultados em linha única, para o job `fechar` (sem artefato: nenhum arquivo de PR é baixado lá).
+      - name: Resultados para o fechamento
+        id: resultados
+        if: always()
+        run: |
+          um() { [ -f "$1" ] && jq -c . "$1" 2>/dev/null || echo null; }
+          {
+            echo "digests=$(um digests.json)"
+            echo "assinaturas=$(um assinaturas.json)"
+            echo "conferencia=$(um conferencia.json)"
+            r="${E2E_DIR:-e2e}/resultado.json"
+            if [ -f "$r" ]; then echo "specs_falhas=$(jq -c '[.. | objects | select(has("specs")) | .specs[] | select(.ok == false) | .title] | .[:50]' "$r" 2>/dev/null || echo '[]')"; else echo 'specs_falhas=[]'; fi
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Situação do job
+        id: situacao
+        if: always()
+        run: echo "job=${{ job.status }}" >> "$GITHUB_OUTPUT"
+
+  fechar:
+    name: Fechar o check
+    needs: e2e
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RAW_REPO: ${{ github.event.client_payload.repo || inputs.repo }}
+      RAW_PR: ${{ github.event.client_payload.pr || inputs.pr }}
+      RAW_HEAD_SHA: ${{ github.event.client_payload.head_sha || inputs.head_sha }}
+      RAW_CHECK_RUN_ID: ${{ github.event.client_payload.check_run_id || inputs.check_run_id }}
+      RAW_COMPOSE_REF: ${{ github.event.client_payload.compose_ref || inputs.compose_ref }}
+      RAW_IMAGENS: ${{ github.event_name == 'workflow_dispatch' && inputs.imagens || toJSON(github.event.client_payload.imagens) }}
+    steps:
+      # Checkout LIMPO da `dev`: nada de PR neste job, que é o único com o token do App.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: dev
+          persist-credentials: false
+      # repinar no merge da L1 (AT-765 Task 10)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-ci
+          ref: feature/e2e-portao-da-main
+          path: .brabo-ci
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Validar o payload de novo
+        id: validar
+        continue-on-error: true
+        run: node scripts/ci/validar-payload.ts
+
+      # Escrita no brabo-qa equivale a poder aprovar o portão (README). Escopo: só o repo validado e só `checks: write`.
+      - name: Token do App
+        id: app
+        if: ${{ steps.validar.outputs.repo != '' }}
+        continue-on-error: true
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510  # v3.3.0
+        with:
+          app-id: ${{ secrets.BRABO_APP_ID }}
+          private-key: ${{ secrets.BRABO_APP_PRIVATE_KEY }}
+          owner: viralabs-dev
+          repositories: ${{ steps.validar.outputs.repo }}
+          permission-checks: write
 
       - name: Fechar o check
-        if: ${{ !cancelled() }}
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
           APP_ID: ${{ secrets.BRABO_APP_ID }}
-          CANCELADO: 'false'
-          JOB: ${{ job.status }}
-          ASSINATURA: ${{ steps.assinatura.outcome }}
-          DIGEST: ${{ steps.digest.outcome }}
-          SPEC: ${{ steps.spec.outcome }}
+          E2E_RESULT: ${{ needs.e2e.result }}
+          VALIDAR: ${{ needs.e2e.outputs.validar }}
+          JOB: ${{ needs.e2e.outputs.job }}
+          ASSINATURA: ${{ needs.e2e.outputs.assinatura }}
+          DIGEST: ${{ needs.e2e.outputs.digest }}
+          SPEC: ${{ needs.e2e.outputs.spec }}
+          DIGESTS: ${{ needs.e2e.outputs.digests }}
+          ASSINATURAS: ${{ needs.e2e.outputs.assinaturas }}
+          CONFERENCIA: ${{ needs.e2e.outputs.conferencia }}
+          SPECS_FALHAS: ${{ needs.e2e.outputs.specs_falhas }}
         run: node scripts/ci/fechar-check.ts
