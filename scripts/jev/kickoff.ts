@@ -88,7 +88,7 @@ function descreverArquivos(arquivos: ArquivosDaEntrega): string {
     return `(não consegui listar: ${JSON.stringify((arquivos as { erro: string }).erro)} — leia o worktree a partir da story)`;
   }
   const lista = arquivos as readonly string[];
-  if (lista.length === 0) return '(o diff contra `dev` veio vazio)';
+  if (lista.length === 0) return '(o diff contra `main` veio vazio)';
   const mostrados = lista.slice(0, TETO_DE_ARQUIVOS).map((a) => `- ${a}`).join('\n');
   return lista.length > TETO_DE_ARQUIVOS ? `${mostrados}\n(e mais ${lista.length - TETO_DE_ARQUIVOS} de ${lista.length} no total)` : mostrados;
 }
@@ -116,7 +116,7 @@ ${lista(historia?.rnf ?? [])}
 Definition of done:
 ${lista(historia?.dod ?? [])}
 
-ARQUIVOS que a entrega tocou (git diff contra \`dev\`):
+ARQUIVOS que a entrega tocou (git diff contra \`main\`):
 ${descreverArquivos(arquivos)}
 
 Leia com \`read_file\` os arquivos acima que importam para a story (e os
