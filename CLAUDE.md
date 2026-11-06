@@ -21,6 +21,14 @@ próprios; aqui só entra o que precisa de MAIS DE UM repositório ou do sistema
 - Seletor é ESTRUTURAL, nunca texto (o idioma é decisão do servidor); a asserção é sobre MECANISMO, nunca sobre tela.
 - O compose vem do `brabo-infra` (`BRABO_INFRA_DIR`, padrão `../brabo-infra`).
 
+## Portão da main (AT-765)
+- O check `E2E do brabo-qa` é exigido pelo ruleset "main exige E2E" nas PRs para a `main` de api, engine, web, broker, infra e qa (não o contracts).
+  O gatilho mora no `brabo-ci` (`qa-e2e-gatilho.yml`); aqui roda o `.github/workflows/e2e-pr.yml` (evento `e2e-pr`) e o `varrer-orfaos.yml`.
+- O E2E roda sobre as imagens por DIGEST, com `cosign verify` antes e conferência do digest em execução depois. Nunca troque o digest por tag
+  nem pule a conferência: `digest` e `assinatura` não são aceitáveis com `/qa-aceitar`; `spec` e `ambiente` são (só o `OWNER_HANDLE`).
+- Na PR do próprio brabo-qa as specs são as do `head_sha`; nas outras, as da `dev`. O resumo do check vem do `montarCheck` do `brabo-ci` (checkout `.brabo-ci`).
+- Detalhe e prints: `docs/e2e-portao/como-funciona.md`.
+
 ## Golden-sets (ADR 0123, 0132, 0138, 0168)
 - São AGENDADOS (RAG diário, QA semanal) ou sob `workflow_dispatch`, NUNCA em PR. Não os ponha em PR para "provar" o YAML:
   o CI de PR só roda `actionlint` e confere os caminhos dos irmãos.

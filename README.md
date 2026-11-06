@@ -17,6 +17,13 @@ O roteiro do TP-01 mora no Vault (`personal/projetos/brabo/`), não aqui.
 
 `scripts` (typecheck + specs), `e2e` (typecheck), `actionlint` e a conferência dos caminhos dos irmãos.
 
+## E2E como portão da main (AT-765)
+
+As PRs para a `main` de `brabo-api`, `-engine`, `-web`, `-broker`, `-infra` e deste repo só entram com o check `E2E do brabo-qa` verde.
+O `e2e-pr.yml` roda o Playwright contra o `docker-compose.install.yml` do `brabo-infra` sobre as imagens por digest (assinatura verificada,
+digest em execução conferido) e fecha o check na PR de origem; o `varrer-orfaos.yml` fecha, de hora em hora, o que ficou sem resposta por 90 min.
+`/qa-aceitar <justificativa>` (só o dono) aceita um vermelho por `spec` ou `ambiente`. Detalhes e prints: [`docs/e2e-portao/como-funciona.md`](docs/e2e-portao/como-funciona.md).
+
 ## O que já roda e o que ainda é manual
 
 - **Golden-set do RAG** (`golden-set-rag.yml`): agendado todo dia às 06:00 UTC desde 05/11/2026. As duas

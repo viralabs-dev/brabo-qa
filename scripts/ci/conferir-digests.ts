@@ -2,6 +2,7 @@
 // Uso: node conferir-digests.ts <digests.json>  (usa `docker compose ps` e `docker inspect` do diretório corrente).
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 export type Servico = 'api' | 'engine' | 'web' | 'broker' | 'backup';
 
@@ -43,7 +44,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const arquivo = process.argv[2]!;
   const esperado = JSON.parse(readFileSync(arquivo, 'utf8')) as Record<Servico, string>;
   const r = conferirDigests(esperado, (Object.keys(esperado) as Servico[]).map(inspecionar));
-  writeFileSync('conferencia.json', JSON.stringify(r, null, 2));
+  writeFileSync(join(dirname(arquivo), 'conferencia.json'), JSON.stringify(r, null, 2));
   for (const l of r.linhas) console.log(`${l.encontrado === l.esperado ? 'ok ' : 'DIVERGE'} ${l.servico} esperado=${l.esperado} encontrado=${l.encontrado}`);
   process.exit(r.ok ? 0 : 1);
 }
