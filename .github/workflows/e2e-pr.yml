@@ -236,11 +236,10 @@ jobs:
         with:
           ref: dev
           persist-credentials: false
-      # repinar no merge da L1 (AT-765 Task 10)
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           repository: viralabs-dev/brabo-ci
-          ref: feature/e2e-portao-da-main
+          ref: 46d66150926054d605baaa3634ab9af7864cd424  # brabo-ci#10 (AT-765)
           path: .brabo-ci
           persist-credentials: false
         continue-on-error: true
