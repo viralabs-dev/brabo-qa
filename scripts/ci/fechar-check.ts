@@ -17,6 +17,7 @@ const lerEnv = <T>(nome: string): T | null => {
   }
 };
 
+// `job` é o `needs.e2e.result` do runner (success|failure|cancelled|skipped), que o código da PR não forja.
 // Verde só com o job inteiro em success E a conferência de digest e as specs em success; qualquer outro desfecho
 // sem causa reconhecida (checkout, pulo, timeout) é `ambiente`.
 export function decidirFechamento(a: { cancelado: boolean; desfechos: Desfechos }): { tipo: 'cancelled' } | { tipo: 'causa'; causa: Causa | null } {
@@ -83,7 +84,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     c = { conclusion: 'failure', title: 'E2E: payload inválido (ambiente)', summary: `O payload do dispatch foi recusado:\n\n${v.erros.map((e) => `- ${e}`).join('\n')}\n\nRun: ${urlDoRun}`, external_id: 'causa:ambiente' };
   } else {
     // Import só aqui: o caminho do cancelado e do payload inválido não carrega código do `.brabo-ci`.
-    const { montarCheck } = await import(new URL('../../.brabo-ci/scripts/ci/qa-e2e-resumo.ts', import.meta.url).href);
+    let montarCheck: (r: unknown) => typeof c;
+    try {
+      ({ montarCheck } = await import(new URL('../../.brabo-ci/scripts/ci/qa-e2e-resumo.ts', import.meta.url).href));
+    } catch {
+      console.error('::error::.brabo-ci ausente: não dá para montar o resumo; o check fica para a varredura de órfãos');
+      process.exit(1);
+    }
     const esperado = (lerEnv<Record<Servico, string>>('DIGESTS') ?? {}) as Record<Servico, string>;
     const assinaturas = lerEnv<Record<Servico, 'ok' | 'falhou'>>('ASSINATURAS') ?? ({} as Record<Servico, 'ok' | 'falhou'>);
     const conferencia = lerEnv<{ linhas: LinhaDigest[] }>('CONFERENCIA');

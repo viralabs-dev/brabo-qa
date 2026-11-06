@@ -21,6 +21,9 @@ describe('decidirFechamento', () => {
   it('validar falhou vira ambiente', () =>
     expect(dec({ validar: 'failure', job: 'failure', assinatura: '', digest: '', spec: '' })).toEqual({ tipo: 'causa', causa: 'ambiente' }));
   it('validar skipped ou ausente nunca dá verde', () => expect(dec({ validar: '' })).toEqual({ tipo: 'causa', causa: 'ambiente' }));
+  it('job skipped (needs.e2e.result) vira ambiente', () => expect(dec({ job: 'skipped' })).toEqual({ tipo: 'causa', causa: 'ambiente' }));
+  it('spec cancelled (passo morto por timeout) vira ambiente', () =>
+    expect(dec({ job: 'failure', spec: 'cancelled' })).toEqual({ tipo: 'causa', causa: 'ambiente' }));
   it('cancelado fecha como cancelled, seja qual for o resto', () => {
     expect(dec({}, true)).toEqual({ tipo: 'cancelled' });
     expect(dec({ job: 'failure', spec: 'failure' }, true)).toEqual({ tipo: 'cancelled' });

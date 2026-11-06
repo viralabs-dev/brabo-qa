@@ -51,7 +51,6 @@ jobs:
       assinatura: ${{ steps.assinatura.outcome }}
       digest: ${{ steps.digest.outcome }}
       spec: ${{ steps.spec.outcome }}
-      job: ${{ steps.situacao.outputs.job }}
       digests: ${{ steps.resultados.outputs.digests }}
       assinaturas: ${{ steps.resultados.outputs.assinaturas }}
       conferencia: ${{ steps.resultados.outputs.conferencia }}
@@ -216,15 +215,12 @@ jobs:
             if [ -f "$r" ]; then echo "specs_falhas=$(jq -c '[.. | objects | select(has("specs")) | .specs[] | select(.ok == false) | .title] | .[:50]' "$r" 2>/dev/null || echo '[]')"; else echo 'specs_falhas=[]'; fi
           } >> "$GITHUB_OUTPUT"
 
-      - name: Situação do job
-        id: situacao
-        if: always()
-        run: echo "job=${{ job.status }}" >> "$GITHUB_OUTPUT"
-
   fechar:
     name: Fechar o check
     needs: e2e
     if: ${{ always() }}
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -247,6 +243,7 @@ jobs:
           ref: feature/e2e-portao-da-main
           path: .brabo-ci
           persist-credentials: false
+        continue-on-error: true
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -274,7 +271,7 @@ jobs:
           APP_ID: ${{ secrets.BRABO_APP_ID }}
           E2E_RESULT: ${{ needs.e2e.result }}
           VALIDAR: ${{ needs.e2e.outputs.validar }}
-          JOB: ${{ needs.e2e.outputs.job }}
+          JOB: ${{ needs.e2e.result }}
           ASSINATURA: ${{ needs.e2e.outputs.assinatura }}
           DIGEST: ${{ needs.e2e.outputs.digest }}
           SPEC: ${{ needs.e2e.outputs.spec }}
