@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Golden-sets: define `@api_dir` in both ExUnit files (sibling `brabo-api`, `BRABO_API_DIR` override) and drop the unused `@repo_root`; a PR guard in `ci.yml` fails when the definition is missing; `golden-set-rag.yml` runs `mix test` under `pipefail` (AT-760).
 - Alarm (`scripts/ci/alarmar-prova.sh`) exports `GH_REPO` from `GITHUB_REPOSITORY`, so the `gh issue …` calls work outside a git checkout and the golden-set failure opens its issue; ported `alarmar-prova.spec.ts` (with a case that runs outside a `.git`) and added `ci/` to `scripts/tsconfig.json` (AT-760).
 - Docs: `README.md` and `e2e/README.md` are in English (AT-745). Headings that the code cites literally (`e2e/suporte/api.ts`, `turno-pelo-canal.spec.ts`) keep their pt-BR text.
 - Docs: the two remaining pt-BR headings of `e2e/README.md` are now in English, and the code comments that cite them were updated.
