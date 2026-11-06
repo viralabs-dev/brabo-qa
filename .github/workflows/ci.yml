@@ -132,5 +132,9 @@ jobs:
           done
           grep -q 'golden-set:qa-seed' brabo-api/package.json
           grep -q 'golden-set:rag-seed' brabo-api/package.json
+          # Atributo de módulo indefinido é só warning no Elixir (vale nil): a definição tem de existir (AT-760).
+          for f in qa/golden/engine/test/engine/rag/rag_golden_test.exs qa/golden/engine/test/engine/gates/qa_automacao_agent_golden_test.exs; do
+            grep -qE '^[[:space:]]*@api_dir[[:space:]]' "$f" || { echo "::error::$f usa @api_dir sem defini-lo"; exit 1; }
+          done
           [ -f qa/golden/engine/test/fixtures/golden_set_qa/floor.json ]
           [ -f qa/golden/engine/test/fixtures/golden_set_rag/floor.json ]

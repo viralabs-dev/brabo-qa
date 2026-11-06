@@ -210,7 +210,9 @@ jobs:
       # NODE_ENV=production de propósito).
       - name: mix golden_set.rag
         working-directory: brabo-engine
-        run: mix test --only golden_set_rag 2>&1 | tee /tmp/golden-rag.log
+        run: |
+          set -o pipefail
+          mix test --only golden_set_rag 2>&1 | tee /tmp/golden-rag.log
 
       # Guarda do falso-verde, a mesma de `ci.yml` ("Nenhum teste pode ter
       # sido excluído além dos golden-sets"), aplicada ao caso inverso: lá o
