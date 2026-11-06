@@ -2,15 +2,16 @@
 
 ## Unreleased
 
-- Golden-set workflows (`golden-set-rag.yml`, `golden-set-qa.yml`) take two `workflow_dispatch` inputs: `api_ref` (brabo-api branch, tag or SHA to test, default `dev`) and `ollama_image` (Ollama image for the service, default empty = the one pinned by `imagens-do-compose`). The schedule is unchanged (AT-763).
-- Golden-sets: define `@api_dir` in both ExUnit files (sibling `brabo-api`, `BRABO_API_DIR` override) and drop the unused `@repo_root`; a PR guard in `ci.yml` fails when the definition is missing; `golden-set-rag.yml` runs `mix test` under `pipefail` (AT-760).
-- Alarm (`scripts/ci/alarmar-prova.sh`) exports `GH_REPO` from `GITHUB_REPOSITORY`, so the `gh issue …` calls work outside a git checkout and the golden-set failure opens its issue; ported `alarmar-prova.spec.ts` (with a case that runs outside a `.git`) and added `ci/` to `scripts/tsconfig.json` (AT-760).
-- Docs: `README.md` and `e2e/README.md` are in English (AT-745). Headings that the code cites literally (`e2e/suporte/api.ts`, `turno-pelo-canal.spec.ts`) keep their pt-BR text.
-- Docs: the two remaining pt-BR headings of `e2e/README.md` are now in English, and the code comments that cite them were updated.
+- Docs: a documentação do repositório volta ao pt-BR por padrão (AT-766, decisão do dono de 06/11/2026, que reverte o ADR 0260). `README.md` e `e2e/README.md` voltam ao pt-BR, e os comentários de `e2e/suporte/api.ts` e `turno-pelo-canal.spec.ts` citam os títulos em pt-BR. O README troca a seção "Fica para depois da AT-701" por "O que já roda e o que ainda é manual", ganha a seção "Repositórios do Brabo" e deixa de citar o monorepo antigo.
+- Os workflows de golden-set (`golden-set-rag.yml`, `golden-set-qa.yml`) aceitam duas entradas no `workflow_dispatch`: `api_ref` (branch, tag ou SHA do brabo-api a testar, padrão `dev`) e `ollama_image` (imagem do Ollama do service, padrão vazio = a fixada pelo `imagens-do-compose`). O agendamento não muda (AT-763).
+- Golden-sets: define `@api_dir` nos dois arquivos ExUnit (irmão `brabo-api`, sobrescrito por `BRABO_API_DIR`) e tira o `@repo_root` sem uso; uma guarda de PR no `ci.yml` reprova quando falta a definição; o `golden-set-rag.yml` roda `mix test` sob `pipefail` (AT-760).
+- Alarme (`scripts/ci/alarmar-prova.sh`) exporta `GH_REPO` a partir de `GITHUB_REPOSITORY`, então as chamadas `gh issue …` funcionam fora de um checkout git e a falha do golden-set abre a issue; `alarmar-prova.spec.ts` portado (com um caso que roda fora de um `.git`) e `ci/` acrescentado ao `scripts/tsconfig.json` (AT-760).
+- Docs: `README.md` e `e2e/README.md` passam a ser em inglês (AT-745). Os títulos que o código cita literalmente (`e2e/suporte/api.ts`, `turno-pelo-canal.spec.ts`) mantêm o texto em pt-BR.
+- Docs: os dois títulos que restavam em pt-BR no `e2e/README.md` passam ao inglês, e os comentários de código que os citam foram atualizados.
 - `politica.yml`: pins do `brabo-ci` sobem para `b030fbf` (dispensa da PR do bot, ADR 0255; AT-733).
 - `tag.yml` carimba as tags pelo `brabo-ci` (1ª = `v1.0.0`).
 - CI: job `actionlint`.
-- Extração de `e2e/`, `docker/smoke.sh`, `scripts/jev/`, `scripts/idioma/`, dos workflows `golden-set-qa.yml` e `golden-set-rag.yml` e dos golden-sets ExUnit (com os `floor.json`) do monorepo `daneiel/brabo` (AT-703, ADR 0252), com o histórico dos caminhos.
+- Extração de `e2e/`, `docker/smoke.sh`, `scripts/jev/`, `scripts/idioma/`, dos workflows `golden-set-qa.yml` e `golden-set-rag.yml` e dos golden-sets ExUnit (com os `floor.json`) do monorepo original, hoje `viralabs-dev/brabo-legacy` (AT-703, ADR 0252), com o histórico dos caminhos.
 - Golden-sets agora fazem checkout de `brabo-api`, `brabo-engine` e `brabo-broker` (`dev`) e copiam os testes para o engine; os `mix golden_set.*` viraram `mix test --only golden_set_*`. Imagens `pgvector`/`ollama` por digest literal (o compose é do `brabo-infra`).
 - `scripts/idioma` e `scripts/jev` leem os irmãos em `../brabo-api` e `../brabo-engine`.
 - `docker/smoke.sh` lê o compose de `BRABO_INFRA_DIR`.
