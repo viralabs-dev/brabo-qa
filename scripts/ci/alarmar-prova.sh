@@ -8,6 +8,8 @@
 # de reaproveitamento — um título diferente num dos dois abriria issue nova a
 # cada falha.
 #
+# Roda fora do checkout: o repo dos `gh issue …` vem de GITHUB_REPOSITORY (GH_REPO).
+#
 # Uso (sourced, num passo com GH_TOKEN, URL_DO_RUN e o ambiente padrão do
 # Actions — GITHUB_REPOSITORY, GITHUB_REF_NAME, GITHUB_SHA):
 #   source scripts/ci/alarmar-prova.sh
@@ -56,6 +58,8 @@ ramo_padrao_da_prova() {
 alarmar() {
   local alvo="$1" desfecho="$2" onde="${3:-}" titulo corpo existente url ramo wf
   wf="${WORKFLOW_DA_PROVA:-propriedades.yml}"
+  # O passo roda fora de um checkout git: sem GH_REPO o `gh issue …` morre com "not a git repository".
+  export GH_REPO="${GH_REPO:-${GITHUB_REPOSITORY}}"
   case "${desfecho}" in
     failure|success) ;;
     *) return 0 ;;

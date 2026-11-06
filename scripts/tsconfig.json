@@ -16,6 +16,6 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["jev/**/*.ts", "*.config.ts"],
+  "include": ["jev/**/*.ts", "ci/**/*.ts", "*.config.ts"],
   "exclude": ["jev/vivo/**"]
 }

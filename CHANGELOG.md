@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Alarm (`scripts/ci/alarmar-prova.sh`) exports `GH_REPO` from `GITHUB_REPOSITORY`, so the `gh issue …` calls work outside a git checkout and the golden-set failure opens its issue; ported `alarmar-prova.spec.ts` (with a case that runs outside a `.git`) and added `ci/` to `scripts/tsconfig.json` (AT-760).
 - Docs: `README.md` and `e2e/README.md` are in English (AT-745). Headings that the code cites literally (`e2e/suporte/api.ts`, `turno-pelo-canal.spec.ts`) keep their pt-BR text.
 - Docs: the two remaining pt-BR headings of `e2e/README.md` are now in English, and the code comments that cite them were updated.
 - `politica.yml`: pins do `brabo-ci` sobem para `b030fbf` (dispensa da PR do bot, ADR 0255; AT-733).
