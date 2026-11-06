@@ -16,6 +16,20 @@ on:
   schedule:
     - cron: '0 6 * * *'
   workflow_dispatch:
+    # Manual runs can point the brabo-api checkout at a branch and swap the Ollama
+    # image (AT-763 proof). Empty ollama_image keeps the image pinned by imagens-do-compose;
+    # the schedule has no inputs, so it always gets the defaults.
+    inputs:
+      api_ref:
+        description: 'brabo-api ref to test (branch, tag or SHA)'
+        required: false
+        default: 'dev'
+        type: string
+      ollama_image:
+        description: 'Ollama image for the service (empty = the one pinned by imagens-do-compose)'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -71,7 +85,7 @@ jobs:
         # não por ambiente) continuar válido aqui. Até o ADR 0197 isso era uma
         # PROMESSA, guardada por um literal igual ao do compose; agora é
         # CONSTRUÇÃO: a referência é lida do serviço `ollama` do compose.
-        image: ${{ needs.imagens.outputs.ollama }}
+        image: ${{ inputs.ollama_image || needs.imagens.outputs.ollama }}
         ports:
           - 11434:11434
         # `ollama list` como health-cmd, não `curl` — `curl` roda DENTRO do
@@ -97,7 +111,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           repository: viralabs-dev/brabo-api
-          ref: dev
+          ref: ${{ inputs.api_ref || 'dev' }}
           path: brabo-api
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:

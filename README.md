@@ -23,4 +23,6 @@ The TP-01 script lives in the Vault (`personal/projetos/brabo/`), not here.
 # E2E contra o compose de produção do brabo-infra
 SMOKE_KEEP_UP=1 bash "${BRABO_INFRA_DIR:-../brabo-infra}/docker/smoke.sh" && pnpm --dir e2e install && pnpm --dir e2e navegadores && pnpm --dir e2e test
 # golden-sets (workflow_dispatch): gh workflow run golden-set-rag.yml / golden-set-qa.yml  -> exigem ≥ piso do floor.json
+# para testar uma branch do brabo-api e/ou outra imagem do Ollama:
+gh workflow run golden-set-rag.yml -R viralabs-dev/brabo-qa --ref dev -f api_ref=<branch> -f ollama_image=<imagem>
 ```
