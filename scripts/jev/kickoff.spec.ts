@@ -48,7 +48,7 @@ describe('a porta dos moldes do engine (texto fixo)', () => {
     expect(k).toContain('o dev agent ENTREGOU a task "Persistir"');
     expect(k).toContain('- RF um\n- RF dois');
     expect(k).toContain('- src/recorde.ts\n- src/recorde.test.ts');
-    for (const trecho of ['escreve o PLANO DE TESTE dessa entrega, a partir do código que existe', 'ARQUIVOS que a entrega tocou (git diff contra `dev`):', '`emit_plano_de_teste`. Responda SEMPRE chamando uma ferramenta.']) {
+    for (const trecho of ['escreve o PLANO DE TESTE dessa entrega, a partir do código que existe', 'ARQUIVOS que a entrega tocou (git diff contra `main`):', '`emit_plano_de_teste`. Responda SEMPRE chamando uma ferramenta.']) {
       expect(src).toContain(trecho);
       expect(k).toContain(trecho);
     }
@@ -56,8 +56,8 @@ describe('a porta dos moldes do engine (texto fixo)', () => {
 
   it('qa_estrategia_agent.ex: a lista que não veio é dita, e a longa diz o total', () => {
     const src = fonte('gates/qa_estrategia_agent.ex');
-    expect(src).toContain('(o diff contra `dev` veio vazio)');
-    expect(kickoffDaQaEstrategia(null, historia, [])).toContain('(o diff contra `dev` veio vazio)');
+    expect(src).toContain('(o diff contra `main` veio vazio)');
+    expect(kickoffDaQaEstrategia(null, historia, [])).toContain('(o diff contra `main` veio vazio)');
     expect(kickoffDaQaEstrategia(null, historia, { erro: 'sem log' })).toContain('(não consegui listar: "sem log" — leia o worktree a partir da story)');
     const muitos = Array.from({ length: 45 }, (_, i) => `a${i}.ts`);
     expect(kickoffDaQaEstrategia(null, historia, muitos)).toContain('(e mais 5 de 45 no total)');
