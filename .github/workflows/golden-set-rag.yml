@@ -54,7 +54,7 @@ jobs:
     name: Golden-set do RAG (ExUnit, contra Ollama real)
     needs: imagens
     if: ${{ !cancelled() }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     # Job-level SUBSTITUI o `permissions:` do topo: `contents: read` volta
     # explícito, senão o checkout perderia a leitura. `issues: write` é o

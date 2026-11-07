@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- CI: todo `runs-on` fixa `ubuntu-26.04` no lugar de `ubuntu-latest`, e o `create-github-app-token` usa `client-id` no lugar do `app-id` obsoleto; os runs saem sem anotação de aviso (AT-772).
+
 - Regressivo por funcionalidade (AT-769, RN-1031): `funcionalidades.yml` (catálogo de 14 funcionalidades e mapa caminho → funcionalidade), validador `scripts/ci/funcionalidades.ts` (id repetido, glob sem arquivo no irmão, tag órfã) e tags `@f-<id>` do Playwright nas 4 specs atuais. Docs em `docs/regressivo/`.
 - Ko-fi do mantenedor: `.github/FUNDING.yml` (botão Sponsor) e seção Apoie no README (AT-768).
 
