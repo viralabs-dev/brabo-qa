@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Golden-set do RAG: o piso volta a 17/17, medido no run 42332959893 com o teto de 2 trechos por arquivo da busca (api#57, AT-778, decisão do dono).
 - CI: repina os reutilizáveis do `brabo-ci` em `13f3697` (merge da ci#17, que inclui a ci#16): `ubuntu-26.04`, `client-id` no lugar de `app-id`, rótulo de família criado antes de aplicar, linha `Carimbo:` na tag e helper `vinculos` (AT-772, AT-773).
 - Golden-set do RAG remedido com o corpus inteiro (AT-764, decisão do dono, vale só para esta mudança): piso 17 -> 16 (`floor.json`) e `timeout-minutes` 20 -> 40 no `golden-set-rag.yml`. Run 42323476672: 1833 chunks, indexação ~17 min, busca ~1 s, 16/17; falhou `tetos-de-rebaixamento-project-members` (esperado ADR 0127; top-5 = 5 chunks de `docs/business-rules.md`, scores 0,466 a 0,430).
 
