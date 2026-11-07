@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkConfere, decidirFechamento, foiCancelado } from './fechar-check.ts';
+import { anexarVinculos, checkConfere, decidirFechamento, foiCancelado } from './fechar-check.ts';
 
 const ok = { validar: 'success', job: 'success', assinatura: 'success', digest: 'success', spec: 'success' } as const;
 const dec = (d: Partial<Record<keyof typeof ok, string>>, cancelado = false) =>
@@ -46,5 +46,16 @@ describe('foiCancelado', () => {
   it('timeout do job (failure) ou qualquer outro resultado vira ambiente, não cancelled', () => {
     for (const r of ['failure', 'success', 'skipped', '']) expect(foiCancelado(r)).toBe(false);
     expect(dec({ job: '', validar: '', assinatura: '', digest: '', spec: '' }, foiCancelado('failure'))).toEqual({ tipo: 'causa', causa: 'ambiente' });
+  });
+});
+
+describe('anexarVinculos', () => {
+  it('sem vínculos devolve o resumo intacto', () => {
+    expect(anexarVinculos('r')).toBe('r');
+    expect(anexarVinculos('r', '  \n')).toBe('r');
+  });
+  it('anexa a tabela e limita o tamanho', () => {
+    expect(anexarVinculos('r', '## Vínculos\n')).toBe('r\n\n## Vínculos');
+    expect(anexarVinculos('r', 'x'.repeat(9000)).length).toBe(1 + 2 + 8000);
   });
 });

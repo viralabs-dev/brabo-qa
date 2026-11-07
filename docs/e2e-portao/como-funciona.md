@@ -55,3 +55,7 @@ Comentário editado, comentário de review e segundo `/qa-aceitar` no mesmo head
 ## Ensaio manual
 
 `workflow_dispatch` do `e2e-pr.yml` com os mesmos campos do payload (`repo`, `pr`, `head_sha`, `check_run_id`, `compose_ref`, `imagens`).
+
+## Origem e vínculos (AT-773)
+O payload do `e2e-pr` pode trazer `origem` (`run_id`, `run_attempt`, `ator`, `sha_curto`, `correlacao` = `<run_id>-<attempt>`). O `validar-payload.ts` a valida por regex (uma `origem` malformada reprova o payload) e exporta `ORIGEM_RUN_ID`, `ORIGEM_ATOR`, `ORIGEM_CORRELACAO` e `ORIGEM_JSON` para os passos seguintes; sem `origem`, nada é exportado. O `fechar-check.ts` anexa ao resumo do check o `vinculos.md` gerado pela action `vinculos` do brabo-ci (variável `VINCULOS_MD`), e nunca deixa a ausência dele impedir o fechamento.
+
