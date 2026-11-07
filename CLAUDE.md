@@ -34,6 +34,8 @@ próprios; aqui só entra o que precisa de MAIS DE UM repositório ou do sistema
 - A spec se liga à funcionalidade por tag do Playwright (`{ tag: '@f-<id>' }`, no `test` ou no `test.describe`); o filtro é `--grep @f-<id>`. Spec nova leva a tag; tag sem entrada no catálogo reprova.
 - Só o condutor edita `funcionalidades.yml` entre rodadas (arquivo compartilhado). O validador é `scripts/ci/funcionalidades.ts`: id repetido e glob que não casa arquivo no repo irmão reprovam; funcionalidade sem spec só é listada.
 - PR que toca uma funcionalidade do catálogo ajusta o regressivo dela aqui contra a `dev`, ou diz no card por que não precisa. O check `Regressivo do brabo-qa` (PR para a `dev`) só atesta e nunca é exigido: não o ponha em ruleset.
+- `e2e-pr.yml` tem `modo`: `completo` (padrão, o portão da main, SEM filtro e idêntico ao de antes) ou `funcionalidades` (`--grep` pela tag, check `Regressivo do brabo-qa`). Funcionalidade sem spec é "sem cobertura" na tabela e nunca reprova.
+- Vínculos (AT-773): o `run-name` do `e2e-pr` leva `c=<correlacao>` (o gatilho do brabo-ci acha o run por ele: não mude o formato); a action `vinculos` do brabo-ci vai no primeiro passo de cada job que lê outro repo e nunca reprova; o job `anunciar` só avisa se falhar.
 - Detalhe: `docs/regressivo/como-funciona.md`.
 
 ## Golden-sets (ADR 0123, 0132, 0138, 0168)

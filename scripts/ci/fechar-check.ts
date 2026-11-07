@@ -4,6 +4,7 @@
 // (checkout em `.brabo-ci`, repinar no merge da AT-765 Task 10).
 import { readFileSync } from 'node:fs';
 import type { LinhaDigest } from './conferir-digests.ts';
+import { idsAtivos, sanitizarCobertura } from './cobertura.ts';
 
 type Servico = LinhaDigest['servico'];
 type Causa = 'spec' | 'ambiente' | 'digest' | 'assinatura' | 'sem-resposta';
@@ -45,9 +46,13 @@ const lerVinculos = (): string | undefined => {
 // Só `cancelled` do job e2e é cancelamento; o timeout dele chega como `failure` e vira `ambiente`.
 export const foiCancelado = (resultadoDoJob: string): boolean => resultadoDoJob === 'cancelled';
 
+// Os dois checks do brabo-qa: o portão da main e o regressivo da dev (AT-769, nunca exigido). O nome decide o modo do resumo.
+export const NOME_DO_PORTAO = 'E2E do brabo-qa';
+export const NOME_DO_REGRESSIVO = 'Regressivo do brabo-qa';
+
 // O check só é tocado se for o NOSSO, do head validado e ainda em andamento. Devolve o motivo da recusa.
 export function checkConfere(c: { name: string; head_sha: string; status: string; app?: { id: number } | null }, headSha: string, appId: number): string | null {
-  if (c.name !== 'E2E do brabo-qa') return `nome inesperado: ${c.name}`;
+  if (c.name !== NOME_DO_PORTAO && c.name !== NOME_DO_REGRESSIVO) return `nome inesperado: ${c.name}`;
   if (c.head_sha !== headSha) return 'head_sha diferente do validado';
   if (c.status !== 'in_progress') return `status inesperado: ${c.status}`;
   if (c.app?.id !== appId) return 'o check não pertence ao nosso App';
@@ -62,7 +67,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const { validarPayload, REPOS } = await import('./validar-payload.ts');
   let imagens: Record<string, string> = {};
   try { imagens = JSON.parse(env.RAW_IMAGENS ?? '{}'); } catch { /* validarPayload reprova */ }
-  const p = { repo: env.RAW_REPO ?? '', pr: env.RAW_PR ?? '', head_sha: env.RAW_HEAD_SHA ?? '', check_run_id: env.RAW_CHECK_RUN_ID ?? '', compose_ref: env.RAW_COMPOSE_REF ?? '', imagens };
+  const p = { repo: env.RAW_REPO ?? '', pr: env.RAW_PR ?? '', head_sha: env.RAW_HEAD_SHA ?? '', check_run_id: env.RAW_CHECK_RUN_ID ?? '', compose_ref: env.RAW_COMPOSE_REF ?? '', imagens, modo: env.RAW_MODO, funcionalidades: env.RAW_FUNCIONALIDADES };
   const v = validarPayload(p);
   const repo = p.repo.replace(/^viralabs-dev\//, '');
   // Sem repo da lista e check_run_id numérico não há alvo confiável: não se fecha nada.
@@ -114,7 +119,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       assinatura: assinaturas[servico] ?? 'não conferida',
     }));
     const causa = decisao.causa;
-    c = montarCheck({ causa, linhas, specsQueFalharam: causa === 'spec' ? specsQueFalharam() : [], urlDoRun, vinculos });
+    // Tabela por funcionalidade (AT-769); o catálogo vem do checkout limpo da `dev`, o resultado é dado de PR.
+    let cobertura: ReturnType<typeof sanitizarCobertura>;
+    try { cobertura = sanitizarCobertura(lerEnv<unknown>('COBERTURA'), idsAtivos(readFileSync('funcionalidades.yml', 'utf8'))); } catch { /* sem tabela, o check segue */ }
+    c = montarCheck({ modo: atual.name === NOME_DO_REGRESSIVO ? 'dev' : 'main', cobertura, causa, linhas, specsQueFalharam: causa === 'spec' ? specsQueFalharam() : [], urlDoRun, vinculos });
   }
   const res = await fetch(api, {
     method: 'PATCH',

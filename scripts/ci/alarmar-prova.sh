@@ -15,6 +15,9 @@
 #   source scripts/ci/alarmar-prova.sh
 #   alarmar '<alvo>' '<outcome do passo>' ['<onde olhar além do log>']
 #
+# `VINCULOS_MD` (opcional, AT-773): caminho do `vinculos.md` gerado pela action `vinculos` do
+# brabo-ci; se existir, vai ao fim do corpo da issue aberta.
+#
 # `WORKFLOW_DA_PROVA` (opcional, AT-667) nomeia o workflow no corpo da issue e no
 # comentário de fechamento; sem ele, `propriedades.yml`. O TÍTULO não usa a
 # variável: ele é a chave das issues já abertas.
@@ -96,6 +99,8 @@ alarmar() {
     echo
     echo "O log do passo tem a mensagem do script${onde:+; ${onde}}."
     echo "Uma nova falha deste alvo vira comentário AQUI, e a primeira rodada em que ele passar fecha a issue sozinha."
+    # Vínculos do run (AT-773): o `vinculos.md` da action do brabo-ci, quando o passo o gerou. Nunca impede o alarme.
+    if [ -n "${VINCULOS_MD:-}" ] && [ -f "${VINCULOS_MD}" ]; then echo; cat "${VINCULOS_MD}"; fi
   } > "${corpo}"
 
   if [ -n "${existente}" ]; then

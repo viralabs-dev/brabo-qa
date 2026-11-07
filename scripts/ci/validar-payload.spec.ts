@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { envDaOrigem, validarOrigem, validarPayload } from './validar-payload.ts';
+import { envDaOrigem, grepDe, validarModo, validarOrigem, validarPayload } from './validar-payload.ts';
 
 const img = (s: string, tag = 'v1.2.3-dev.4') => `ghcr.io/viralabs-dev/brabo-${s}:${tag}`;
 const base = () => ({
@@ -104,5 +104,39 @@ describe('validarPayload', () => {
     it('nenhuma linha exportada tem quebra de linha', () => {
       expect(envDaOrigem('brabo-api', base(), validarOrigem(real).origem).every((x) => !x.includes('\n'))).toBe(true);
     });
+  });
+});
+
+describe('modo e funcionalidades (AT-769)', () => {
+  it('sem modo é o completo: o payload do portão da main segue válido e idêntico', () => {
+    expect(validarPayload(base()).ok).toBe(true);
+    for (const v of [undefined, null, '', 'null']) expect(validarModo(v, undefined)).toEqual({ modo: 'completo', ids: [], erros: [] });
+  });
+  it('funcionalidades vem como array, JSON ou lista com vírgula', () => {
+    expect(validarModo('funcionalidades', ['a', 'b-c']).ids).toEqual(['a', 'b-c']);
+    expect(validarModo('funcionalidades', '["a","b"]').ids).toEqual(['a', 'b']);
+    expect(validarModo('funcionalidades', 'a, b-c').ids).toEqual(['a', 'b-c']);
+    expect(validarModo('funcionalidades', ['a', 'a']).ids).toEqual(['a']);
+  });
+  it('recusa modo desconhecido, id fora de kebab, mais de 50 e modo funcionalidades vazio', () => {
+    expect(validarModo('nenhum', undefined).erros).not.toEqual([]);
+    expect(validarModo('funcionalidades', ['A']).erros).not.toEqual([]);
+    expect(validarModo('funcionalidades', ['a;rm']).erros).not.toEqual([]);
+    expect(validarModo('funcionalidades', ['a\nEVIL=1']).erros).not.toEqual([]);
+    expect(validarModo('funcionalidades', Array.from({ length: 51 }, (_, i) => `f${i}`)).erros).not.toEqual([]);
+    expect(validarModo('funcionalidades', undefined).erros).not.toEqual([]);
+    expect(validarModo('funcionalidades', '[nao json').erros).not.toEqual([]);
+  });
+  it('validarPayload reprova pelo modo', () => {
+    expect(validarPayload({ ...base(), modo: 'funcionalidades', funcionalidades: ['autenticacao'] }).ok).toBe(true);
+    expect(validarPayload({ ...base(), modo: 'funcionalidades' }).ok).toBe(false);
+    expect(validarPayload({ ...base(), modo: 'x' }).ok).toBe(false);
+  });
+  it('o grep casa a tag inteira, não o prefixo de outra', () => {
+    const re = new RegExp(grepDe(['aprovacoes', 'git']));
+    expect(re.test('um teste @f-aprovacoes')).toBe(true);
+    expect(re.test('um teste @f-git @x')).toBe(true);
+    expect(re.test('um teste @f-git-hub')).toBe(false);
+    expect(re.test('um teste @f-aprovacoes-extra')).toBe(false);
   });
 });

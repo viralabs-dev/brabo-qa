@@ -53,6 +53,9 @@ on:
         default: ''
         type: string
 
+# O gatilho no nome (AT-773): agendado ou manual (e por quem), e qual api foi testada.
+run-name: ${{ format('Golden-set do QA · {0} · api@{1}', github.event_name == 'schedule' && 'agendado' || format('manual · {0}', github.actor), inputs.api_ref || 'dev') }}
+
 permissions:
   contents: read
 
@@ -163,6 +166,16 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
           cache-dependency-path: brabo-api/pnpm-lock.yaml
+
+      - name: Vínculos
+        id: vinculos
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@13f3697aaf3e4a151637755babb58422a44db303  # brabo-ci#17 (AT-765)
+        with:
+          irmaos: |
+            brabo-api
+            brabo-engine
+            brabo-broker
+            viralabs-dev/brabo-infra@04519644fcb75419c5b2f01c76417a0906792d54
 
       - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124  # v1
         with:
@@ -347,6 +360,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           URL_DO_RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           WORKFLOW_DA_PROVA: golden-set-qa.yml
+          VINCULOS_MD: ${{ steps.vinculos.outputs.arquivo }}
           JOB: ${{ job.status }}
         run: |
           set -euo pipefail
