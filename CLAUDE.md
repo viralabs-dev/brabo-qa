@@ -29,6 +29,13 @@ próprios; aqui só entra o que precisa de MAIS DE UM repositório ou do sistema
 - Na PR do próprio brabo-qa as specs são as do `head_sha`; nas outras, as da `dev`. O resumo do check vem do `montarCheck` do `brabo-ci` (checkout `.brabo-ci`).
 - Detalhe e prints: `docs/e2e-portao/como-funciona.md`.
 
+## Regressivo por funcionalidade (AT-769)
+- `funcionalidades.yml` (raiz) é o catálogo das funcionalidades e o mapa caminho → funcionalidade. `id` é estável e nunca renomeado; aposentar é `status: aposentada`.
+- A spec se liga à funcionalidade por tag do Playwright (`{ tag: '@f-<id>' }`, no `test` ou no `test.describe`); o filtro é `--grep @f-<id>`. Spec nova leva a tag; tag sem entrada no catálogo reprova.
+- Só o condutor edita `funcionalidades.yml` entre rodadas (arquivo compartilhado). O validador é `scripts/ci/funcionalidades.ts`: id repetido e glob que não casa arquivo no repo irmão reprovam; funcionalidade sem spec só é listada.
+- PR que toca uma funcionalidade do catálogo ajusta o regressivo dela aqui contra a `dev`, ou diz no card por que não precisa. O check `Regressivo do brabo-qa` (PR para a `dev`) só atesta e nunca é exigido: não o ponha em ruleset.
+- Detalhe: `docs/regressivo/como-funciona.md`.
+
 ## Golden-sets (ADR 0123, 0132, 0138, 0168)
 - São AGENDADOS (RAG diário, QA semanal) ou sob `workflow_dispatch`, NUNCA em PR. Não os ponha em PR para "provar" o YAML:
   o CI de PR só roda `actionlint` e confere os caminhos dos irmãos.

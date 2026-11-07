@@ -76,7 +76,7 @@ jobs:
     name: Golden-set do QA (ExUnit, contra Ollama real, container pelo broker)
     needs: imagens
     if: ${{ !cancelled() }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # Job-level SUBSTITUI o topo: `issues: write` é só do alarme final (AT-667).
     permissions:
       contents: read
