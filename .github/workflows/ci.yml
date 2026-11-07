@@ -25,7 +25,7 @@ env:
 jobs:
   actionlint:
     name: actionlint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -37,7 +37,7 @@ jobs:
       - run: /tmp/actionlint -color
   scripts:
     name: Scripts (jev, idioma)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -53,12 +53,43 @@ jobs:
           repository: viralabs-dev/brabo-engine
           ref: dev
           path: brabo-engine
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-web
+          ref: dev
+          path: brabo-web
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-runner
+          ref: dev
+          path: brabo-runner
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-broker
+          ref: dev
+          path: brabo-broker
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-infra
+          ref: dev
+          path: brabo-infra
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413  # v6.1.0
         with:
           version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
+      - name: Vínculos
+        id: vinculos
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
+        with:
+          irmaos: |
+            brabo-api
+            brabo-engine
+            brabo-web
+            brabo-runner
+            brabo-broker
+            brabo-infra
       # O typecheck lê o código do api: precisa dos tipos dele (@brabo/shared vem do brabo-contracts).
       - run: pnpm install --frozen-lockfile
         working-directory: brabo-api
@@ -73,7 +104,7 @@ jobs:
 
   e2e:
     name: E2E (typecheck)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -90,7 +121,7 @@ jobs:
 
   workflows:
     name: actionlint e caminhos dos irmãos
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -111,6 +142,17 @@ jobs:
           repository: viralabs-dev/brabo-broker
           ref: dev
           path: brabo-broker
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Vínculos
+        id: vinculos
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
+        with:
+          irmaos: |
+            brabo-api
+            brabo-engine
+            brabo-broker
       - name: actionlint
         run: |
           set -euo pipefail
@@ -132,5 +174,9 @@ jobs:
           done
           grep -q 'golden-set:qa-seed' brabo-api/package.json
           grep -q 'golden-set:rag-seed' brabo-api/package.json
+          # Atributo de módulo indefinido é só warning no Elixir (vale nil): a definição tem de existir (AT-760).
+          for f in qa/golden/engine/test/engine/rag/rag_golden_test.exs qa/golden/engine/test/engine/gates/qa_automacao_agent_golden_test.exs; do
+            grep -qE '^[[:space:]]*@api_dir[[:space:]]' "$f" || { echo "::error::$f usa @api_dir sem defini-lo"; exit 1; }
+          done
           [ -f qa/golden/engine/test/fixtures/golden_set_qa/floor.json ]
           [ -f qa/golden/engine/test/fixtures/golden_set_rag/floor.json ]

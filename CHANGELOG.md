@@ -2,9 +2,37 @@
 
 ## Unreleased
 
+- E2E da PR: o `up -d --wait` não inclui mais o serviço `backup`, que é um job (`restart: "no"`, sai com 0) e fazia o `--wait` falhar com todos os serviços saudáveis; ele é só criado (`create backup`) para a conferência de digests (AT-765).
+
+- CI: repina os reutilizáveis do `brabo-ci` em `384b5d1` (merge da ci#22: o job `disparar` do `qa-e2e-gatilho.yml` agora instala as dependências) em todos os pins, `uses:`, `ci_ref:` e checkout do `brabo-ci` (AT-785).
+
+- Golden-set do QA: o `MIX_ENV: test` do job (adicionado na separação, 68c1e23) levava o `mix phx.server` para o pool Sandbox e o banco `engine_test`, que não existe (`FATAL 3D000`, depois timeout do Sandbox). `MIX_ENV=test` volta a valer só no passo `mix test`; o servidor roda em dev, no banco `brabo` do `DATABASE_URL`, como antes da separação (AT-784).
+- Golden-set do QA: o broker sobe pelo bundle (`pnpm run build` + `node dist/index.cjs`) em vez de `node src/index.ts`; com o contrato em `node_modules` o Node recusava o `.ts` cru e o broker morria no boot (issue #22, AT-784).
+
+- Fixture do `alarmar-prova.spec.ts` passa de `daneiel/brabo` para `viralabs-dev/brabo`; o repo não está mais sob o handle pessoal (AT-783).
+
+- Regressivo por funcionalidade e vínculos nos runs, Rodada B (AT-769, AT-773). `e2e-pr.yml`: input `modo` (`completo`, padrão e idêntico ao portão da main, ou `funcionalidades`) e `funcionalidades`; no modo `funcionalidades` o Playwright roda com `--grep` pela tag `@f-<id>`; passo `Cobertura por funcionalidade` (`scripts/ci/cobertura.ts`) e tabela `funcionalidade | specs | resultado` no resumo do check, com "sem cobertura" sem reprovar. `validar-payload.ts` valida `modo` e `funcionalidades`. `fechar-check.ts` aceita também o check `Regressivo do brabo-qa` (PR para a dev, nunca exigido) e passa a tabela ao `montarCheck`. `run-name` com a origem e a correlação (`c=<run_id>-<attempt>`), job `anunciar` (aponta o check para o run do brabo-qa assim que ele começa; `anunciar-check.ts`), `RAW_ORIGEM` nos jobs e a action `vinculos` do `brabo-ci` (pin `13f3697`) em `e2e-pr`, `golden-set-rag`, `golden-set-qa`, `ci` e `varrer-orfaos`. `alarmar-prova.sh` anexa o `vinculos.md` (`VINCULOS_MD`) ao corpo da issue.
+- Golden-set do RAG: o piso volta a 17/17, medido no run 42332959893 com o teto de 2 trechos por arquivo da busca (api#57, AT-778, decisão do dono).
+- CI: repina os reutilizáveis do `brabo-ci` em `13f3697` (merge da ci#17, que inclui a ci#16): `ubuntu-26.04`, `client-id` no lugar de `app-id`, rótulo de família criado antes de aplicar, linha `Carimbo:` na tag e helper `vinculos` (AT-772, AT-773).
+- Golden-set do RAG remedido com o corpus inteiro (AT-764, decisão do dono, vale só para esta mudança): piso 17 -> 16 (`floor.json`) e `timeout-minutes` 20 -> 40 no `golden-set-rag.yml`. Run 42323476672: 1833 chunks, indexação ~17 min, busca ~1 s, 16/17; falhou `tetos-de-rebaixamento-project-members` (esperado ADR 0127; top-5 = 5 chunks de `docs/business-rules.md`, scores 0,466 a 0,430).
+
+- Vínculos nos runs (AT-773, parte `.ts`): `validar-payload.ts` valida a `origem` opcional do payload do `e2e-pr` (inválida, é descartada com `::warning::` e nunca reprova o payload) (`run_id`, `run_attempt`, `ator`, `sha_curto`, `correlacao`) e exporta `ORIGEM_*` e `ORIGEM_JSON` (entrada da action `vinculos` do brabo-ci) em `$GITHUB_ENV`; payload antigo, sem `origem`, segue válido. `fechar-check.ts` lê o `vinculos.md` (`VINCULOS_MD`) e o anexa ao resumo do check. O YAML (`run-name`, job `anunciar`, a action) vem na Rodada B.
+- CI: todo `runs-on` fixa `ubuntu-26.04` no lugar de `ubuntu-latest`, e o `create-github-app-token` usa `client-id` no lugar do `app-id` obsoleto; os runs saem sem anotação de aviso (AT-772).
+
+- Regressivo por funcionalidade (AT-769, RN-1031): `funcionalidades.yml` (catálogo de 14 funcionalidades e mapa caminho → funcionalidade), validador `scripts/ci/funcionalidades.ts` (id repetido, glob sem arquivo no irmão, tag órfã) e tags `@f-<id>` do Playwright nas 4 specs atuais. Docs em `docs/regressivo/`.
+- Ko-fi do mantenedor: `.github/FUNDING.yml` (botão Sponsor) e seção Apoie no README (AT-768).
+
+- E2E como portão da main (AT-765; dois jobs: `e2e` sem token do App e `fechar` com o token escopado ao repo validado): `e2e-pr.yml` (repository_dispatch `e2e-pr` e `workflow_dispatch` de ensaio) espera as 5 imagens no GHCR, verifica a assinatura com `cosign`, sobe o `docker-compose.install.yml` do `brabo-infra` por digest, confere o digest de cada container, roda o Playwright e fecha o check `E2E do brabo-qa` na PR de origem. Scripts novos: `aguardar-digest.ts`, `conferir-digests.ts`, `fechar-check.ts`, `varrer-orfaos.ts`. `varrer-orfaos.yml` (de hora em hora) fecha como vermelho (`sem-resposta`) o check em andamento há mais de 90 min. Docs em `docs/e2e-portao/`. O checkout do `brabo-ci` aponta para `feature/e2e-portao-da-main` até a AT-765 Task 10.
+- Docs: a documentação do repositório volta ao pt-BR por padrão (AT-766, decisão do dono de 06/11/2026, que reverte o ADR 0260). `README.md` e `e2e/README.md` voltam ao pt-BR, e os comentários de `e2e/suporte/api.ts` e `turno-pelo-canal.spec.ts` citam os títulos em pt-BR. O README troca a seção "Fica para depois da AT-701" por "O que já roda e o que ainda é manual", ganha a seção "Repositórios do Brabo" e deixa de citar o monorepo antigo.
+- Os workflows de golden-set (`golden-set-rag.yml`, `golden-set-qa.yml`) aceitam duas entradas no `workflow_dispatch`: `api_ref` (branch, tag ou SHA do brabo-api a testar, padrão `dev`) e `ollama_image` (imagem do Ollama do service, padrão vazio = a fixada pelo `imagens-do-compose`). O agendamento não muda (AT-763).
+- Golden-sets: define `@api_dir` nos dois arquivos ExUnit (irmão `brabo-api`, sobrescrito por `BRABO_API_DIR`) e tira o `@repo_root` sem uso; uma guarda de PR no `ci.yml` reprova quando falta a definição; o `golden-set-rag.yml` roda `mix test` sob `pipefail` (AT-760).
+- Alarme (`scripts/ci/alarmar-prova.sh`) exporta `GH_REPO` a partir de `GITHUB_REPOSITORY`, então as chamadas `gh issue …` funcionam fora de um checkout git e a falha do golden-set abre a issue; `alarmar-prova.spec.ts` portado (com um caso que roda fora de um `.git`) e `ci/` acrescentado ao `scripts/tsconfig.json` (AT-760).
+- Docs: `README.md` e `e2e/README.md` passam a ser em inglês (AT-745). Os títulos que o código cita literalmente (`e2e/suporte/api.ts`, `turno-pelo-canal.spec.ts`) mantêm o texto em pt-BR.
+- Docs: os dois títulos que restavam em pt-BR no `e2e/README.md` passam ao inglês, e os comentários de código que os citam foram atualizados.
+- `politica.yml`: pins do `brabo-ci` sobem para `b030fbf` (dispensa da PR do bot, ADR 0255; AT-733).
 - `tag.yml` carimba as tags pelo `brabo-ci` (1ª = `v1.0.0`).
 - CI: job `actionlint`.
-- Extração de `e2e/`, `docker/smoke.sh`, `scripts/jev/`, `scripts/idioma/`, dos workflows `golden-set-qa.yml` e `golden-set-rag.yml` e dos golden-sets ExUnit (com os `floor.json`) do monorepo `daneiel/brabo` (AT-703, ADR 0252), com o histórico dos caminhos.
+- Extração de `e2e/`, `docker/smoke.sh`, `scripts/jev/`, `scripts/idioma/`, dos workflows `golden-set-qa.yml` e `golden-set-rag.yml` e dos golden-sets ExUnit (com os `floor.json`) do monorepo original, hoje `viralabs-dev/brabo-legacy` (AT-703, ADR 0252), com o histórico dos caminhos.
 - Golden-sets agora fazem checkout de `brabo-api`, `brabo-engine` e `brabo-broker` (`dev`) e copiam os testes para o engine; os `mix golden_set.*` viraram `mix test --only golden_set_*`. Imagens `pgvector`/`ollama` por digest literal (o compose é do `brabo-infra`).
 - `scripts/idioma` e `scripts/jev` leem os irmãos em `../brabo-api` e `../brabo-engine`.
 - `docker/smoke.sh` lê o compose de `BRABO_INFRA_DIR`.

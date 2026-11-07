@@ -68,8 +68,8 @@ defmodule Engine.Gates.QaAutomacaoAgentGoldenTest do
   # chamada.
   @moduletag ownership_timeout: :infinity
 
-  # apps/engine/test/engine/gates/ -> pasta do brabo-api, irmã do brabo-engine.
-  @repo_root Path.expand("../../../../..", __DIR__)
+  # A pasta do brabo-api, irmã do brabo-engine (test/engine/<área>/ sobe 4 níveis até o workspace).
+  @api_dir System.get_env("BRABO_API_DIR") || Path.expand("../../../../brabo-api", __DIR__)
   @floor_path Path.expand("../../fixtures/golden_set_qa/floor.json", __DIR__)
 
   setup_all do

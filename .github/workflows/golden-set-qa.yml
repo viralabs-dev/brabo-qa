@@ -38,6 +38,23 @@ on:
     # fila global enche.
     - cron: '17 1 * * 6'
   workflow_dispatch:
+    # Manual runs can point the brabo-api checkout at a branch and swap the Ollama
+    # image (AT-763 proof). Empty ollama_image keeps the image pinned by imagens-do-compose;
+    # the schedule has no inputs, so it always gets the defaults.
+    inputs:
+      api_ref:
+        description: 'brabo-api ref to test (branch, tag or SHA)'
+        required: false
+        default: 'dev'
+        type: string
+      ollama_image:
+        description: 'Ollama image for the service (empty = the one pinned by imagens-do-compose)'
+        required: false
+        default: ''
+        type: string
+
+# O gatilho no nome (AT-773): agendado ou manual (e por quem), e qual api foi testada.
+run-name: ${{ format('Golden-set do QA · {0} · api@{1}', github.event_name == 'schedule' && 'agendado' || format('manual · {0}', github.actor), inputs.api_ref || 'dev') }}
 
 permissions:
   contents: read
@@ -62,7 +79,7 @@ jobs:
     name: Golden-set do QA (ExUnit, contra Ollama real, container pelo broker)
     needs: imagens
     if: ${{ !cancelled() }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # Job-level SUBSTITUI o topo: `issues: write` é só do alarme final (AT-667).
     permissions:
       contents: read
@@ -95,7 +112,7 @@ jobs:
         # A MESMA imagem de docker/docker-compose.yml, lida do serviço
         # `ollama` dele (ADR 0197) — o piso de `floor.json` é chaveado por
         # MODELO, não por ambiente.
-        image: ${{ needs.imagens.outputs.ollama }}
+        image: ${{ inputs.ollama_image || needs.imagens.outputs.ollama }}
         ports:
           - 11434:11434
         # Os mesmos do compose de dev: o modelo fica carregado entre os
@@ -112,7 +129,6 @@ jobs:
     env:
       DATABASE_URL: postgres://brabo:brabo@localhost:5432/brabo
       OLLAMA_HOST: http://localhost:11434
-      MIX_ENV: test
       GOLDEN_SET_QA_MODEL: 'qwen2.5-coder:latest'
       API_URL: http://localhost:3000
       # Literal de CI, não segredo: api, engine e broker só escutam no
@@ -127,7 +143,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           repository: viralabs-dev/brabo-api
-          ref: dev
+          ref: ${{ inputs.api_ref || 'dev' }}
           path: brabo-api
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -149,6 +165,16 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
           cache-dependency-path: brabo-api/pnpm-lock.yaml
+
+      - name: Vínculos
+        id: vinculos
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
+        with:
+          irmaos: |
+            brabo-api
+            brabo-engine
+            brabo-broker
+            viralabs-dev/brabo-infra@04519644fcb75419c5b2f01c76417a0906792d54
 
       - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124  # v1
         with:
@@ -235,7 +261,11 @@ jobs:
           BROKER_PORT: '8090'
         run: |
           set -euo pipefail
-          node src/index.ts > /tmp/broker.log 2>&1 &
+          # O contrato (@brabo/docker-port) vem por git em node_modules como .ts cru, e o Node
+          # recusa type stripping ali (ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING). Roda o bundle
+          # do tsup, como o `pnpm start` e o Dockerfile do broker (AT-737, AT-784).
+          pnpm run build
+          node dist/index.cjs > /tmp/broker.log 2>&1 &
           for _ in $(seq 1 30); do
             if curl -fsS http://localhost:8090/health >/dev/null 2>&1; then
               echo "broker de pé"; exit 0
@@ -283,7 +313,8 @@ jobs:
         run: |
           set -o pipefail
           inicio=$(date +%s)
-          mix test --only golden_set_qa 2>&1 | tee /tmp/golden-qa.log
+          # Só o teste roda em `test` (Sandbox, `engine_test`); o servidor acima roda em dev, no banco `brabo` do DATABASE_URL, o mesmo da api.
+          MIX_ENV="test" mix test --only golden_set_qa 2>&1 | tee /tmp/golden-qa.log
           status=$?
           echo "TEMPO mix golden_set.qa: $(( $(date +%s) - inicio ))s"
           exit $status
@@ -333,6 +364,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           URL_DO_RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           WORKFLOW_DA_PROVA: golden-set-qa.yml
+          VINCULOS_MD: ${{ steps.vinculos.outputs.arquivo }}
           JOB: ${{ job.status }}
         run: |
           set -euo pipefail

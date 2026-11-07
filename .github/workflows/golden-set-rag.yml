@@ -16,6 +16,23 @@ on:
   schedule:
     - cron: '0 6 * * *'
   workflow_dispatch:
+    # Manual runs can point the brabo-api checkout at a branch and swap the Ollama
+    # image (AT-763 proof). Empty ollama_image keeps the image pinned by imagens-do-compose;
+    # the schedule has no inputs, so it always gets the defaults.
+    inputs:
+      api_ref:
+        description: 'brabo-api ref to test (branch, tag or SHA)'
+        required: false
+        default: 'dev'
+        type: string
+      ollama_image:
+        description: 'Ollama image for the service (empty = the one pinned by imagens-do-compose)'
+        required: false
+        default: ''
+        type: string
+
+# O gatilho no nome (AT-773): agendado ou manual (e por quem), e qual api foi testada.
+run-name: ${{ format('Golden-set do RAG · {0} · api@{1}', github.event_name == 'schedule' && 'agendado' || format('manual · {0}', github.actor), inputs.api_ref || 'dev') }}
 
 permissions:
   contents: read
@@ -40,8 +57,11 @@ jobs:
     name: Golden-set do RAG (ExUnit, contra Ollama real)
     needs: imagens
     if: ${{ !cancelled() }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    runs-on: ubuntu-26.04
+    # 40 (era 20): AT-764, run 42323476672 — com o corpus inteiro (1833 chunks)
+    # a indexação levou ~17 min (01:23:17→01:40:13) e a busca dos 17 casos ~1 s;
+    # o job foi cancelado aos 20 min logo após imprimir o resultado.
+    timeout-minutes: 40
     # Job-level SUBSTITUI o `permissions:` do topo: `contents: read` volta
     # explícito, senão o checkout perderia a leitura. `issues: write` é o
     # alarme do passo final (AT-667) — só abre/fecha a issue da falha agendada.
@@ -71,7 +91,7 @@ jobs:
         # não por ambiente) continuar válido aqui. Até o ADR 0197 isso era uma
         # PROMESSA, guardada por um literal igual ao do compose; agora é
         # CONSTRUÇÃO: a referência é lida do serviço `ollama` do compose.
-        image: ${{ needs.imagens.outputs.ollama }}
+        image: ${{ inputs.ollama_image || needs.imagens.outputs.ollama }}
         ports:
           - 11434:11434
         # `ollama list` como health-cmd, não `curl` — `curl` roda DENTRO do
@@ -97,7 +117,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           repository: viralabs-dev/brabo-api
-          ref: dev
+          ref: ${{ inputs.api_ref || 'dev' }}
           path: brabo-api
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -114,6 +134,15 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
           cache-dependency-path: brabo-api/pnpm-lock.yaml
+
+      - name: Vínculos
+        id: vinculos
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
+        with:
+          irmaos: |
+            brabo-api
+            brabo-engine
+            viralabs-dev/brabo-infra@04519644fcb75419c5b2f01c76417a0906792d54
 
       - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124  # v1
         with:
@@ -210,7 +239,9 @@ jobs:
       # NODE_ENV=production de propósito).
       - name: mix golden_set.rag
         working-directory: brabo-engine
-        run: mix test --only golden_set_rag 2>&1 | tee /tmp/golden-rag.log
+        run: |
+          set -o pipefail
+          mix test --only golden_set_rag 2>&1 | tee /tmp/golden-rag.log
 
       # Guarda do falso-verde, a mesma de `ci.yml` ("Nenhum teste pode ter
       # sido excluído além dos golden-sets"), aplicada ao caso inverso: lá o
@@ -251,6 +282,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           URL_DO_RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           WORKFLOW_DA_PROVA: golden-set-rag.yml
+          VINCULOS_MD: ${{ steps.vinculos.outputs.arquivo }}
           JOB: ${{ job.status }}
         run: |
           set -euo pipefail

@@ -27,7 +27,7 @@ import { entrar } from '../suporte/navegador.ts';
 // tempo, é o lockout por IP do próprio produto.
 test.use({ storageState: { cookies: [], origins: [] } });
 
-test.describe('autenticação no navegador', () => {
+test.describe('autenticação no navegador', { tag: '@f-autenticacao' }, () => {
   // AT-722: o compose de produção do smoke não é `local`; o acesso rápido não existe.
   test('o acesso rápido não existe fora do ambiente local', async ({ page }) => {
     await page.goto('/login');

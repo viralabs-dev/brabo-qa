@@ -21,6 +21,23 @@ próprios; aqui só entra o que precisa de MAIS DE UM repositório ou do sistema
 - Seletor é ESTRUTURAL, nunca texto (o idioma é decisão do servidor); a asserção é sobre MECANISMO, nunca sobre tela.
 - O compose vem do `brabo-infra` (`BRABO_INFRA_DIR`, padrão `../brabo-infra`).
 
+## Portão da main (AT-765)
+- O check `E2E do brabo-qa` é exigido pelo ruleset "main exige E2E" nas PRs para a `main` de api, engine, web, broker, infra e qa (não o contracts).
+  O gatilho mora no `brabo-ci` (`qa-e2e-gatilho.yml`); aqui roda o `.github/workflows/e2e-pr.yml` (evento `e2e-pr`) e o `varrer-orfaos.yml`.
+- O E2E roda sobre as imagens por DIGEST, com `cosign verify` antes e conferência do digest em execução depois. Nunca troque o digest por tag
+  nem pule a conferência: `digest` e `assinatura` não são aceitáveis com `/qa-aceitar`; `spec`, `ambiente` e `sem-resposta` são (só o `OWNER_HANDLE`).
+- Na PR do próprio brabo-qa as specs são as do `head_sha`; nas outras, as da `dev`. O resumo do check vem do `montarCheck` do `brabo-ci` (checkout `.brabo-ci`).
+- Detalhe e prints: `docs/e2e-portao/como-funciona.md`.
+
+## Regressivo por funcionalidade (AT-769)
+- `funcionalidades.yml` (raiz) é o catálogo das funcionalidades e o mapa caminho → funcionalidade. `id` é estável e nunca renomeado; aposentar é `status: aposentada`.
+- A spec se liga à funcionalidade por tag do Playwright (`{ tag: '@f-<id>' }`, no `test` ou no `test.describe`); o filtro é `--grep @f-<id>`. Spec nova leva a tag; tag sem entrada no catálogo reprova.
+- Só o condutor edita `funcionalidades.yml` entre rodadas (arquivo compartilhado). O validador é `scripts/ci/funcionalidades.ts`: id repetido e glob que não casa arquivo no repo irmão reprovam; funcionalidade sem spec só é listada.
+- PR que toca uma funcionalidade do catálogo ajusta o regressivo dela aqui contra a `dev`, ou diz no card por que não precisa. O check `Regressivo do brabo-qa` (PR para a `dev`) só atesta e nunca é exigido: não o ponha em ruleset.
+- `e2e-pr.yml` tem `modo`: `completo` (padrão, o portão da main, SEM filtro e idêntico ao de antes) ou `funcionalidades` (`--grep` pela tag, check `Regressivo do brabo-qa`). Funcionalidade sem spec é "sem cobertura" na tabela e nunca reprova.
+- Vínculos (AT-773): o `run-name` do `e2e-pr` leva `c=<correlacao>` (o gatilho do brabo-ci acha o run por ele: não mude o formato); a action `vinculos` do brabo-ci vai no primeiro passo de cada job que lê outro repo e nunca reprova; o job `anunciar` só avisa se falhar.
+- Detalhe: `docs/regressivo/como-funciona.md`.
+
 ## Golden-sets (ADR 0123, 0132, 0138, 0168)
 - São AGENDADOS (RAG diário, QA semanal) ou sob `workflow_dispatch`, NUNCA em PR. Não os ponha em PR para "provar" o YAML:
   o CI de PR só roda `actionlint` e confere os caminhos dos irmãos.

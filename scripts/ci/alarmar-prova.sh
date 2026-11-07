@@ -8,10 +8,15 @@
 # de reaproveitamento — um título diferente num dos dois abriria issue nova a
 # cada falha.
 #
+# Roda fora do checkout: o repo dos `gh issue …` vem de GITHUB_REPOSITORY (GH_REPO).
+#
 # Uso (sourced, num passo com GH_TOKEN, URL_DO_RUN e o ambiente padrão do
 # Actions — GITHUB_REPOSITORY, GITHUB_REF_NAME, GITHUB_SHA):
 #   source scripts/ci/alarmar-prova.sh
 #   alarmar '<alvo>' '<outcome do passo>' ['<onde olhar além do log>']
+#
+# `VINCULOS_MD` (opcional, AT-773): caminho do `vinculos.md` gerado pela action `vinculos` do
+# brabo-ci; se existir, vai ao fim do corpo da issue aberta.
 #
 # `WORKFLOW_DA_PROVA` (opcional, AT-667) nomeia o workflow no corpo da issue e no
 # comentário de fechamento; sem ele, `propriedades.yml`. O TÍTULO não usa a
@@ -56,6 +61,8 @@ ramo_padrao_da_prova() {
 alarmar() {
   local alvo="$1" desfecho="$2" onde="${3:-}" titulo corpo existente url ramo wf
   wf="${WORKFLOW_DA_PROVA:-propriedades.yml}"
+  # O passo roda fora de um checkout git: sem GH_REPO o `gh issue …` morre com "not a git repository".
+  export GH_REPO="${GH_REPO:-${GITHUB_REPOSITORY}}"
   case "${desfecho}" in
     failure|success) ;;
     *) return 0 ;;
@@ -92,6 +99,8 @@ alarmar() {
     echo
     echo "O log do passo tem a mensagem do script${onde:+; ${onde}}."
     echo "Uma nova falha deste alvo vira comentário AQUI, e a primeira rodada em que ele passar fecha a issue sozinha."
+    # Vínculos do run (AT-773): o `vinculos.md` da action do brabo-ci, quando o passo o gerou. Nunca impede o alarme.
+    if [ -n "${VINCULOS_MD:-}" ] && [ -f "${VINCULOS_MD}" ]; then echo; cat "${VINCULOS_MD}"; fi
   } > "${corpo}"
 
   if [ -n "${existente}" ]; then
