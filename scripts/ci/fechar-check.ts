@@ -2,6 +2,7 @@
 // SEPARADO do job que executa código de PR: só aqui existe o token do App. Os desfechos do job e2e chegam por env e os
 // resultados por env (JSON de job outputs, tratados como DADO: só são parseados e impressos). O resumo vem do `montarCheck` do brabo-ci
 // (checkout em `.brabo-ci`, repinar no merge da AT-765 Task 10).
+import { readFileSync } from 'node:fs';
 import type { LinhaDigest } from './conferir-digests.ts';
 
 type Servico = LinhaDigest['servico'];
@@ -29,6 +30,17 @@ export function decidirFechamento(a: { cancelado: boolean; desfechos: Desfechos 
   if (d.spec === 'failure') return { tipo: 'causa', causa: 'spec' };
   return { tipo: 'causa', causa: 'ambiente' };
 }
+
+// Anexa a tabela Vínculos (vinculos.md da action do brabo-ci) ao resumo; o check aceita até 65535 caracteres (AT-773).
+export const anexarVinculos = (resumo: string, md?: string): string => (md?.trim() ? `${resumo}\n\n${md.trim().slice(0, 8000)}` : resumo);
+
+const lerVinculos = (): string | undefined => {
+  try {
+    return process.env.VINCULOS_MD ? readFileSync(process.env.VINCULOS_MD, 'utf8') : undefined;
+  } catch {
+    return undefined; // os vínculos nunca impedem fechar o check
+  }
+};
 
 // Só `cancelled` do job e2e é cancelamento; o timeout dele chega como `failure` e vira `ambiente`.
 export const foiCancelado = (resultadoDoJob: string): boolean => resultadoDoJob === 'cancelled';
@@ -77,11 +89,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   }
   const urlDoRun = `${env.GITHUB_SERVER_URL}/${env.GITHUB_REPOSITORY}/actions/runs/${env.GITHUB_RUN_ID}`;
+  const vinculos = lerVinculos();
   let c: { conclusion: string; title: string; summary: string; external_id: string };
   if (decisao.tipo === 'cancelled') {
-    c = { conclusion: 'cancelled', title: 'E2E cancelado', summary: `Run cancelado (nova execução para o mesmo PR ou cancelamento manual): ${urlDoRun}`, external_id: 'causa:' };
+    c = { conclusion: 'cancelled', title: 'E2E cancelado', summary: anexarVinculos(`Run cancelado (nova execução para o mesmo PR ou cancelamento manual): ${urlDoRun}`, vinculos), external_id: 'causa:' };
   } else if (!v.ok) {
-    c = { conclusion: 'failure', title: 'E2E: payload inválido (ambiente)', summary: `O payload do dispatch foi recusado:\n\n${v.erros.map((e) => `- ${e}`).join('\n')}\n\nRun: ${urlDoRun}`, external_id: 'causa:ambiente' };
+    c = { conclusion: 'failure', title: 'E2E: payload inválido (ambiente)', summary: anexarVinculos(`O payload do dispatch foi recusado:\n\n${v.erros.map((e) => `- ${e}`).join('\n')}\n\nRun: ${urlDoRun}`, vinculos), external_id: 'causa:ambiente' };
   } else {
     // Import só aqui: o caminho do cancelado e do payload inválido não carrega código do `.brabo-ci`.
     let montarCheck: (r: unknown) => typeof c;
@@ -101,7 +114,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       assinatura: assinaturas[servico] ?? 'não conferida',
     }));
     const causa = decisao.causa;
-    c = montarCheck({ causa, linhas, specsQueFalharam: causa === 'spec' ? specsQueFalharam() : [], urlDoRun });
+    c = montarCheck({ causa, linhas, specsQueFalharam: causa === 'spec' ? specsQueFalharam() : [], urlDoRun, vinculos });
   }
   const res = await fetch(api, {
     method: 'PATCH',
