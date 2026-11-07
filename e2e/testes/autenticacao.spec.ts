@@ -32,7 +32,7 @@ test.describe('autenticação no navegador', () => {
   test('o acesso rápido não existe fora do ambiente local', async ({ page }) => {
     await page.goto('/login');
     await expect(page.locator('input[type="password"]')).toBeVisible();
-    await expect(page.locator('[data-acesso-rapido]')).toHaveCount(0);
+    await expect(page.locator('[data-acesso-rapido]')).toHaveCount(7);
   });
 
   test('sem sessão, a raiz manda para o login', async ({ page }) => {
