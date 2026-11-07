@@ -25,7 +25,8 @@ export type Resultado = { erros: string[]; semCobertura: string[]; naoVerificado
 
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-export function validarCatalogo(catalogo: Funcionalidade[], ctx: Contexto): Resultado {
+/** `exigirTodos` (CI): repo mapeado sem checkout ao lado vira erro, para o mapa não ficar sem prova em silêncio. */
+export function validarCatalogo(catalogo: Funcionalidade[], ctx: Contexto, exigirTodos = false): Resultado {
   const erros: string[] = [];
   const naoVerificados = new Set<string>();
   const vistos = new Set<string>();
@@ -50,6 +51,7 @@ export function validarCatalogo(catalogo: Funcionalidade[], ctx: Contexto): Resu
   }
   const comSpec = new Set(ctx.tagsDasSpecs.map((t) => t.slice('@f-'.length)));
   const semCobertura = catalogo.filter((f) => f.status === 'ativa' && !comSpec.has(f.id)).map((f) => f.id);
+  if (exigirTodos) for (const r of naoVerificados) erros.push(`repo ${r} mapeado mas sem checkout ao lado: globs não verificados`);
   return { erros, semCobertura, naoVerificados: [...naoVerificados].sort() };
 }
 
@@ -74,7 +76,7 @@ export function carregar(raiz = RAIZ, irmaos = process.env.BRABO_IRMAOS_DIR ?? d
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const { catalogo, ctx } = carregar();
-  const r = validarCatalogo(catalogo, ctx);
+  const r = validarCatalogo(catalogo, ctx, !!process.env.CI);
   console.log(`sem cobertura: ${r.semCobertura.join(', ') || '-'}\nrepos não verificados: ${r.naoVerificados.join(', ') || '-'}`);
   if (r.erros.length) {
     console.error(r.erros.join('\n'));

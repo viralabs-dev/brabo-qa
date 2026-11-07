@@ -30,6 +30,10 @@ describe('validarCatalogo', () => {
     expect(r.erros).toEqual([]);
     expect(r.naoVerificados).toEqual(['web']);
   });
+  it('com exigirTodos (CI), repo ausente reprova', () => {
+    const r = validarCatalogo([f('a', { web: ['src/**'] })], ctx, true);
+    expect(r.erros[0]).toMatch(/repo web mapeado mas sem checkout/);
+  });
   it('reprova tag de spec sem funcionalidade no catálogo', () => {
     expect(validarCatalogo([f('a')], { ...ctx, tagsDasSpecs: ['@f-a', '@f-zzz'] }).erros).toEqual([
       'tag @f-zzz em spec sem funcionalidade no catálogo',
@@ -46,6 +50,6 @@ describe('funcionalidades.yml real', () => {
   it('passa no validador contra os repos irmãos achados', () => {
     const { catalogo, ctx: real } = carregar();
     expect(catalogo).toHaveLength(14);
-    expect(validarCatalogo(catalogo, real).erros).toEqual([]);
+    expect(validarCatalogo(catalogo, real, !!process.env.CI).erros).toEqual([]);
   });
 });

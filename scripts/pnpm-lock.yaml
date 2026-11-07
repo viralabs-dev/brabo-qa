@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      picomatch:
-        specifier: ^4.0.5
-        version: 4.0.7
       yaml:
         specifier: ^2.9.0
         version: 2.9.1

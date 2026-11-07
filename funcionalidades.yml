@@ -3,7 +3,7 @@
 # - `id`: kebab-case, estável, NUNCA renomeado. Aposentar = `status: aposentada`.
 # - A spec do Playwright se liga à funcionalidade por tag no próprio teste (`{ tag: '@f-<id>' }`);
 #   o filtro é `--grep @f-<id>`. Não há lista de arquivos aqui.
-# - `caminhos`: globs (picomatch) relativos à raiz de cada repo. Chave = repo sem o prefixo `brabo-`.
+# - `caminhos`: globs (glob do Node, `path.matchesGlob`) relativos à raiz de cada repo. Chave = repo sem o prefixo `brabo-`.
 # - Todo glob tem de casar ao menos um arquivo do repo irmão: `pnpm --dir scripts test` reprova o mapa podre.
 # - Regras de arquivo transversal (nada / catálogo inteiro / sem dono) não moram aqui: vivem no script do brabo-ci.
 funcionalidades:
