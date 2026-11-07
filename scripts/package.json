@@ -25,7 +25,6 @@
     "vitest": "^4.1.12"
   },
   "dependencies": {
-    "picomatch": "^4.0.5",
     "yaml": "^2.9.0"
   }
 }

@@ -75,7 +75,7 @@ function lerFrame(bruto: string | Buffer): FrameDoCanal | null {
   return null;
 }
 
-test('o turno sobe, falha por credencial e o desfecho chega pelo canal da sessão', async ({
+test('o turno sobe, falha por credencial e o desfecho chega pelo canal da sessão', { tag: '@f-turno-do-agente' }, async ({
   page,
   context,
 }) => {

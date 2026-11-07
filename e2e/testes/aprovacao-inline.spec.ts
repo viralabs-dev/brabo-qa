@@ -54,7 +54,7 @@ test.beforeAll(async () => {
   acaoId = await proporAcaoPendente(token, semeada);
 });
 
-test('a decisão sai do chat em origem cruzada e a fila deixa de ter a pendência', async ({
+test('a decisão sai do chat em origem cruzada e a fila deixa de ter a pendência', { tag: '@f-aprovacoes' }, async ({
   page,
   context,
   baseURL,
