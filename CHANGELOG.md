@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- CI: repina os reutilizáveis do `brabo-ci` em `384b5d1` (merge da ci#22: o job `disparar` do `qa-e2e-gatilho.yml` agora instala as dependências) em todos os pins, `uses:`, `ci_ref:` e checkout do `brabo-ci` (AT-785).
+
 - Golden-set do QA: o `MIX_ENV: test` do job (adicionado na separação, 68c1e23) levava o `mix phx.server` para o pool Sandbox e o banco `engine_test`, que não existe (`FATAL 3D000`, depois timeout do Sandbox). `MIX_ENV=test` volta a valer só no passo `mix test`; o servidor roda em dev, no banco `brabo` do `DATABASE_URL`, como antes da separação (AT-784).
 - Golden-set do QA: o broker sobe pelo bundle (`pnpm run build` + `node dist/index.cjs`) em vez de `node src/index.ts`; com o contrato em `node_modules` o Node recusava o `.ts` cru e o broker morria no boot (issue #22, AT-784).
 

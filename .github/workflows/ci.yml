@@ -81,7 +81,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Vínculos
         id: vinculos
-        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@13f3697aaf3e4a151637755babb58422a44db303  # brabo-ci#17 (AT-765)
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
         with:
           irmaos: |
             brabo-api
@@ -147,7 +147,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Vínculos
         id: vinculos
-        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@13f3697aaf3e4a151637755babb58422a44db303  # brabo-ci#17 (AT-765)
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
         with:
           irmaos: |
             brabo-api
