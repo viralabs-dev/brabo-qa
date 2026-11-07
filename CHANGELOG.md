@@ -3,6 +3,8 @@
 ## Unreleased
 
 - Vínculos nos runs (AT-773, parte `.ts`): `validar-payload.ts` valida a `origem` opcional do payload do `e2e-pr` (`run_id`, `run_attempt`, `ator`, `sha_curto`, `correlacao`) e exporta `ORIGEM_*` e `ORIGEM_JSON` (entrada da action `vinculos` do brabo-ci) em `$GITHUB_ENV`; payload antigo, sem `origem`, segue válido. `fechar-check.ts` lê o `vinculos.md` (`VINCULOS_MD`) e o anexa ao resumo do check. O YAML (`run-name`, job `anunciar`, a action) vem na Rodada B.
+- CI: todo `runs-on` fixa `ubuntu-26.04` no lugar de `ubuntu-latest`, e o `create-github-app-token` usa `client-id` no lugar do `app-id` obsoleto; os runs saem sem anotação de aviso (AT-772).
+
 - Regressivo por funcionalidade (AT-769, RN-1031): `funcionalidades.yml` (catálogo de 14 funcionalidades e mapa caminho → funcionalidade), validador `scripts/ci/funcionalidades.ts` (id repetido, glob sem arquivo no irmão, tag órfã) e tags `@f-<id>` do Playwright nas 4 specs atuais. Docs em `docs/regressivo/`.
 - Ko-fi do mantenedor: `.github/FUNDING.yml` (botão Sponsor) e seção Apoie no README (AT-768).
 
