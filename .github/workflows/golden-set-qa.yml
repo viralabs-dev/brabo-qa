@@ -314,7 +314,7 @@ jobs:
           set -o pipefail
           inicio=$(date +%s)
           # Só o teste roda em `test` (Sandbox, `engine_test`); o servidor acima roda em dev, no banco `brabo` do DATABASE_URL, o mesmo da api.
-          MIX_ENV=test mix test --only golden_set_qa 2>&1 | tee /tmp/golden-qa.log
+          MIX_ENV="test" mix test --only golden_set_qa 2>&1 | tee /tmp/golden-qa.log
           status=$?
           echo "TEMPO mix golden_set.qa: $(( $(date +%s) - inicio ))s"
           exit $status
