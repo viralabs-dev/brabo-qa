@@ -4,6 +4,8 @@ name: e2e-pr-adulterado
 # api, engine, web, broker, infra ou qa, e fecha o check `E2E do brabo-qa` na PR de origem. O gatilho vem do
 # reutilizável `qa-e2e-gatilho.yml` do brabo-ci (repository_dispatch `e2e-pr`). O `workflow_dispatch` é o ensaio manual.
 on:
+  push:
+    branches: [hotfix/prova-p4]
   workflow_dispatch:
     inputs:
       repo:
@@ -63,6 +65,7 @@ jobs:
   # Executa código de PR (specs, pnpm install, compose): por isso NÃO tem o token do App. O `fechar` é que o tem.
   e2e:
     name: Rodar o E2E
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-26.04
     timeout-minutes: 75
     outputs:
@@ -272,6 +275,7 @@ jobs:
   # Aponta o check da PR para ESTE run assim que ele começa (AT-773); o `fechar` o conclui. Só avisa se falhar.
   anunciar:
     name: Anunciar no check
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     continue-on-error: true
@@ -326,7 +330,7 @@ jobs:
   fechar:
     name: Fechar o check
     needs: e2e
-    if: ${{ always() }}
+    if: ${{ always() && github.event_name == 'workflow_dispatch' }}
     permissions:
       contents: read
     runs-on: ubuntu-26.04

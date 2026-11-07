@@ -2,6 +2,9 @@ name: prova-at765
 
 # TEMPORÁRIO (AT-765, provas P3 e P4). Nunca vai para a dev; a PR é fechada sem merge.
 on:
+  # push só registra o workflow (dispatch por nome exige a branch padrão); o job ignora o evento push.
+  push:
+    branches: [hotfix/prova-p4]
   workflow_dispatch:
     inputs:
       acao:
@@ -23,6 +26,7 @@ permissions:
 
 jobs:
   prova:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
