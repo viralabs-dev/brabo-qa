@@ -262,7 +262,11 @@ jobs:
           BROKER_PORT: '8090'
         run: |
           set -euo pipefail
-          node src/index.ts > /tmp/broker.log 2>&1 &
+          # O contrato (@brabo/docker-port) vem por git em node_modules como .ts cru, e o Node
+          # recusa type stripping ali (ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING). Roda o bundle
+          # do tsup, como o `pnpm start` e o Dockerfile do broker (AT-737, AT-784).
+          pnpm run build
+          node dist/index.cjs > /tmp/broker.log 2>&1 &
           for _ in $(seq 1 30); do
             if curl -fsS http://localhost:8090/health >/dev/null 2>&1; then
               echo "broker de pé"; exit 0
