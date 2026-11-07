@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Golden-set do QA: o `MIX_ENV: test` do job (adicionado na separação, 68c1e23) levava o `mix phx.server` para o pool Sandbox e o banco `engine_test`, que não existe (`FATAL 3D000`, depois timeout do Sandbox). `MIX_ENV=test` volta a valer só no passo `mix test`; o servidor roda em dev, no banco `brabo` do `DATABASE_URL`, como antes da separação (AT-784).
+- Golden-set do QA: o broker sobe pelo bundle (`pnpm run build` + `node dist/index.cjs`) em vez de `node src/index.ts`; com o contrato em `node_modules` o Node recusava o `.ts` cru e o broker morria no boot (issue #22, AT-784).
+
 - Fixture do `alarmar-prova.spec.ts` passa de `daneiel/brabo` para `viralabs-dev/brabo`; o repo não está mais sob o handle pessoal (AT-783).
 
 - Regressivo por funcionalidade e vínculos nos runs, Rodada B (AT-769, AT-773). `e2e-pr.yml`: input `modo` (`completo`, padrão e idêntico ao portão da main, ou `funcionalidades`) e `funcionalidades`; no modo `funcionalidades` o Playwright roda com `--grep` pela tag `@f-<id>`; passo `Cobertura por funcionalidade` (`scripts/ci/cobertura.ts`) e tabela `funcionalidade | specs | resultado` no resumo do check, com "sem cobertura" sem reprovar. `validar-payload.ts` valida `modo` e `funcionalidades`. `fechar-check.ts` aceita também o check `Regressivo do brabo-qa` (PR para a dev, nunca exigido) e passa a tabela ao `montarCheck`. `run-name` com a origem e a correlação (`c=<run_id>-<attempt>`), job `anunciar` (aponta o check para o run do brabo-qa assim que ele começa; `anunciar-check.ts`), `RAW_ORIGEM` nos jobs e a action `vinculos` do `brabo-ci` (pin `13f3697`) em `e2e-pr`, `golden-set-rag`, `golden-set-qa`, `ci` e `varrer-orfaos`. `alarmar-prova.sh` anexa o `vinculos.md` (`VINCULOS_MD`) ao corpo da issue.

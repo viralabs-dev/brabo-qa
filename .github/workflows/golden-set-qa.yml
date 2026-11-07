@@ -129,7 +129,6 @@ jobs:
     env:
       DATABASE_URL: postgres://brabo:brabo@localhost:5432/brabo
       OLLAMA_HOST: http://localhost:11434
-      MIX_ENV: test
       GOLDEN_SET_QA_MODEL: 'qwen2.5-coder:latest'
       API_URL: http://localhost:3000
       # Literal de CI, não segredo: api, engine e broker só escutam no
@@ -262,7 +261,11 @@ jobs:
           BROKER_PORT: '8090'
         run: |
           set -euo pipefail
-          node src/index.ts > /tmp/broker.log 2>&1 &
+          # O contrato (@brabo/docker-port) vem por git em node_modules como .ts cru, e o Node
+          # recusa type stripping ali (ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING). Roda o bundle
+          # do tsup, como o `pnpm start` e o Dockerfile do broker (AT-737, AT-784).
+          pnpm run build
+          node dist/index.cjs > /tmp/broker.log 2>&1 &
           for _ in $(seq 1 30); do
             if curl -fsS http://localhost:8090/health >/dev/null 2>&1; then
               echo "broker de pé"; exit 0
@@ -310,7 +313,8 @@ jobs:
         run: |
           set -o pipefail
           inicio=$(date +%s)
-          mix test --only golden_set_qa 2>&1 | tee /tmp/golden-qa.log
+          # Só o teste roda em `test` (Sandbox, `engine_test`); o servidor acima roda em dev, no banco `brabo` do DATABASE_URL, o mesmo da api.
+          MIX_ENV="test" mix test --only golden_set_qa 2>&1 | tee /tmp/golden-qa.log
           status=$?
           echo "TEMPO mix golden_set.qa: $(( $(date +%s) - inicio ))s"
           exit $status
