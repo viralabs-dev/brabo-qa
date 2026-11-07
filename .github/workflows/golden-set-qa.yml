@@ -293,6 +293,8 @@ jobs:
         working-directory: brabo-engine
         run: |
           set -euo pipefail
+          # MIX_ENV=test aponta para `engine_test` (config/test.exs), que o service só cria como `brabo`.
+          mix ecto.create
           mix ecto.migrate
           mix phx.server > /tmp/engine.log 2>&1 &
           for _ in $(seq 1 90); do

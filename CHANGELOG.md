@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Golden-set do QA: `mix ecto.create` antes do `ecto.migrate` no passo que sobe o engine; com `MIX_ENV=test` o engine usa o banco `engine_test`, que o service pgvector não cria (`FATAL 3D000`, run 42361792090, AT-784).
 - Golden-set do QA: o broker sobe pelo bundle (`pnpm run build` + `node dist/index.cjs`) em vez de `node src/index.ts`; com o contrato em `node_modules` o Node recusava o `.ts` cru e o broker morria no boot (issue #22, AT-784).
 
 - Fixture do `alarmar-prova.spec.ts` passa de `daneiel/brabo` para `viralabs-dev/brabo`; o repo não está mais sob o handle pessoal (AT-783).
