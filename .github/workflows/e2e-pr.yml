@@ -183,9 +183,11 @@ jobs:
       - name: Subir o compose
         id: subir
         working-directory: brabo-infra
-        run: >
-          docker compose -f docker/docker-compose.install.yml
-          --profile container-broker --profile backup up -d --wait
+        # `backup` é um job (restart "no", sai com 0): o `--wait` o trata como falha. Sobe sem ele e só o CRIA,
+        # para o `conferir-digests` (ps -a) achar o container da imagem de backup.
+        run: |
+          docker compose -f docker/docker-compose.install.yml --profile container-broker up -d --wait
+          docker compose -f docker/docker-compose.install.yml --profile backup create backup
 
       # Para aqui se algum container roda outra imagem que não a do digest verificado.
       - name: Conferir o digest em execução
