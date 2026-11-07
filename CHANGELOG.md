@@ -3,6 +3,8 @@
 ## Unreleased
 
 - CI: repina os reutilizáveis do `brabo-ci` em `13f3697` (merge da ci#17, que inclui a ci#16): `ubuntu-26.04`, `client-id` no lugar de `app-id`, rótulo de família criado antes de aplicar, linha `Carimbo:` na tag e helper `vinculos` (AT-772, AT-773).
+- Golden-set do RAG remedido com o corpus inteiro (AT-764, decisão do dono, vale só para esta mudança): piso 17 -> 16 (`floor.json`) e `timeout-minutes` 20 -> 40 no `golden-set-rag.yml`. Run 42323476672: 1833 chunks, indexação ~17 min, busca ~1 s, 16/17; falhou `tetos-de-rebaixamento-project-members` (esperado ADR 0127; top-5 = 5 chunks de `docs/business-rules.md`, scores 0,466 a 0,430).
+
 - Vínculos nos runs (AT-773, parte `.ts`): `validar-payload.ts` valida a `origem` opcional do payload do `e2e-pr` (inválida, é descartada com `::warning::` e nunca reprova o payload) (`run_id`, `run_attempt`, `ator`, `sha_curto`, `correlacao`) e exporta `ORIGEM_*` e `ORIGEM_JSON` (entrada da action `vinculos` do brabo-ci) em `$GITHUB_ENV`; payload antigo, sem `origem`, segue válido. `fechar-check.ts` lê o `vinculos.md` (`VINCULOS_MD`) e o anexa ao resumo do check. O YAML (`run-name`, job `anunciar`, a action) vem na Rodada B.
 - CI: todo `runs-on` fixa `ubuntu-26.04` no lugar de `ubuntu-latest`, e o `create-github-app-token` usa `client-id` no lugar do `app-id` obsoleto; os runs saem sem anotação de aviso (AT-772).
 
