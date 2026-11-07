@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           repository: viralabs-dev/brabo-ci
-          ref: 46d66150926054d605baaa3634ab9af7864cd424  # brabo-ci#10 (AT-765)
+          ref: 13f3697aaf3e4a151637755babb58422a44db303  # brabo-ci#17 (AT-765)
           path: .brabo-ci
           token: ${{ steps.app.outputs.token }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
