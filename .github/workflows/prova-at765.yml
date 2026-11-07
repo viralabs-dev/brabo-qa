@@ -1,0 +1,52 @@
+name: prova-at765
+
+# TEMPORÁRIO (AT-765, provas P3 e P4). Nunca vai para a dev; a PR é fechada sem merge.
+on:
+  workflow_dispatch:
+    inputs:
+      acao:
+        description: comentar | criar-check
+        required: true
+      pr:
+        required: true
+      sha:
+        description: head sha (criar-check)
+        required: false
+        default: ''
+      corpo:
+        description: texto do comentário (comentar)
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  prova:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      - id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510  # v3.3.0
+        with:
+          client-id: ${{ secrets.BRABO_APP_ID }}
+          private-key: ${{ secrets.BRABO_APP_PRIVATE_KEY }}
+          owner: viralabs-dev
+          repositories: brabo-qa
+          permission-issues: write
+          permission-pull-requests: write
+          permission-checks: write
+      - name: Executar
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          ACAO: ${{ inputs.acao }}
+          PR: ${{ inputs.pr }}
+          SHA: ${{ inputs.sha }}
+          CORPO: ${{ inputs.corpo }}
+        run: |
+          set -euo pipefail
+          if [ "$ACAO" = comentar ]; then
+            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="$CORPO" --jq .html_url
+          else
+            gh api "repos/$GITHUB_REPOSITORY/check-runs" -f name='E2E do brabo-qa' -f head_sha="$SHA" -f status=in_progress -f 'output[title]=E2E em andamento (prova P4)' -f 'output[summary]=Check de teste criado pelo App para a prova P4 da AT-765.' --jq .id
+          fi
