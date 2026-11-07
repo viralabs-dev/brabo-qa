@@ -33,7 +33,7 @@ test.beforeAll(async () => {
   semeada = await semearSessao(token);
 });
 
-test('o canal da sessão sobe com ticket na query, e o refresh não vai junto', async ({ page }) => {
+test('o canal da sessão sobe com ticket na query, e o refresh não vai junto', { tag: '@f-sessao-e-canal' }, async ({ page }) => {
   // Um socket pode subir antes do `await` da navegação retornar, então o
   // ouvinte é registrado ANTES de qualquer goto.
   const sockets: string[] = [];

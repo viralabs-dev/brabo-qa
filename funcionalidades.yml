@@ -1,0 +1,126 @@
+# Catálogo de funcionalidades do Brabo e mapa caminho -> funcionalidade (AT-769, RN-1031).
+#
+# - `id`: kebab-case, estável, NUNCA renomeado. Aposentar = `status: aposentada`.
+# - A spec do Playwright se liga à funcionalidade por tag no próprio teste (`{ tag: '@f-<id>' }`);
+#   o filtro é `--grep @f-<id>`. Não há lista de arquivos aqui.
+# - `caminhos`: globs (picomatch) relativos à raiz de cada repo. Chave = repo sem o prefixo `brabo-`.
+# - Todo glob tem de casar ao menos um arquivo do repo irmão: `pnpm --dir scripts test` reprova o mapa podre.
+# - Regras de arquivo transversal (nada / catálogo inteiro / sem dono) não moram aqui: vivem no script do brabo-ci.
+funcionalidades:
+  - id: autenticacao
+    nome: Autenticação e acesso
+    descricao: login, refresh em cookie httpOnly, CSRF, acesso rápido local, papéis e workspace
+    tema: iam
+    status: ativa
+    caminhos:
+      api: ['src/**/{auth,acesso-rapido,iam}/**']
+      web: ['src/**/{LoginPage,AuthLayout,ForgotPasswordPage,AccountPage,AcessoRapido}*']
+  - id: sessao-e-canal
+    nome: Sessão e canal
+    descricao: a sessão abre, o canal `session:<id>` sobe com ticket de uso único (RN-108) e os eventos chegam
+    tema: agentes
+    status: ativa
+    caminhos:
+      api: ['src/**/sessions/**']
+      engine: ['lib/engine/{sessions,session_events}/**', 'lib/engine_web/channels/**']
+      web: ['src/**/{ProjectChatShell,JanelaDoAgente,ProjectSessionsTab,ActivityFeed}*']
+  - id: turno-do-agente
+    nome: Turno do agente
+    descricao: o turno sobe pelo canal, o Harness roda e o desfecho (inclusive falha de credencial) volta
+    tema: agentes
+    status: ativa
+    caminhos:
+      engine: ['lib/engine/{harness,agents,prompts}/**']
+      web: ['src/**/{ProjectChatShell,JanelaDoAgente,ProjectSessionsTab,ActivityFeed}*']
+  - id: aprovacoes
+    nome: Aprovações e modo automático
+    descricao: "`proposed_action`, fila, decisão no chat, modo automático e tetos"
+    tema: execucao
+    status: ativa
+    caminhos:
+      api: ['src/**/{actions,execution}/**']
+      engine: ['lib/engine/actions/**']
+      web: ['src/**/{ApprovalCard,ProjectApprovalsTab,PainelDaFila,ModoAutomatico,MergearNoChat}*']
+  - id: time-e-handoffs
+    nome: Time de agentes
+    descricao: catálogo de agentes, áreas, instruções, delegação e handoff
+    tema: time
+    status: ativa
+    caminhos:
+      api: ['src/**/{agents,instructions,anamnese}/**']
+      engine: ['lib/engine/{agent_instructions,anamnese,psychologist}/**']
+  - id: projetos
+    nome: Projetos e modos
+    descricao: assistente de projeto novo, pasta do usuário, modos de execução, adoção
+    tema: modos
+    status: ativa
+    caminhos:
+      engine: ['lib/engine/{projects,dev}/**']
+      web: ['src/**/{NewProjectWizard,FolderBrowserModal,AdoptionPlanPage}*']
+      runner: ['src/{espelho,pasta-do-projeto}*']
+  - id: git
+    nome: Git e PRs
+    descricao: conexão com o provider (OAuth/PAT), repositório, PRs e merge pelo chat
+    tema: git
+    status: ativa
+    caminhos:
+      api: ['src/**/git/**']
+  - id: backlog
+    nome: Backlog e regras
+    descricao: histórias, backlog do projeto, regras de negócio do projeto
+    tema: time
+    status: ativa
+    caminhos:
+      api: ['src/**/backlog/**']
+      web: ['src/**/ProjectBacklogTab*']
+  - id: gates
+    nome: Gates de QA e SecOps
+    descricao: registro de gates e vereditos
+    tema: gates
+    status: ativa
+    caminhos:
+      api: ['src/**/gates/**']
+      engine: ['lib/engine/gates/**']
+  - id: container-e-broker
+    nome: Container do projeto
+    descricao: ciclo de vida do container, ações, reinício do app, broker
+    tema: container
+    status: ativa
+    caminhos:
+      api: ['src/**/containers/**']
+      engine: ['lib/engine/{containers,infra}/**']
+      web: ['src/**/{Containers,ContainerDetalhePage,AcoesDoContainer}*']
+      broker: ['src/**']
+  - id: runner
+    nome: Runner local
+    descricao: canal do runner, chave de dispositivo, espelho, pasta
+    tema: runner
+    status: ativa
+    caminhos:
+      api: ['src/**/runner/**']
+      engine: ['lib/engine/runners/**']
+      web: ['src/**/{MachineDeviceKeysSection,EsperaDoRunner}*']
+      runner: ['src/**']
+  - id: llm-e-gasto
+    nome: Providers, modelos e gasto
+    descricao: credenciais de LLM, catálogo, bindings, metering e orçamento
+    tema: llm
+    status: ativa
+    caminhos:
+      api: ['src/**/{llm,credentials}/**', 'src/infrastructure/{llm,huggingface,tokenization}/**']
+      web: ['src/**/{ModelCatalogSection,ModelPicker,CredentialSpendSection,GastoPorDia}*']
+  - id: conhecimento
+    nome: RAG, grafo e arquitetura
+    descricao: busca, grafo, artefatos, aba de arquitetura
+    tema: conhecimento
+    status: ativa
+    caminhos:
+      api: ['src/**/{rag,graph,architecture}/**', 'src/application/{artifact,graph}-projection/**']
+      web: ['src/**/{ProjectRagTab,ProjectArchitectureTab,C4DiagramView,GrafoDeModulos}*']
+  - id: instalacao
+    nome: Instalação e interface base
+    descricao: o compose de instalação sobe saudável e a casca do web carrega (smoke)
+    tema: operacao
+    status: ativa
+    caminhos:
+      infra: ['docker/backup/**']

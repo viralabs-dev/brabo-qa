@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Regressivo por funcionalidade (AT-769, RN-1031): `funcionalidades.yml` (catálogo de 14 funcionalidades e mapa caminho → funcionalidade), validador `scripts/ci/funcionalidades.ts` (id repetido, glob sem arquivo no irmão, tag órfã) e tags `@f-<id>` do Playwright nas 4 specs atuais. Docs em `docs/regressivo/`.
 - Ko-fi do mantenedor: `.github/FUNDING.yml` (botão Sponsor) e seção Apoie no README (AT-768).
 
 - E2E como portão da main (AT-765; dois jobs: `e2e` sem token do App e `fechar` com o token escopado ao repo validado): `e2e-pr.yml` (repository_dispatch `e2e-pr` e `workflow_dispatch` de ensaio) espera as 5 imagens no GHCR, verifica a assinatura com `cosign`, sobe o `docker-compose.install.yml` do `brabo-infra` por digest, confere o digest de cada container, roda o Playwright e fecha o check `E2E do brabo-qa` na PR de origem. Scripts novos: `aguardar-digest.ts`, `conferir-digests.ts`, `fechar-check.ts`, `varrer-orfaos.ts`. `varrer-orfaos.yml` (de hora em hora) fecha como vermelho (`sem-resposta`) o check em andamento há mais de 90 min. Docs em `docs/e2e-portao/`. O checkout do `brabo-ci` aponta para `feature/e2e-portao-da-main` até a AT-765 Task 10.

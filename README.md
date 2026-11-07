@@ -24,6 +24,10 @@ O `e2e-pr.yml` roda o Playwright contra o `docker-compose.install.yml` do `brabo
 digest em execução conferido) e fecha o check na PR de origem; o `varrer-orfaos.yml` fecha, de hora em hora, o que ficou sem resposta por 90 min.
 `/qa-aceitar <justificativa>` (só o dono) aceita um vermelho por `spec`, `ambiente` ou `sem-resposta`. O `e2e-pr.yml` tem dois jobs: `e2e` executa código de PR e não tem token do App; `fechar` (checkout limpo da `dev`) revalida o payload e só então cria o token do App, com `checks: write` apenas no repo validado. Esse token mas escrita no brabo-qa equivale a poder aprovar o portão: trate o acesso de escrita aqui como o de um aprovador. Detalhes e prints: [`docs/e2e-portao/como-funciona.md`](docs/e2e-portao/como-funciona.md).
 
+## Regressivo por funcionalidade (AT-769)
+
+`funcionalidades.yml` lista as 14 funcionalidades do Brabo e mapeia caminhos de cada repo para elas; as specs de `e2e/testes/` se ligam por tag `@f-<id>`. O validador (`scripts/ci/funcionalidades.ts`) roda no `pnpm test` de `scripts/`: reprova id repetido, glob que não casa arquivo nos repos irmãos e tag sem funcionalidade; funcionalidade sem spec aparece como "sem cobertura" e não reprova. Detalhes: [`docs/regressivo/como-funciona.md`](docs/regressivo/como-funciona.md).
+
 ## O que já roda e o que ainda é manual
 
 - **Golden-set do RAG** (`golden-set-rag.yml`): agendado todo dia às 06:00 UTC desde 05/11/2026. As duas
