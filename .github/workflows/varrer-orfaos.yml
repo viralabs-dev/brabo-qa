@@ -20,14 +20,14 @@ env:
 jobs:
   varrer:
     name: Varrer checks órfãos
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - name: Token do App
         id: app
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510  # v3.3.0
         with:
-          app-id: ${{ secrets.BRABO_APP_ID }}
+          client-id: ${{ secrets.BRABO_APP_ID }}
           private-key: ${{ secrets.BRABO_APP_PRIVATE_KEY }}
           owner: viralabs-dev
           permission-checks: write
