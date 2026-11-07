@@ -76,9 +76,9 @@ function alarmar(
       env: {
         PATH: `${area}:${process.env.PATH}`,
         GH_LOG: log,
-        GITHUB_REPOSITORY: 'daneiel/brabo',
+        GITHUB_REPOSITORY: 'viralabs-dev/brabo',
         GITHUB_SHA: 'abc123',
-        URL_DO_RUN: 'https://github.com/daneiel/brabo/actions/runs/1',
+        URL_DO_RUN: 'https://github.com/viralabs-dev/brabo/actions/runs/1',
         ...env,
         BRABO_ALVO: SCRIPT,
         BRABO_DESFECHO: desfecho,
@@ -98,7 +98,7 @@ describe('alarmar — no ramo padrão', () => {
   it('fora de um checkout git, o gh recebe GH_REPO = GITHUB_REPOSITORY (AT-760)', () => {
     const { chamadas } = alarmar('failure', noPadrao);
     expect(mutaveis(chamadas)[0]).toContain('issue create --title Prova de propriedade falhou: `make alvo`');
-    expect(readFileSync(`${log}.repo`, 'utf8').trim()).toBe('daneiel/brabo');
+    expect(readFileSync(`${log}.repo`, 'utf8').trim()).toBe('viralabs-dev/brabo');
   });
 
   it('falha sem issue aberta abre uma, com o título do alvo', () => {
@@ -119,7 +119,7 @@ describe('alarmar — no ramo padrão', () => {
     const { chamadas, saida } = alarmar('success', { ...noPadrao, ISSUE_ABERTA: '42' });
     const efeitos = mutaveis(chamadas);
     expect(efeitos).toHaveLength(1);
-    expect(efeitos[0]).toMatch(/^issue close 42 --comment Passou na rodada https:\/\/github\.com\/daneiel\/brabo\/actions\/runs\/1/);
+    expect(efeitos[0]).toMatch(/^issue close 42 --comment Passou na rodada https:\/\/github\.com\/viralabs-dev\/brabo\/actions\/runs\/1/);
     expect(saida).toContain('fechei a issue #42');
   });
 
@@ -196,7 +196,7 @@ describe('alarmar — o ramo padrão vem do GitHub quando o ambiente não o traz
       GITHUB_REF_NAME: 'dev',
       RAMO_DO_GITHUB: 'dev',
     });
-    expect(chamadas[0]).toBe('repo view daneiel/brabo --json defaultBranchRef --jq .defaultBranchRef.name');
+    expect(chamadas[0]).toBe('repo view viralabs-dev/brabo --json defaultBranchRef --jq .defaultBranchRef.name');
     expect(mutaveis(chamadas)).toHaveLength(1);
   });
 
