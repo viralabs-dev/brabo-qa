@@ -79,6 +79,17 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
+      - name: Vínculos
+        id: vinculos
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@13f3697aaf3e4a151637755babb58422a44db303  # brabo-ci#17 (AT-765)
+        with:
+          irmaos: |
+            brabo-api
+            brabo-engine
+            brabo-web
+            brabo-runner
+            brabo-broker
+            brabo-infra
       # O typecheck lê o código do api: precisa dos tipos dele (@brabo/shared vem do brabo-contracts).
       - run: pnpm install --frozen-lockfile
         working-directory: brabo-api
@@ -131,6 +142,17 @@ jobs:
           repository: viralabs-dev/brabo-broker
           ref: dev
           path: brabo-broker
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Vínculos
+        id: vinculos
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@13f3697aaf3e4a151637755babb58422a44db303  # brabo-ci#17 (AT-765)
+        with:
+          irmaos: |
+            brabo-api
+            brabo-engine
+            brabo-broker
       - name: actionlint
         run: |
           set -euo pipefail

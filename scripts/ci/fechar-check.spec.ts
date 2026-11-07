@@ -33,8 +33,11 @@ describe('decidirFechamento', () => {
 describe('checkConfere', () => {
   const check = { name: 'E2E do brabo-qa', head_sha: 'a'.repeat(40), status: 'in_progress', app: { id: 7 } };
   it('aceita o check nosso, do head e em andamento', () => expect(checkConfere(check, 'a'.repeat(40), 7)).toBeNull());
+  it('aceita também o check do regressivo da dev', () =>
+    expect(checkConfere({ ...check, name: 'Regressivo do brabo-qa' }, 'a'.repeat(40), 7)).toBeNull());
   it('recusa nome, head, status ou app diferentes', () => {
     expect(checkConfere({ ...check, name: 'outro' }, 'a'.repeat(40), 7)).not.toBeNull();
+    expect(checkConfere({ ...check, name: 'E2E do brabo-qa ' }, 'a'.repeat(40), 7)).not.toBeNull();
     expect(checkConfere(check, 'b'.repeat(40), 7)).not.toBeNull();
     expect(checkConfere({ ...check, status: 'completed' }, 'a'.repeat(40), 7)).not.toBeNull();
     expect(checkConfere({ ...check, app: { id: 8 } }, 'a'.repeat(40), 7)).not.toBeNull();

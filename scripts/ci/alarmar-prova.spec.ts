@@ -157,6 +157,23 @@ describe('alarmar — WORKFLOW_DA_PROVA (AT-667)', () => {
   });
 });
 
+describe('alarmar — VINCULOS_MD (AT-773)', () => {
+  const noPadrao = { RAMO_PADRAO: 'main', GITHUB_REF_NAME: 'main' };
+
+  it('anexa o vinculos.md ao corpo da issue', () => {
+    const md = path.join(area, 'vinculos.md');
+    writeFileSync(md, '## Vínculos\n| Origem |\n');
+    alarmar('failure', { ...noPadrao, VINCULOS_MD: md });
+    expect(readFileSync(`${log}.corpo`, 'utf8')).toContain('## Vínculos\n| Origem |');
+  });
+
+  it('arquivo ausente ou variável vazia não muda o corpo nem impede o alarme', () => {
+    const { chamadas } = alarmar('failure', { ...noPadrao, VINCULOS_MD: path.join(area, 'nao-existe.md') });
+    expect(mutaveis(chamadas)).toHaveLength(1);
+    expect(readFileSync(`${log}.corpo`, 'utf8')).not.toContain('Vínculos');
+  });
+});
+
 describe('alarmar — numa branch', () => {
   const naBranch = { RAMO_PADRAO: 'main', GITHUB_REF_NAME: 'test/uma-branch' };
 

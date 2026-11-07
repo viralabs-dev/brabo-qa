@@ -57,3 +57,32 @@ pnpm --dir scripts exec vitest run ci/funcionalidades.spec.ts
 - **PR de produto que toca uma funcionalidade:** ajusta o regressivo dela aqui, contra a `dev`, ou diz no card por que não precisa.
 - O check `Regressivo do brabo-qa` (PR para a `dev`) só atesta e **nunca é exigido**; o `E2E do brabo-qa` na `main` roda o catálogo
   inteiro (ver `docs/e2e-portao/como-funciona.md`).
+
+## O que roda aqui: `modo` e a tabela por funcionalidade (Rodada B)
+
+O `e2e-pr.yml` tem dois modos, escolhidos pelo payload (`modo`) ou pelo input do ensaio manual:
+
+| Modo | Quando | O que roda | Check |
+| --- | --- | --- | --- |
+| `completo` (padrão) | portão da `main`; payload sem `modo` | todas as specs, sem filtro: comportamento idêntico ao de antes | `E2E do brabo-qa` |
+| `funcionalidades` | PR para a `dev`; `funcionalidades` = ids do catálogo | só as specs com `@f-<id>`: `--grep "@f-(a\|b)( \|$)"` (a tag fecha em espaço ou fim, então `@f-git` não casa `@f-git-hub`) | `Regressivo do brabo-qa` |
+
+`validar-payload.ts` valida o modo (`completo`, `funcionalidades`), os ids (kebab-case, até 50) e monta o `GREP`; modo desconhecido ou
+`funcionalidades` sem id reprova o payload (vira `ambiente`). O `fechar-check.ts` fecha o check pelo nome em que o gatilho o criou.
+
+Depois das specs, `scripts/ci/cobertura.ts` cruza `funcionalidades.yml` (da `dev`) com o `resultado.json` do Playwright (as tags aparecem
+sem o `@`) e o resumo do check ganha `funcionalidade | specs | resultado`: `verde`, `vermelho` ou `sem cobertura` (funcionalidade ativa sem spec;
+**não reprova**). No modo `funcionalidades` a tabela lista só os ids pedidos. Se a suíte não produziu `resultado.json`, não há tabela. O
+resultado vem de PR, então o `fechar` só aceita linhas com id do catálogo e números válidos. Ensaio manual:
+
+```bash
+gh workflow run e2e-pr.yml -R viralabs-dev/brabo-qa -f modo=funcionalidades -f funcionalidades=autenticacao,aprovacoes -f repo=... 
+```
+
+## Vínculos no run (AT-773)
+
+Cada run do `e2e-pr` mostra de onde veio: o `run-name` é `E2E ← brabo-api#48 · a1b2c3d · autor · c=<run_id>-<attempt>` (`Regressivo ← ...` na dev). A
+`c=` é a correlação que o gatilho procura para achar este run. O job `anunciar` aponta o check da PR para o run do brabo-qa assim que ele começa
+(o `fechar` o conclui) e nunca reprova. A action `vinculos` do `brabo-ci` escreve a tabela `## Vínculos` e o Mermaid no Summary de `e2e-pr` (jobs
+`e2e`, `anunciar`, `fechar`), `golden-set-*`, `ci` e `varrer-orfaos`. No `fechar` o `vinculos.md` entra no resumo do check, e o
+`alarmar-prova.sh` o anexa à issue (`VINCULOS_MD`). Uma `origem` inválida no payload é descartada com aviso, nunca reprova.

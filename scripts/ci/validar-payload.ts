@@ -14,7 +14,14 @@ export interface Payload {
   imagens: Record<string, string>;
   /** Opcional (AT-773): metadado de vínculo, nunca reprova o payload (ver `validarOrigem`). */
   origem?: unknown;
+  /** Opcional (AT-769): `completo` (padrão, o portão da main) ou `funcionalidades` (regressivo da dev). */
+  modo?: unknown;
+  /** Ids do catálogo, só no modo `funcionalidades`: array (dispatch), JSON ou lista com vírgula (ensaio manual). */
+  funcionalidades?: unknown;
 }
+
+export const MODOS = ['completo', 'funcionalidades'] as const;
+const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export interface Origem {
   repo?: string;
@@ -47,8 +54,31 @@ export function validarPayload(p: Payload): { ok: true; repo: string } | { ok: f
       (new RegExp(`^${base}:v[0-9]+\\.[0-9]+\\.[0-9]+(-dev\\.[0-9]+)?$`).test(ref) || new RegExp(`^${base}:sha-[0-9a-f]{12}$`).test(ref));
     if (!bom) erros.push(`imagem inválida para ${s}`);
   }
+  const f = validarModo(p.modo, p.funcionalidades);
+  erros.push(...f.erros);
   return erros.length ? { ok: false, erros } : { ok: true, repo };
 }
+
+// Ausente, vazio ou `null` = `completo`: o payload do portão da main não leva `modo` e segue idêntico.
+export function validarModo(modo: unknown, funcionalidades: unknown): { modo: (typeof MODOS)[number]; ids: string[]; erros: string[] } {
+  const vazio = (v: unknown) => v === undefined || v === null || v === '' || v === 'null';
+  const erros: string[] = [];
+  const m = vazio(modo) ? 'completo' : String(modo);
+  if (!(MODOS as readonly string[]).includes(m)) erros.push(`modo inválido: ${JSON.stringify(modo)}`);
+  let lista: unknown[] = [];
+  if (Array.isArray(funcionalidades)) lista = funcionalidades;
+  else if (!vazio(funcionalidades)) {
+    const t = String(funcionalidades).trim();
+    try { lista = t.startsWith('[') ? JSON.parse(t) : t.split(/[,\s]+/).filter(Boolean); } catch { erros.push('funcionalidades não é JSON'); }
+  }
+  const ids = lista.filter((i): i is string => typeof i === 'string' && KEBAB.test(i) && i.length <= 60);
+  if (ids.length !== lista.length || lista.length > 50) erros.push('funcionalidades: id fora de kebab-case ou mais de 50');
+  if (m === 'funcionalidades' && ids.length === 0) erros.push('modo funcionalidades sem nenhuma funcionalidade');
+  return { modo: (MODOS as readonly string[]).includes(m) ? (m as (typeof MODOS)[number]) : 'completo', ids: [...new Set(ids)], erros };
+}
+
+// Filtro do Playwright por tag: `@f-a` não pode casar `@f-a-b`, então a tag fecha em espaço ou fim (o título e as tags vão juntos).
+export const grepDe = (ids: string[]): string => `@f-(${ids.join('|')})( |$)`;
 
 // A origem é só metadado: se algum campo falha, descarta a origem INTEIRA e devolve os avisos (nunca erro). Campos extras são ignorados.
 // Obrigatórios: run_id, run_attempt, ator, sha_curto, correlacao. Opcionais: repo, pr (ausente/nulo num dispatch), sha, run_url.
@@ -93,10 +123,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   let imagens: Record<string, string> = {};
   try { imagens = JSON.parse(e.RAW_IMAGENS ?? '{}'); } catch { /* validarPayload reprova as imagens */ }
   let origemRaw: unknown;
-  if (e.RAW_ORIGEM) { try { origemRaw = JSON.parse(e.RAW_ORIGEM); } catch { origemRaw = null; } }
+  if (e.RAW_ORIGEM && e.RAW_ORIGEM !== 'null') { try { origemRaw = JSON.parse(e.RAW_ORIGEM); } catch { origemRaw = null; } }
   const { origem, avisos } = validarOrigem(origemRaw);
   for (const a of avisos) console.error(`::warning::${a}`);
-  const p: Payload = { repo: e.RAW_REPO ?? '', pr: e.RAW_PR ?? '', head_sha: e.RAW_HEAD_SHA ?? '', check_run_id: e.RAW_CHECK_RUN_ID ?? '', compose_ref: e.RAW_COMPOSE_REF ?? '', imagens };
+  const p: Payload = { repo: e.RAW_REPO ?? '', pr: e.RAW_PR ?? '', head_sha: e.RAW_HEAD_SHA ?? '', check_run_id: e.RAW_CHECK_RUN_ID ?? '', compose_ref: e.RAW_COMPOSE_REF ?? '', imagens, modo: e.RAW_MODO, funcionalidades: e.RAW_FUNCIONALIDADES };
   const r = validarPayload(p);
   // O repo válido sai mesmo com o resto inválido: é o que deixa fechar o check como `ambiente`.
   const repoOk = REPOS.includes(p.repo.replace(/^viralabs-dev\//, '')) && /^[0-9]+$/.test(p.check_run_id);
@@ -105,9 +135,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.error(r.erros.map((m) => `::error::${m}`).join('\n'));
     process.exit(1);
   }
+  const f = validarModo(p.modo, p.funcionalidades);
   appendFileSync(process.env.GITHUB_ENV!, [
     `REPO=${r.repo}`, `PR=${p.pr}`, `HEAD_SHA=${p.head_sha}`, `CHECK_RUN_ID=${p.check_run_id}`, `COMPOSE_REF=${p.compose_ref}`,
     `IMAGENS=${JSON.stringify(imagens)}`, `E2E_DIR=${r.repo === 'brabo-qa' ? 'e2e-da-pr/e2e' : 'e2e'}`,
+    `MODO=${f.modo}`, `FUNCIONALIDADES=${f.ids.join(',')}`, `GREP=${f.modo === 'funcionalidades' ? grepDe(f.ids) : ''}`,
     ...envDaOrigem(r.repo, p, origem),
   ].join('\n') + '\n');
 }

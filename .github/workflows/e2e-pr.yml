@@ -24,9 +24,30 @@ on:
         description: 'SHA (40 hex) ou tag vX.Y.Z do brabo-infra com o docker-compose.install.yml'
         required: true
         default: v1.0.0
+      modo:
+        description: 'completo (todas as specs, o portão da main) ou funcionalidades (só as tags @f-<id> de `funcionalidades`)'
+        required: false
+        default: completo
+        type: choice
+        options: [completo, funcionalidades]
+      funcionalidades:
+        description: 'Ids do catálogo separados por vírgula (só no modo funcionalidades), ex.: autenticacao,aprovacoes'
+        required: false
+        default: ''
       imagens:
         description: 'JSON por TAG {"api":"ghcr.io/viralabs-dev/brabo-api:v1.2.3-dev.4","engine":...,"web":...,"broker":...,"backup":...}'
         required: true
+
+# A origem no nome (AT-773): o run do dispatch não diz quem o disparou. `c=` é a correlação (`<run_id>-<attempt>` do gatilho):
+# o gatilho a procura no `display_title` para achar este run. Regressivo = payload com `modo` (PR para a dev); sem `modo` é o portão.
+run-name: >-
+  ${{ github.event_name == 'repository_dispatch'
+  && format('{0} ← {1}#{2} · {3} · {4} · c={5}',
+  github.event.client_payload.modo && 'Regressivo' || 'E2E',
+  github.event.client_payload.repo, github.event.client_payload.pr,
+  github.event.client_payload.origem.sha_curto, github.event.client_payload.origem.ator,
+  github.event.client_payload.origem.correlacao)
+  || format('E2E ← {0}#{1} · ensaio manual · {2}', inputs.repo, inputs.pr, github.actor) }}
 
 permissions:
   contents: read
@@ -55,6 +76,7 @@ jobs:
       assinaturas: ${{ steps.resultados.outputs.assinaturas }}
       conferencia: ${{ steps.resultados.outputs.conferencia }}
       specs_falhas: ${{ steps.resultados.outputs.specs_falhas }}
+      cobertura: ${{ steps.cobertura.outputs.cobertura }}
     # Valores CRUS: só o passo `validar` os lê (por env, nunca interpolados em script). Os validados vão ao GITHUB_ENV.
     env:
       RAW_REPO: ${{ github.event.client_payload.repo || inputs.repo }}
@@ -63,6 +85,9 @@ jobs:
       RAW_CHECK_RUN_ID: ${{ github.event.client_payload.check_run_id || inputs.check_run_id }}
       RAW_COMPOSE_REF: ${{ github.event.client_payload.compose_ref || inputs.compose_ref }}
       RAW_IMAGENS: ${{ github.event_name == 'workflow_dispatch' && inputs.imagens || toJSON(github.event.client_payload.imagens) }}
+      RAW_ORIGEM: ${{ toJSON(github.event.client_payload.origem) }}
+      RAW_MODO: ${{ github.event.client_payload.modo || inputs.modo }}
+      RAW_FUNCIONALIDADES: ${{ github.event_name == 'workflow_dispatch' && inputs.funcionalidades || toJSON(github.event.client_payload.funcionalidades) }}
     steps:
       # Scripts e workflow vêm SEMPRE da `dev` (inclusive na PR do brabo-qa); só `e2e/` vem do head da PR.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -93,6 +118,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # O compose do infra e os Vínculos (AT-773) vêm antes da espera das imagens: o Summary mostra a origem desde o começo.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-infra
+          ref: ${{ env.COMPOSE_REF }}
+          path: brabo-infra
+          persist-credentials: false
+
+      - name: Vínculos
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@13f3697aaf3e4a151637755babb58422a44db303  # brabo-ci#17 (AT-765)
+        with:
+          origem: ${{ env.ORIGEM_JSON }}
+          irmaos: |
+            brabo-infra
+            ${{ env.REPO == 'brabo-qa' && 'e2e-da-pr' || '' }}
+          destino: Check na PR|https://github.com/viralabs-dev/${{ env.REPO }}/runs/${{ env.CHECK_RUN_ID }}
+
       # 30 min, a cada 30 s: a tag -dev.N pode ainda estar sendo carimbada quando a PR abre.
       - name: Aguardar as 5 imagens no GHCR
         id: aguardar
@@ -112,13 +154,6 @@ jobs:
             jq --arg s "$s" --arg r "$r" '.[$s]=$r' assinaturas.json > a.tmp && mv a.tmp assinaturas.json
           done
           exit "$falhou"
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          repository: viralabs-dev/brabo-infra
-          ref: ${{ env.COMPOSE_REF }}
-          path: brabo-infra
-          persist-credentials: false
 
       # Mesmos campos do `gerar_segredos` do install.sh do brabo (que não é invocável à parte), com `openssl rand`,
       # novos a cada run. O NEO4J_PASSWORD é hex: uma `/` quebraria o parse de NEO4J_AUTH. base64 sem quebra de linha.
@@ -179,7 +214,20 @@ jobs:
           E2E_WEB_URL: http://localhost:8088
           E2E_API_URL: http://localhost:3000
           PLAYWRIGHT_JSON_OUTPUT_NAME: resultado.json
-        run: pnpm test --reporter=list,html,json
+        # `completo` (padrão, o portão da main) roda tudo; `funcionalidades` filtra pelas tags @f-<id> (GREP validado e montado no payload).
+        run: |
+          if [ "$MODO" = funcionalidades ]; then
+            pnpm test --grep "$GREP" --reporter=list,html,json
+          else
+            pnpm test --reporter=list,html,json
+          fi
+
+      # Tabela por funcionalidade (AT-769); funcionalidade sem spec é "sem cobertura" e não reprova.
+      - name: Cobertura por funcionalidade
+        id: cobertura
+        if: always()
+        continue-on-error: true
+        run: node scripts/ci/cobertura.ts
 
       - name: Logs dos containers
         if: always()
@@ -215,6 +263,60 @@ jobs:
             if [ -f "$r" ]; then echo "specs_falhas=$(jq -c '[.. | objects | select(has("specs")) | .specs[] | select(.ok == false) | .title] | .[:50]' "$r" 2>/dev/null || echo '[]')"; else echo 'specs_falhas=[]'; fi
           } >> "$GITHUB_OUTPUT"
 
+  # Aponta o check da PR para ESTE run assim que ele começa (AT-773); o `fechar` o conclui. Só avisa se falhar.
+  anunciar:
+    name: Anunciar no check
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    continue-on-error: true
+    permissions:
+      contents: read
+    env:
+      RAW_REPO: ${{ github.event.client_payload.repo || inputs.repo }}
+      RAW_PR: ${{ github.event.client_payload.pr || inputs.pr }}
+      RAW_HEAD_SHA: ${{ github.event.client_payload.head_sha || inputs.head_sha }}
+      RAW_CHECK_RUN_ID: ${{ github.event.client_payload.check_run_id || inputs.check_run_id }}
+      RAW_COMPOSE_REF: ${{ github.event.client_payload.compose_ref || inputs.compose_ref }}
+      RAW_IMAGENS: ${{ github.event_name == 'workflow_dispatch' && inputs.imagens || toJSON(github.event.client_payload.imagens) }}
+      RAW_ORIGEM: ${{ toJSON(github.event.client_payload.origem) }}
+    steps:
+      # Checkout LIMPO da `dev`: nada de PR neste job, que tem o token do App.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: dev
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Validar o payload
+        id: validar
+        continue-on-error: true
+        run: node scripts/ci/validar-payload.ts
+      - name: Vínculos
+        id: vinculos
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@13f3697aaf3e4a151637755babb58422a44db303  # brabo-ci#17 (AT-765)
+        with:
+          origem: ${{ env.ORIGEM_JSON }}
+          destino: Check na PR|https://github.com/viralabs-dev/${{ env.REPO }}/runs/${{ env.CHECK_RUN_ID }}
+      - name: Token do App
+        id: app
+        if: ${{ steps.validar.outputs.repo != '' }}
+        continue-on-error: true
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510  # v3.3.0
+        with:
+          client-id: ${{ secrets.BRABO_APP_ID }}
+          private-key: ${{ secrets.BRABO_APP_PRIVATE_KEY }}
+          owner: viralabs-dev
+          repositories: ${{ steps.validar.outputs.repo }}
+          permission-checks: write
+      - name: Apontar o check para este run
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          APP_ID: ${{ secrets.BRABO_APP_ID }}
+          VINCULOS_MD: ${{ steps.vinculos.outputs.arquivo }}
+        run: node scripts/ci/anunciar-check.ts
+
   fechar:
     name: Fechar o check
     needs: e2e
@@ -230,6 +332,9 @@ jobs:
       RAW_CHECK_RUN_ID: ${{ github.event.client_payload.check_run_id || inputs.check_run_id }}
       RAW_COMPOSE_REF: ${{ github.event.client_payload.compose_ref || inputs.compose_ref }}
       RAW_IMAGENS: ${{ github.event_name == 'workflow_dispatch' && inputs.imagens || toJSON(github.event.client_payload.imagens) }}
+      RAW_ORIGEM: ${{ toJSON(github.event.client_payload.origem) }}
+      RAW_MODO: ${{ github.event.client_payload.modo || inputs.modo }}
+      RAW_FUNCIONALIDADES: ${{ github.event_name == 'workflow_dispatch' && inputs.funcionalidades || toJSON(github.event.client_payload.funcionalidades) }}
     steps:
       # Checkout LIMPO da `dev`: nada de PR neste job, que é o único com o token do App.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -250,6 +355,13 @@ jobs:
         id: validar
         continue-on-error: true
         run: node scripts/ci/validar-payload.ts
+
+      - name: Vínculos
+        id: vinculos
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@13f3697aaf3e4a151637755babb58422a44db303  # brabo-ci#17 (AT-765)
+        with:
+          origem: ${{ env.ORIGEM_JSON }}
+          destino: Check na PR|https://github.com/viralabs-dev/${{ env.REPO }}/runs/${{ env.CHECK_RUN_ID }}
 
       # Escrita no brabo-qa equivale a poder aprovar o portão (README). Escopo: só o repo validado e só `checks: write`.
       - name: Token do App
@@ -278,4 +390,6 @@ jobs:
           ASSINATURAS: ${{ needs.e2e.outputs.assinaturas }}
           CONFERENCIA: ${{ needs.e2e.outputs.conferencia }}
           SPECS_FALHAS: ${{ needs.e2e.outputs.specs_falhas }}
+          COBERTURA: ${{ needs.e2e.outputs.cobertura }}
+          VINCULOS_MD: ${{ steps.vinculos.outputs.arquivo }}
         run: node scripts/ci/fechar-check.ts
