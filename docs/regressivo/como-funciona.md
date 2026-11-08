@@ -6,7 +6,7 @@ o mapa de caminhos, a ligação com as specs e o validador. O gatilho e a seleç
 
 ## O catálogo: `funcionalidades.yml`
 
-Um único arquivo na raiz, com as 14 funcionalidades e o mapa caminho → funcionalidade. Cada entrada tem:
+Um único arquivo na raiz, com as 16 funcionalidades e o mapa caminho → funcionalidade. Cada entrada tem:
 
 | Campo | Significado |
 | --- | --- |
@@ -30,7 +30,7 @@ test('o canal da sessão sobe com ticket na query', { tag: '@f-sessao-e-canal' }
 ```
 
 Não há lista de arquivos no catálogo. Hoje: `autenticacao`, `sessao-e-canal`, `turno-do-agente` (parcial: só o desfecho de falha por
-credencial) e `aprovacoes` (parcial: decisão inline). As outras ainda não têm spec e aparecem como **sem cobertura**, o que não reprova.
+credencial) `aprovacoes` (parcial: decisão inline) e `execucao` (a prova do Noop, AT-815 R1). As outras ainda não têm spec e aparecem como **sem cobertura**, o que não reprova.
 
 ## O validador
 
@@ -86,3 +86,14 @@ Cada run do `e2e-pr` mostra de onde veio: o `run-name` é `E2E ← brabo-api#48 
 (o `fechar` o conclui) e nunca reprova. A action `vinculos` do `brabo-ci` escreve a tabela `## Vínculos` e o Mermaid no Summary de `e2e-pr` (jobs
 `e2e`, `anunciar`, `fechar`), `golden-set-*`, `ci` e `varrer-orfaos`. No `fechar` o `vinculos.md` entra no resumo do check, e o
 `alarmar-prova.sh` o anexa à issue (`VINCULOS_MD`). Uma `origem` inválida no payload é descartada com aviso, nunca reprova.
+
+## Infraestrutura comum das specs (AT-815 R1, RN-1064)
+
+**RN-1064.** As specs do E2E semeiam estado só por estes caminhos, sem LLM e sem tocar o banco:
+
+1. **Evento pela rota pública.** `e2e/suporte/eventos.ts` (`anexarEvento`, `eventosDaSessao`, `esperarEvento`): `POST .../sessions/:s/events` com o Bearer do login de semeadura. Semeia o que o log guarda (`agent.response`, `question.opened`, `dev.idle_tripped`...).
+2. **Rotas internas pelo token de serviço.** `e2e/suporte/interno.ts`: mapa de módulos, épico, história, tarefa, veredito de gate e handoff, pelas mesmas rotas e use cases que o engine usa (cabeçalho `x-brabo-service-token`). O token é o `BRABO_SERVICE_TOKEN` que o PRÓPRIO job gerou no `.env` do compose (aleatório por run). O `scripts/ci/com-token-de-servico.sh` o lê, o mascara com `::add-mask::` e o entrega como `E2E_SERVICE_TOKEN` só ao processo do Playwright. Ele nunca é impresso nem gravado em artefato (decisão P3 do dono, 08/11/2026), e `com-token-de-servico.spec.ts` prova que só o comando de máscara o contém no log. Sem a variável, o helper lança, e a spec que o usa só roda no CI.
+3. **Execução sem LLM.** `e2e/suporte/execucao.ts` (`semearExecucao`): repo local, mapa, regra de negócio, história `ready` ligada ao módulo, tarefa e ativação com `devAgentImpl: 'noop'`. O `execucao-noop.spec.ts` (`@f-execucao`) é a prova: `dev.working` e `dev.awaiting_gate` (emitido só depois de a PR abrir) chegam no log da sessão de execução.
+4. **Um login de navegador por arquivo.** `contextoLogado(browser)` em `e2e/suporte/navegador.ts`, no `beforeAll` de um `describe.configure({ mode: 'serial' })`; cada chamada custa um login do balde do lockout por IP.
+
+**Catálogo (decisão P4).** Os ids `execucao` (dev agents, disjuntor, Rearmar, execução parada, aba Executores) e `chat-e-pendencias` (fio, pendências, perguntas em aberto) cobrem arquivos que antes só rodavam o smoke. `projetos` perdeu o glob `lib/engine/dev`, agora de `execucao`. `AvisoDePrPronta` e `DestravarExecucao` entram no glob quando chegarem à `dev`.

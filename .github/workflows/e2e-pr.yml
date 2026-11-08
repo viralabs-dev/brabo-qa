@@ -217,11 +217,13 @@ jobs:
           E2E_API_URL: http://localhost:3000
           PLAYWRIGHT_JSON_OUTPUT_NAME: resultado.json
         # `completo` (padrão, o portão da main) roda tudo; `funcionalidades` filtra pelas tags @f-<id> (GREP validado e montado no payload).
+        # O token de serviço (rotas internas das specs, AT-815 P3) entra só no ambiente do Playwright: mascarado, nunca impresso.
         run: |
+          com_token() { bash "$GITHUB_WORKSPACE/scripts/ci/com-token-de-servico.sh" "$GITHUB_WORKSPACE/brabo-infra/docker/.env" -- "$@"; }
           if [ "$MODO" = funcionalidades ]; then
-            pnpm test --grep "$GREP" --reporter=list,html,json
+            com_token pnpm test --grep "$GREP" --reporter=list,html,json
           else
-            pnpm test --reporter=list,html,json
+            com_token pnpm test --reporter=list,html,json
           fi
 
       # Tabela por funcionalidade (AT-769); funcionalidade sem spec é "sem cobertura" e não reprova.
