@@ -29,8 +29,7 @@ test.afterAll(async () => {
   await context?.close();
 });
 
-// FIXME(AT-815 R4): a imagem publicada traz a marca `prd` (release.yml e ci.yml da api passam BRABO_AMBIENTE=prd em todo build) e o dublê nunca carrega em `prd` (RN-1065); o run 42515015341 logou LLM_DUBLE=1 ignorado. Sai do fixme quando houver imagem sem a marca prd.
-test.fixme('o texto do turno chega como agent.delta entre working e idle', { tag: '@f-turno-do-agente' }, async () => {
+test('o texto do turno chega como agent.delta entre working e idle', { tag: '@f-turno-do-agente' }, async () => {
   const frames = ouvirCanal(page, semeada.sessionId);
   await page.goto(`/projects/${semeada.projectId}/sessions/${semeada.sessionId}`);
   await expect
