@@ -1,0 +1,10 @@
+# Camada do compose de teste que liga o provider dublê da api (AT-815 P1, RN-1065, ADR 0279).
+# Só o `e2e-pr.yml` a passa (`-f`), e a api só carrega o dublê em imagem sem a marca `prd`.
+# O roteiro vem do checkout das specs (LLM_DUBLE_ROTEIRO_ARQUIVO no .env do job); o rootfs da api é read-only, por isso o bind.
+services:
+  api:
+    environment:
+      LLM_DUBLE: "1"
+      LLM_DUBLE_ROTEIRO: /roteiro/roteiro.json
+    volumes:
+      - ${LLM_DUBLE_ROTEIRO_ARQUIVO:?defina LLM_DUBLE_ROTEIRO_ARQUIVO}:/roteiro/roteiro.json:ro

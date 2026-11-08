@@ -147,7 +147,7 @@ IP** do próprio produto (`AUTH_LOCKOUT_IP_THRESHOLDS`, default
 uniforme** de senha errada — de propósito: distinguir os dois diria ao
 atacante quando ele acertou o e-mail.
 
-Cada execução gasta **16 logins** (AT-815 R3; 11 na R2 mais 5: `aprovacoes-aprovar-inline`, `backlog-aba`, `conhecimento-c4` e 2 de `autenticacao-revogacao`, que fala só por HTTP): o `setup`, o spec de
+Cada execução gasta **16 logins** (17 quando `turno-do-agente-delta` sair do `fixme`; `backlog-aceito-todas` só fala por HTTP e não gasta; R3: 11 na R2 mais 5: `aprovacoes-aprovar-inline`, `backlog-aba`, `conhecimento-c4` e 2 de `autenticacao-revogacao`, que fala só por HTTP): o `setup`, o spec de
 autenticação, a semeadura por HTTP, o login próprio de
 `turno-pelo-canal.spec.ts` e UM por arquivo novo que abre navegador
 (`sessao-e-canal-frame`, `turno-do-agente-fio`, `execucao-parada`,
@@ -178,11 +178,15 @@ O `e2e-pr.yml` grava no `.env` do compose `RATE_LIMIT_USER=5000`, `RATE_LIMIT_IP
 
 `suporte/eventos.ts` (evento pela rota pública), `suporte/interno.ts` (mapa, história, tarefa, gate e handoff pelas rotas internas) e `suporte/execucao.ts` (execução Noop, sem LLM) e `suporte/git.ts` (commit conflitante na `main` do repo local, pela PR de infra, sem Docker) são os caminhos de semeadura das specs. As rotas internas exigem `E2E_SERVICE_TOKEN`, que no CI vem do `.env` do próprio run por `scripts/ci/com-token-de-servico.sh`: mascarado, nunca impresso nem gravado em artefato. Localmente, exporte o `BRABO_SERVICE_TOKEN` do `.env` do compose como `E2E_SERVICE_TOKEN` (sem imprimi-lo). Login de navegador: um por ARQUIVO (`contextoLogado` no `beforeAll`, `describe` em modo serial). O `execucao-noop.spec.ts` e o `aprovacoes-trava-de-merge.spec.ts` não abrem navegador e não gastam login além da semeadura. `suporte/chat.ts` abre as abas do bloco de pendências do chat (`abrirFila`) e `suporte/eventos.ts` ouve os frames do canal (`ouvirCanal`). O disjuntor da execução se configura no projeto (`maxConsecutiveBlocked` em `semearExecucao`), porque o `ActivateExecutionDto` ainda não o aceita. Detalhes em `docs/regressivo/como-funciona.md`.
 
+## Provider dublê da api (AT-815 R4, RN-1065)
+
+`turno-do-agente-delta` (`@f-turno-do-agente`, o `agent.delta` entre `working` e `idle`) e `backlog-aceito-todas` (`@f-backlog`, o Criativo lista e fecha 7 perguntas de dois autores) usam o `DubleLLMProvider` da api, que responde por roteiro e grava custo 0 e modelo `duble-llm`. O job já o liga: `suporte/compose-duble.yml` (segundo `-f` do compose, só no passo "Subir o compose") põe `LLM_DUBLE=1` e monta `suporte/llm-duble-roteiro.json` na api. **As duas specs estão em `test.fixme`**: a api só carrega o dublê em imagem sem a marca `prd` (RN-1065), e toda imagem publicada, `-dev` inclusive, é buildada com `BRABO_AMBIENTE=prd` (`release.yml` e `ci.yml` da api). O run 42515015341 logou `LLM_DUBLE=1 ignorado: imagem de produção (prd)`. Saem do `fixme` quando as imagens `-dev` ganharem a marca `dev` (decisão do dono). LLM real nunca entra no regressivo (P2). O roteiro é do agente `criativo` (passo 0 texto, passo 1 `list_open_questions` mais 7 `answer_open_question`, passo 2 fecho), e `semearSessaoComDuble` vincula um modelo `ollama` ao workspace da semeadura (sem binding o turno acaba em "Nenhum modelo vinculado"). O dublê não prova qualidade de modelo.
+
 ## O que NÃO está coberto
 
 Declarado, não esquecido (ver as Consequências do ADR 0120): diferenças
 entre navegadores (só chromium roda) e o **streaming do turno** — o
-`agent.delta`. A aprovação inline saiu desta lista na AT-068, e o CICLO do
+`agent.delta` (coberto desde a AT-815 R4, ver "Provider dublê da api"). A aprovação inline saiu desta lista na AT-068, e o CICLO do
 turno pelo canal (`working` → `agent.error` → `idle`) saiu na AT-338; o delta
 continua.
 
