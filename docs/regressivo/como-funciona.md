@@ -30,7 +30,7 @@ test('o canal da sessão sobe com ticket na query', { tag: '@f-sessao-e-canal' }
 ```
 
 Não há lista de arquivos no catálogo. Hoje: `autenticacao`, `sessao-e-canal`, `turno-do-agente` (parcial: só o desfecho de falha por
-credencial) `aprovacoes` (parcial: decisão inline) e `execucao` (a prova do Noop, AT-815 R1). As outras ainda não têm spec e aparecem como **sem cobertura**, o que não reprova.
+credencial) `aprovacoes` (decisão inline e a trava de merge), `execucao` (Noop, disjuntor, execução parada e Rearmar), `chat-e-pendencias` (fio sem repetição, PR pronta e perguntas em aberto), `git` (Mergear no repo local) e `time-e-handoffs` (aceite no chat), da AT-815 R1 e R2. As outras ainda não têm spec e aparecem como **sem cobertura**, o que não reprova.
 
 ## O validador
 

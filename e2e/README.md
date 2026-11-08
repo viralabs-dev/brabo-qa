@@ -147,9 +147,14 @@ IP** do próprio produto (`AUTH_LOCKOUT_IP_THRESHOLDS`, default
 uniforme** de senha errada — de propósito: distinguir os dois diria ao
 atacante quando ele acertou o e-mail.
 
-Cada execução gasta exatamente **4 logins** (o `setup`, o spec de
-autenticação, a semeadura por HTTP e o login próprio de
-`turno-pelo-canal.spec.ts`). A semeadura continua custando UM por mais specs
+Cada execução gasta **11 logins** (AT-815 R2): o `setup`, o spec de
+autenticação, a semeadura por HTTP, o login próprio de
+`turno-pelo-canal.spec.ts` e UM por arquivo novo que abre navegador
+(`sessao-e-canal-frame`, `turno-do-agente-fio`, `execucao-parada`,
+`execucao-pr-pronta`, `git-mergear-no-chat`, `backlog-perguntas-em-aberto` e
+`time-e-handoffs-aceite-no-chat`). O teto é 20 em 15 minutos: spec nova com
+navegador precisa caber nele, e uma retentativa que reinicia o worker custa
+mais um login de semeadura. A semeadura continua custando UM por mais specs
 que existam: `autenticar()` memoiza o token pela execução inteira, e com
 `workers: 1` os arquivos rodam no mesmo processo. Só um spec que precise de
 sessão de navegador NOVA acrescenta um login, e o diz. Uma execução por vez, como
@@ -167,7 +172,7 @@ quase aconteceu ao escrever esta camada.
 
 ## Semeadura comum (AT-815 R1, RN-1064)
 
-`suporte/eventos.ts` (evento pela rota pública), `suporte/interno.ts` (mapa, história, tarefa, gate e handoff pelas rotas internas) e `suporte/execucao.ts` (execução Noop, sem LLM) são os caminhos de semeadura das specs. As rotas internas exigem `E2E_SERVICE_TOKEN`, que no CI vem do `.env` do próprio run por `scripts/ci/com-token-de-servico.sh`: mascarado, nunca impresso nem gravado em artefato. Localmente, exporte o `BRABO_SERVICE_TOKEN` do `.env` do compose como `E2E_SERVICE_TOKEN` (sem imprimi-lo). Login de navegador: um por ARQUIVO (`contextoLogado` no `beforeAll`, `describe` em modo serial). O `execucao-noop.spec.ts` não abre navegador e não gasta login além da semeadura. Detalhes em `docs/regressivo/como-funciona.md`.
+`suporte/eventos.ts` (evento pela rota pública), `suporte/interno.ts` (mapa, história, tarefa, gate e handoff pelas rotas internas) e `suporte/execucao.ts` (execução Noop, sem LLM) são os caminhos de semeadura das specs. As rotas internas exigem `E2E_SERVICE_TOKEN`, que no CI vem do `.env` do próprio run por `scripts/ci/com-token-de-servico.sh`: mascarado, nunca impresso nem gravado em artefato. Localmente, exporte o `BRABO_SERVICE_TOKEN` do `.env` do compose como `E2E_SERVICE_TOKEN` (sem imprimi-lo). Login de navegador: um por ARQUIVO (`contextoLogado` no `beforeAll`, `describe` em modo serial). O `execucao-noop.spec.ts` e o `aprovacoes-trava-de-merge.spec.ts` não abrem navegador e não gastam login além da semeadura. `suporte/chat.ts` abre as abas do bloco de pendências do chat (`abrirFila`) e `suporte/eventos.ts` ouve os frames do canal (`ouvirCanal`). O disjuntor da execução se configura no projeto (`maxConsecutiveBlocked` em `semearExecucao`), porque o `ActivateExecutionDto` ainda não o aceita. Detalhes em `docs/regressivo/como-funciona.md`.
 
 ## O que NÃO está coberto
 
