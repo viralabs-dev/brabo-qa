@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Docs (AT-867): a linha de badges logo abaixo do título mostra o CI da `dev` e o da `main`, a versão da `dev` (última tag `-dev`), licença MIT, documentação e Ko-fi, no estilo do `brabo` Sem release publicada, o badge de versão da `main` não entra.
+
 - Regressivo (AT-843, qa): `semearExecucao` aceita `decidirImagem: false` (o padrão segue decidindo). `execucao-pr-pronta` e `git-mergear-no-chat` semeiam sem a decisão de imagem e provam que o aviso e a fila de PRs prontas do chat aparecem mesmo assim (api#80, web#53, RN-105); a aba Code segue atrás do portão.
 - CI: `anunciar` e `fechar` do `e2e-pr.yml` liam só `inputs.check_run_id`, vazio no `repository_dispatch` (`null != '0'` é falso), e eram pulados: o check `Regressivo do brabo-qa` da PR ficava `pending` para sempre. Passam a ler `client_payload.check_run_id || inputs.check_run_id`.
 - Docs (AT-853): `regressivo/como-funciona` ganha a seção "O que o regressivo não cobre". O `brabo-runner` se atesta pelo próprio CI (binário linux-x64 na PR, runner#28), e o contrato runner ↔ engine só é provado no TP-01 (RN-1075, `brabo-ci`).
