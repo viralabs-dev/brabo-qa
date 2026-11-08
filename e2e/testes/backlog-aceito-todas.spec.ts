@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { autenticar, semearSessao, API_URL } from '../suporte/api.ts';
-import { DUBLE_LIGADO, PERGUNTAS_DO_ROTEIRO } from '../suporte/duble.ts';
+import { autenticar, API_URL } from '../suporte/api.ts';
+import { PERGUNTAS_DO_ROTEIRO, semearSessaoComDuble } from '../suporte/duble.ts';
 import { anexarEvento, eventosDaSessao, esperarEvento } from '../suporte/eventos.ts';
 
 /**
@@ -13,11 +13,10 @@ import { anexarEvento, eventosDaSessao, esperarEvento } from '../suporte/eventos
  * A 1ª mensagem consome o passo 0 do roteiro (texto); a 2ª, o passo 1 (ferramentas).
  */
 
-test.skip(!DUBLE_LIGADO, 'precisa do provider dublê da api (E2E_LLM_DUBLE=1, só no CI)');
-
-test('o agente lista e fecha as 7 perguntas de dois autores', { tag: '@f-backlog' }, async () => {
+// FIXME(AT-815 R4): a imagem publicada traz a marca `prd` (release.yml e ci.yml da api passam BRABO_AMBIENTE=prd em todo build) e o dublê nunca carrega em `prd` (RN-1065); o run 42515015341 logou LLM_DUBLE=1 ignorado. Sai do fixme quando houver imagem sem a marca prd.
+test.fixme('o agente lista e fecha as 7 perguntas de dois autores', { tag: '@f-backlog' }, async () => {
   const token = await autenticar();
-  const sessao = await semearSessao(token, 'criativa');
+  const sessao = await semearSessaoComDuble(token);
   for (const [i, questionId] of PERGUNTAS_DO_ROTEIRO.entries()) {
     const autor = i % 2 === 0 ? 'po' : 'arquiteto';
     await anexarEvento(token, sessao, 'artifact.open_question', { kind: 'agent', id: autor }, {

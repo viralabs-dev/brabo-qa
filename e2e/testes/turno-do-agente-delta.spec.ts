@@ -1,6 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { autenticar, semearSessao, API_URL, type SessaoSemeada } from '../suporte/api.ts';
-import { DUBLE_LIGADO, TEXTO_DO_PASSO_0 } from '../suporte/duble.ts';
+import { autenticar, API_URL, type SessaoSemeada } from '../suporte/api.ts';
+import { semearSessaoComDuble, TEXTO_DO_PASSO_0 } from '../suporte/duble.ts';
 import { esperarEvento, ouvirCanal } from '../suporte/eventos.ts';
 import { contextoLogado } from '../suporte/navegador.ts';
 
@@ -13,7 +13,6 @@ import { contextoLogado } from '../suporte/navegador.ts';
  */
 
 test.describe.configure({ mode: 'serial' });
-test.skip(!DUBLE_LIGADO, 'precisa do provider dublê da api (E2E_LLM_DUBLE=1, só no CI)');
 
 let token: string;
 let semeada: SessaoSemeada;
@@ -22,7 +21,7 @@ let page: Page;
 
 test.beforeAll(async ({ browser }) => {
   token = await autenticar();
-  semeada = await semearSessao(token, 'criativa');
+  semeada = await semearSessaoComDuble(token);
   ({ context, page } = await contextoLogado(browser));
 });
 
@@ -30,7 +29,8 @@ test.afterAll(async () => {
   await context?.close();
 });
 
-test('o texto do turno chega como agent.delta entre working e idle', { tag: '@f-turno-do-agente' }, async () => {
+// FIXME(AT-815 R4): a imagem publicada traz a marca `prd` (release.yml e ci.yml da api passam BRABO_AMBIENTE=prd em todo build) e o dublê nunca carrega em `prd` (RN-1065); o run 42515015341 logou LLM_DUBLE=1 ignorado. Sai do fixme quando houver imagem sem a marca prd.
+test.fixme('o texto do turno chega como agent.delta entre working e idle', { tag: '@f-turno-do-agente' }, async () => {
   const frames = ouvirCanal(page, semeada.sessionId);
   await page.goto(`/projects/${semeada.projectId}/sessions/${semeada.sessionId}`);
   await expect

@@ -226,7 +226,6 @@ jobs:
         working-directory: ${{ env.E2E_DIR }}
         env:
           CI: 'true'
-          E2E_LLM_DUBLE: '1'
           E2E_WEB_URL: http://localhost:8088
           E2E_API_URL: http://localhost:3000
           PLAYWRIGHT_JSON_OUTPUT_NAME: resultado.json
