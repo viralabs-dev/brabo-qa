@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `ci.yml` chama o reutilizável `cadeia.yml` do `brabo-ci` (actionlint e pins, `ci_ref` obrigatório, AT-819) e perde o job `actionlint` copiado, o passo de actionlint do job `workflows` (agora `Caminhos dos irmãos`) e o `.github/actionlint.yaml` (idêntico ao do brabo-ci). Repina todos os `uses:`, `ci_ref` e o checkout `.brabo-ci` em `0a9eba8` (`v1.4.0-dev.5`, brabo-ci#39); o actionlint do `cadeia` passa sem achados novos.
+
 - Repina o brabo-ci em `d122b83` (`v1.4.0-dev.4`, merge da ci#33) em todos os workflows (`uses:`, `ci_ref`, o checkout `.brabo-ci` e a action `vinculos`): o check do portão passa a usar o `montarCheck` corrigido ("1 falhou", spec pulada como ⏭️), achado do ensaio ao vivo da AT-791.
 
 - Payload do `e2e-pr` aceita `selecao: {motivos, semDono, tocadas}` (limite de 10 propriedades do `client_payload`) e, por compatibilidade, as chaves soltas; juntas, vale `selecao`. O token do job `fechar` ganha `permission-pull-requests: write` (o comentário fixo da PR dava 403) e o warning de falha mostra status e corpo curtos da resposta. Relatório: plural correto ("1 falhou"), spec pulada contada como pulada, "(preparação)" uma vez só e título do `.md` pelo modo ("E2E" no portão, "Regressivo" na dev).
