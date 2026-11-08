@@ -1,9 +1,9 @@
 name: qa-e2e
 
-# Liga o E2E do brabo-qa nas PRs para a main (portão da main, AT-765).
+# Liga o E2E do brabo-qa nas PRs para a main (portão da main, AT-765) e para a dev (regressivo, AT-851).
 on:
   pull_request:
-    branches: [main]
+    branches: [dev, main]
     types: [opened, synchronize, reopened]
   issue_comment:
     types: [created]

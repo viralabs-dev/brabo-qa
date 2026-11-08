@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- CI (AT-851): a PR do brabo-qa para a `dev` roda o regressivo (`qa-e2e.yml` com `branches: [dev, main]`, check `Regressivo do brabo-qa`). O ensaio manual aceita `check_run_id=0`: os jobs `anunciar` e `fechar` do `e2e-pr.yml` são pulados, e o run não sai vermelho por falta de check. Docs em `docs/e2e-portao/` e `docs/regressivo/`.
 - Docs (AT-848): o bloco do mapa do README é regenerado do `repos.yml` do brabo, que ganha a aresta `brabo → brabo-contracts` e a prova em `{arquivo, trecho}` (`mapa-alinhado` volta a bater).
 - CI: repina todos os `uses:` e `ci_ref` do `brabo-ci` em `6390ef5` (`v1.4.0-dev.17`, ci#53), que aceita a prova `{arquivo, trecho}` do `mapa-dos-repos.ts`; o pin antigo dá `throw` no formato novo e o `mapa-alinhado` quebra.
 - Regressivo com o provider dublê da api (AT-815 R4, RN-1065): `turno-do-agente-delta` (o `agent.delta` entre `working` e `idle`) e `backlog-aceito-todas` (o Criativo fecha 7 perguntas de dois autores com `answer_open_question`). O `e2e-pr.yml` liga o dublê por `suporte/compose-duble.yml` e `llm-duble-roteiro.json`; sem LLM real e sem `token_usage` de provider. As duas specs ficam em `test.fixme`: toda imagem publicada tem a marca `prd` e o dublê não carrega nela (RN-1065).
