@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- CI: o job `decidir` do `capturas-da-doc.yml` morria com exit 141 (SIGPIPE) sob `pipefail` no `git ls-remote | head -n1` (run 42533650837). A consulta agora tira as refs `^{}` com `grep -v` e pega a primeira com `awk 'NR==1'`, que lê até o fim. O `golden-set-qa`/`golden-set-rag` deixam de fazer `curl | grep -q` (mesmo risco) e guardam a resposta de `/api/tags` numa variável.
 - Capturas da doc (AT-859, AT-864, ADR 0286 do `brabo`): `e2e/capturas/doc.captura.ts` fotografa as telas da doc nos temas claro e escuro (1366×768) pela config própria `playwright.capturas.config.ts`, com o roteiro didático do dublê (`capturas/roteiro.json`) e a conta `owner@brabo.dev`. `suporte/ocultar.ts` cobre dado pessoal com `mask` e falha a captura se o texto visível tiver `/home/`, o usuário da máquina, token ou e-mail fora do domínio de teste (spec em `scripts/ci/ocultar.spec.ts`). O `capturas-da-doc.yml` (`decidir`, `capturar`, `publicar`) só segue quando o MAJOR.MINOR do `web` muda; o `publicar` fica DESLIGADO até a variável `CAPTURAS_PUBLICAR`. `scripts/ci/capturas.ts` valida o artefato na fronteira de confiança. Corrige o comentário de `suporte/duble.ts`, que ainda dizia que as specs do dublê estavam em `test.fixme`. `semearSessao` aceita `name` do projeto.
 - Docs (AT-867): a linha de badges logo abaixo do título mostra o CI da `dev` e o da `main`, a versão da `dev` (última tag `-dev`), licença MIT, documentação e Ko-fi, no estilo do `brabo` Sem release publicada, o badge de versão da `main` não entra.
 

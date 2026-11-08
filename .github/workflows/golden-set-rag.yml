@@ -182,7 +182,8 @@ jobs:
           curl -fsS --max-time 300 -X POST http://localhost:11434/api/pull \
             -d '{"name":"nomic-embed-text","stream":false}'
           echo
-          curl -fsS http://localhost:11434/api/tags | grep -q nomic-embed-text \
+          tags="$(curl -fsS http://localhost:11434/api/tags)"
+          grep -q nomic-embed-text <<<"$tags" \
             || { echo "::error::nomic-embed-text não apareceu em /api/tags depois do pull"; exit 1; }
 
       # AppModule não migra sozinho no boot (main.ts/app.module.ts não
