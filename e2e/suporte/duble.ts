@@ -2,9 +2,10 @@ import { API_URL, semearSessao, type SessaoSemeada } from './api.ts';
 /**
  * Constantes do provider dublê da api (AT-815 R4, RN-1065): o roteiro
  * `llm-duble-roteiro.json` fala do agente `criativo` e das perguntas abaixo.
- * O job liga o dublê com `compose-duble.yml` (`e2e-pr.yml`), mas a api só o
- * carrega em imagem sem a marca `prd`: hoje toda imagem publicada é `prd`, e as
- * duas specs estão em `test.fixme` por isso.
+ * O job liga o dublê com `compose-duble.yml` (`e2e-pr.yml`), e a api só o
+ * carrega em imagem sem a marca `prd`: desde a api `v2.2.0-dev.14` (AT-850) a
+ * primeira imagem `-dev` o carrega, e as duas specs que o usam rodam sem `fixme`.
+ * As capturas da doc (AT-859) usam outro roteiro, o `capturas/roteiro.json`.
  */
 
 /** `texto` do passo 0 do Criativo no roteiro. */
@@ -19,8 +20,8 @@ export const PERGUNTAS_DO_ROTEIRO = Array.from({ length: 7 }, (_, i) => `0000000
  * "Nenhum modelo vinculado", antes de chegar ao dublê. O seed só vincula o
  * workspace dele (`acme-corp`), não os que a semeadura cria.
  */
-export async function semearSessaoComDuble(token: string): Promise<SessaoSemeada> {
-  const sessao = await semearSessao(token, 'criativa');
+export async function semearSessaoComDuble(token: string, nomeDoProjeto?: string): Promise<SessaoSemeada> {
+  const sessao = await semearSessao(token, 'criativa', nomeDoProjeto ? { name: nomeDoProjeto } : {});
   const cabecalhos = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const chamar = async (url: string, init?: RequestInit): Promise<unknown> => {
     const r = await fetch(`${API_URL}${url}`, { ...init, headers: cabecalhos });

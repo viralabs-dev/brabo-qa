@@ -114,6 +114,7 @@ O regressivo por funcionalidade (`funcionalidades.yml`, validado por `scripts/ci
 
 - [`docs/e2e-portao/como-funciona.md`](docs/e2e-portao/como-funciona.md): o portão da `main`, com o `fechar`, o token do App e os prints.
 - [`docs/regressivo/como-funciona.md`](docs/regressivo/como-funciona.md): o regressivo por funcionalidade e o relatório de decisão.
+- [`docs/capturas/como-funciona.md`](docs/capturas/como-funciona.md): as capturas da doc do `brabo`, a ocultação de dado pessoal e a PR do App.
 - [`docs/rodadas-manuais.md`](docs/rodadas-manuais.md): E2E de navegador manual e golden-sets agendados.
 - [`CHANGELOG.md`](CHANGELOG.md), [`funcionalidades.yml`](funcionalidades.yml) e [`CLAUDE.md`](CLAUDE.md).
 - Documentação central do Brabo: [repo `brabo`](https://github.com/viralabs-dev/brabo) e [página do produto](https://viralabs-dev.github.io/brabo/prd/).
