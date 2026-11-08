@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- README no esqueleto didático (AT-826): oito seções fixas, títulos sem AT, ADR ou RN, 137 linhas. O detalhe de E2E manual e golden-sets desceu para `docs/rodadas-manuais.md`. Os workflows `readme.yml` ligam `readme-esqueleto` e `mapa-alinhado` do brabo-ci (`v1.4.0-dev.14`), informativos.
 - Regressivo sem `test.fixme` do Noop (AT-839, engine#64, `v2.2.0-dev.4`): voltam `execucao-noop`, `execucao-parada` (2 testes), `execucao-pr-pronta` e `git-mergear-no-chat`, e `gates-veredito` ganha corpo (QA aprovado leva a `run_secops`, SecOps aprovado a `done` e `awaiting_user`). `semearExecucao` passa a decidir a imagem do projeto (`decidirImagem`, rota interna `project-image`): sem ela o portão da aba Code (RN-105/RN-494) responde 409 em `GET /code/pull-requests` e o chat não lista a PR pronta (achado do ensaio, run 42508330455). `git-conflito` continua em `test.fixme` com a causa corrigida: o Noop grava `NOOP-task-<id>.md` por tarefa, então duas PRs dele nunca conflitam.
 
 - E2E: o `.env` do compose de teste sobe `RATE_LIMIT_USER=5000`, `RATE_LIMIT_IP=10000` e `AUTH_LOCKOUT_IP_THRESHOLDS=200:5`, para o catálogo inteiro não bater em 429 (AT-840). Depende do repasse no compose do brabo-infra.
