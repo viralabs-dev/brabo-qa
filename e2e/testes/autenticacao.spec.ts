@@ -33,8 +33,6 @@ test.describe('autenticação no navegador', { tag: '@f-autenticacao' }, () => {
     await page.goto('/login');
     await expect(page.locator('input[type="password"]')).toBeVisible();
     await expect(page.locator('[data-acesso-rapido]')).toHaveCount(0);
-    // ENSAIO AT-791 (Rodada 255): quebrada de propósito. NÃO MERGEAR.
-    expect(1, 'ensaio AT-791: falha proposital').toBe(2);
   });
 
   test('sem sessão, a raiz manda para o login', async ({ page }) => {
