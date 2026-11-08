@@ -170,6 +170,10 @@ Saídas, em ordem de preferência:
 sem ela, a próxima pessoa caça um bug de credencial que não existe. Foi o que
 quase aconteceu ao escrever esta camada.
 
+## Tetos da api no job (AT-840)
+
+O `e2e-pr.yml` grava no `.env` do compose `RATE_LIMIT_USER=5000`, `RATE_LIMIT_IP=10000` e `AUTH_LOCKOUT_IP_THRESHOLDS=200:5` (formato `falhas:segundos`). Com o catálogo inteiro, as specs passam do rate limit padrão (300 por usuário e 600 por IP por minuto) e a api devolve 429 (run 42506755991). O mecanismo continua provado nas suítes da api; aqui os tetos só tiram o ruído. Vale para o regressivo da `dev` e para o portão, porque os dois usam o mesmo passo. O compose de instalação precisa repassar as variáveis (brabo-infra `bugfix/repassa-limites-da-api`); sem o repasse o `.env` não tem efeito e nada quebra.
+
 ## Semeadura comum (AT-815 R1, RN-1064)
 
 `suporte/eventos.ts` (evento pela rota pública), `suporte/interno.ts` (mapa, história, tarefa, gate e handoff pelas rotas internas) e `suporte/execucao.ts` (execução Noop, sem LLM) são os caminhos de semeadura das specs. As rotas internas exigem `E2E_SERVICE_TOKEN`, que no CI vem do `.env` do próprio run por `scripts/ci/com-token-de-servico.sh`: mascarado, nunca impresso nem gravado em artefato. Localmente, exporte o `BRABO_SERVICE_TOKEN` do `.env` do compose como `E2E_SERVICE_TOKEN` (sem imprimi-lo). Login de navegador: um por ARQUIVO (`contextoLogado` no `beforeAll`, `describe` em modo serial). O `execucao-noop.spec.ts` e o `aprovacoes-trava-de-merge.spec.ts` não abrem navegador e não gastam login além da semeadura. `suporte/chat.ts` abre as abas do bloco de pendências do chat (`abrirFila`) e `suporte/eventos.ts` ouve os frames do canal (`ouvirCanal`). O disjuntor da execução se configura no projeto (`maxConsecutiveBlocked` em `semearExecucao`), porque o `ActivateExecutionDto` ainda não o aceita. Detalhes em `docs/regressivo/como-funciona.md`.
