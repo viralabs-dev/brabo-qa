@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Repina o brabo-ci em `d122b83` (`v1.4.0-dev.4`, merge da ci#33) em todos os workflows (`uses:`, `ci_ref`, o checkout `.brabo-ci` e a action `vinculos`): o check do portão passa a usar o `montarCheck` corrigido ("1 falhou", spec pulada como ⏭️), achado do ensaio ao vivo da AT-791.
+
 - Payload do `e2e-pr` aceita `selecao: {motivos, semDono, tocadas}` (limite de 10 propriedades do `client_payload`) e, por compatibilidade, as chaves soltas; juntas, vale `selecao`. O token do job `fechar` ganha `permission-pull-requests: write` (o comentário fixo da PR dava 403) e o warning de falha mostra status e corpo curtos da resposta. Relatório: plural correto ("1 falhou"), spec pulada contada como pulada, "(preparação)" uma vez só e título do `.md` pelo modo ("E2E" no portão, "Regressivo" na dev).
 
 - `fechar-check.ts` aceita reexecução (AT-790, RN-1067): com o check já `completed`, cria um check run novo (mesmo nome e head SHA), cita o anterior no Summary e não o altera; mantém as defesas de nome, head e App.
