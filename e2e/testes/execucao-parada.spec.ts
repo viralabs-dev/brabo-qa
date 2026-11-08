@@ -58,8 +58,7 @@ test.afterAll(async () => {
   await context?.close();
 });
 
-// fixme (achado do ensaio, run 42504271067): o NoopDevAgentServer nao tem clausula para {:action_settled, _} (ADR 0052). Aprovado o git_push (efeito externo, RN-689), o engine entrega a mensagem, o agente morre com FunctionClauseError e nunca chega a dev.awaiting_gate. O DevAgentServer real tem a clausula (dev_agent_server.ex:308). Volta quando o NoopDevAgentServer ganhar a clausula (brabo-engine).
-test.fixme('a execução parada é avisada com o agente e a tarefa nomeados (AT-800)', { tag: '@f-execucao' }, async () => {
+test('a execução parada é avisada com o agente e a tarefa nomeados (AT-800)', { tag: '@f-execucao' }, async () => {
   const parada = await esperarEvento(token, sessaoDaExecucao(exec), 'execution.stalled', 90_000);
   const travados = parada.payload.agentesTravados as Array<{ agentId: string }>;
   const bloqueadas = parada.payload.tarefasBloqueadas as Array<{ taskId: string }>;
@@ -72,7 +71,7 @@ test.fixme('a execução parada é avisada com o agente e a tarefa nomeados (AT-
   await expect(page.locator('[data-testid="destravar-execucao"] button')).toHaveCount(2);
 });
 
-test.fixme('o Rearmar do agente travado chega ao engine e o aviso sai (AT-799)', { tag: '@f-execucao' }, async () => {
+test('o Rearmar do agente travado chega ao engine e o aviso sai (AT-799)', { tag: '@f-execucao' }, async () => {
   await page.goto(`/projects/${exec.projectId}/sessions/${exec.sessionId}`);
   await abrirFila(page, 'travados');
   const card = page.locator('[data-testid="agente-travado"]');

@@ -9,8 +9,7 @@ import { aprovarAcoesAte, semearExecucao } from '../suporte/execucao.ts';
  * a PR abrir (`noop_dev_agent_server.ex`), então prova repo, worktree, commit,
  * push e PR de uma vez. O push e a PR são ações de efeito externo (RN-689), que o usuário aprova: `aprovarAcoesAte` faz esse gesto. Sem navegador: não gasta login do balde do lockout.
  */
-// fixme (achado do ensaio, run 42504271067): o NoopDevAgentServer nao tem clausula para {:action_settled, _} (ADR 0052). Aprovado o git_push (efeito externo, RN-689), o engine entrega a mensagem, o agente morre com FunctionClauseError e nunca chega a dev.awaiting_gate. O DevAgentServer real tem a clausula (dev_agent_server.ex:308). Volta quando o NoopDevAgentServer ganhar a clausula (brabo-engine).
-test.fixme('a execução Noop pega a tarefa e abre a PR, sem LLM', { tag: '@f-execucao' }, async () => {
+test('a execução Noop pega a tarefa e abre a PR, sem LLM', { tag: '@f-execucao' }, async () => {
   test.setTimeout(180_000);
   const token = await autenticar();
   const exec = await semearExecucao(token, {

@@ -48,6 +48,19 @@ export const criarMapaDeModulos = (s: Sessao, modulos: Modulo[]) =>
     modules: modulos.map((m) => ({ stack: 'Node', responsibility: m.name, dependsOn: [], ...m })),
   });
 
+/**
+ * A decisão de imagem do Arquiteto (`artifact.project_image`). Sem ela a api
+ * responde 409 em `GET /code/pull-requests` (portão da aba Code, RN-105/RN-494),
+ * e a lista de PRs prontas do chat fica vazia. `egress` porque a stack `Node`
+ * baixa dependências e `none` seria recusado (RN-906).
+ */
+export const decidirImagem = (s: Sessao) =>
+  chamarInterno(s, 'project-image', {
+    image: 'node:22-bookworm-slim',
+    rationale: 'Imagem semeada pelo E2E para liberar a aba Code.',
+    network: 'egress',
+  });
+
 export const criarEpico = (s: Sessao, title: string) => chamarInterno<{ id: string }>(s, 'epics', { title });
 
 export const criarHistoria = (
