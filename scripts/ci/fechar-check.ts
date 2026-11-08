@@ -44,6 +44,12 @@ const lerVinculos = (): string | undefined => {
   }
 };
 
+// Formato do `RelatorioRegressivo` do brabo-ci (qa-e2e-resumo.ts): o nosso JSON v1 menos o que lá não existe.
+export const deRelatorio = (r: Relatorio) => ({
+  versao: 1 as const, origem: { repo: r.origem?.repo ?? '', pr: r.origem?.pr ?? '', sha: r.origem?.sha ?? '' }, ...(r.html ? { html: r.html } : {}), ...(r.tocadas ? { tocadas: r.tocadas } : {}),
+  funcionalidades: r.funcionalidades.map(({ nome: _n, ...f }) => f), specs: r.specs,
+});
+
 // Comentário fixo na PR de origem (AT-791): marcado, UM por PR, editado a cada run. Só nasce quando o run é vermelho; se já existe, vira verde.
 export const MARCA_DO_COMENTARIO = '<!-- relatorio-regressivo -->';
 export const corpoDoComentario = (md: string): string => `${MARCA_DO_COMENTARIO}\n${md}`.slice(0, 65000);
@@ -146,11 +152,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       const yaml = readFileSync('funcionalidades.yml', 'utf8');
       const catalogo = catalogoAtivo(yaml);
       const resumo = sanitizarResumo(lerEnv<unknown>('RELATORIO'), catalogo.map((x) => x.id));
-      const { motivos, semDono } = (await import('./validar-payload.ts')).validarMotivos(env.RAW_MOTIVOS, env.RAW_SEMDONO);
+      const { motivos, semDono, tocadas } = (await import('./validar-payload.ts')).validarMotivos(env.RAW_MOTIVOS, env.RAW_SEMDONO, env.RAW_TOCADAS);
       const pedidos = (await import('./validar-payload.ts')).validarModo(p.modo, p.funcionalidades).ids;
-      if (resumo) relatorio = montarRelatorio(resumo.specs, { catalogo, modo, ids: modo === 'dev' ? pedidos : catalogo.map((x) => x.id), causa, digests: linhas, run: urlDoRun, motivos, semDono }, resumo.omitidas);
+      if (resumo) relatorio = montarRelatorio(resumo.specs, { catalogo, modo, ids: modo === 'dev' ? pedidos : catalogo.map((x) => x.id), causa, digests: linhas, run: urlDoRun, html: env.HTML_URL || undefined, motivos, semDono, tocadas, origem: { repo, pr: p.pr, sha: p.head_sha } }, resumo.omitidas);
     } catch { /* sem relatório, o check segue com o resumo de sempre */ }
-    c = montarCheck({ modo, cobertura, causa, linhas, specsQueFalharam: causa === 'spec' ? specsQueFalharam() : [], urlDoRun, vinculos, relatorio });
+    c = montarCheck({ modo, cobertura, causa, linhas, specsQueFalharam: causa === 'spec' ? specsQueFalharam() : [], urlDoRun, vinculos, semDono: relatorio?.semDono, relatorio: relatorio && deRelatorio(relatorio) });
     if (relatorio) comentario = { md: caber(relatorio, 60000, { comentario: true, detalhe: false }), vermelho: c.conclusion === 'failure' };
   }
   const res = await fetch(api, {

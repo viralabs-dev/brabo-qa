@@ -79,6 +79,7 @@ jobs:
       cobertura: ${{ steps.cobertura.outputs.cobertura }}
       funcionalidades: ${{ steps.relatorio.outputs.funcionalidades }}
       resumo: ${{ steps.relatorio.outputs.resumo }}
+      html: ${{ steps.html.outputs.artifact-url }}
     # Valores CRUS: só o passo `validar` os lê (por env, nunca interpolados em script). Os validados vão ao GITHUB_ENV.
     env:
       RAW_REPO: ${{ github.event.client_payload.repo || inputs.repo }}
@@ -92,6 +93,7 @@ jobs:
       RAW_FUNCIONALIDADES: ${{ github.event_name == 'workflow_dispatch' && inputs.funcionalidades || toJSON(github.event.client_payload.funcionalidades) }}
       RAW_MOTIVOS: ${{ toJSON(github.event.client_payload.motivos) }}
       RAW_SEMDONO: ${{ toJSON(github.event.client_payload.semDono) }}
+      RAW_TOCADAS: ${{ toJSON(github.event.client_payload.tocadas) }}
     steps:
       # Scripts e workflow vêm SEMPRE da `dev` (inclusive na PR do brabo-qa); só `e2e/` vem do head da PR.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -131,7 +133,7 @@ jobs:
           persist-credentials: false
 
       - name: Vínculos
-        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@42feff38bd850fa2a9fac650597d957d2755c8b6  # brabo-ci dev, merge da ci#30
         with:
           origem: ${{ env.ORIGEM_JSON }}
           irmaos: |
@@ -365,7 +367,7 @@ jobs:
         run: node scripts/ci/validar-payload.ts
       - name: Vínculos
         id: vinculos
-        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@42feff38bd850fa2a9fac650597d957d2755c8b6  # brabo-ci dev, merge da ci#30
         with:
           origem: ${{ env.ORIGEM_JSON }}
           destino: Check na PR|https://github.com/viralabs-dev/${{ env.REPO }}/runs/${{ env.CHECK_RUN_ID }}
@@ -408,6 +410,7 @@ jobs:
       RAW_FUNCIONALIDADES: ${{ github.event_name == 'workflow_dispatch' && inputs.funcionalidades || toJSON(github.event.client_payload.funcionalidades) }}
       RAW_MOTIVOS: ${{ toJSON(github.event.client_payload.motivos) }}
       RAW_SEMDONO: ${{ toJSON(github.event.client_payload.semDono) }}
+      RAW_TOCADAS: ${{ toJSON(github.event.client_payload.tocadas) }}
     steps:
       # Checkout LIMPO da `dev`: nada de PR neste job, que é o único com o token do App.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -417,7 +420,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           repository: viralabs-dev/brabo-ci
-          ref: 384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
+          ref: 42feff38bd850fa2a9fac650597d957d2755c8b6  # brabo-ci dev, merge da ci#30
           path: .brabo-ci
           persist-credentials: false
         continue-on-error: true
@@ -431,7 +434,7 @@ jobs:
 
       - name: Vínculos
         id: vinculos
-        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@42feff38bd850fa2a9fac650597d957d2755c8b6  # brabo-ci dev, merge da ci#30
         with:
           origem: ${{ env.ORIGEM_JSON }}
           destino: Check na PR|https://github.com/viralabs-dev/${{ env.REPO }}/runs/${{ env.CHECK_RUN_ID }}
@@ -466,5 +469,6 @@ jobs:
           SPECS_FALHAS: ${{ needs.e2e.outputs.specs_falhas }}
           COBERTURA: ${{ needs.e2e.outputs.cobertura }}
           RELATORIO: ${{ needs.e2e.outputs.resumo }}
+          HTML_URL: ${{ needs.e2e.outputs.html }}
           VINCULOS_MD: ${{ steps.vinculos.outputs.arquivo }}
         run: node scripts/ci/fechar-check.ts

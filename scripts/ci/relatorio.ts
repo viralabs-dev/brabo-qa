@@ -32,6 +32,8 @@ export interface Contexto {
   /** id -> caminhos que puxaram a funcionalidade (payload do gatilho). */
   motivos?: Record<string, string[]>;
   semDono?: string[];
+  /** Ids que o mapa liga à PR (payload). Ausente = dev: todos os executados; portão: desconhecido (bloqueia por cautela). */
+  tocadas?: string[];
   vinculos?: string;
 }
 export interface Recomendacao { acao: 'aprovar' | 'bloquear' | 'aceitar com justificativa' | 'rodar de novo'; texto: string }
@@ -42,7 +44,7 @@ export interface LinhaF {
 export interface Relatorio {
   versao: 1; modo: 'main' | 'dev'; veredito: 'verde' | 'vermelho'; causa: Causa | null; recomendacao: Recomendacao;
   origem: Contexto['origem'] | null; run: string | null; html: string | null; artefato: string | null; duracao_ms: number;
-  funcionalidades: LinhaF[]; specs: SpecR[]; semFuncionalidade: SpecR[]; digests: LinhaDigest[]; vinculos: string | null;
+  tocadas: string[] | null; funcionalidades: LinhaF[]; specs: SpecR[]; semFuncionalidade: SpecR[]; digests: LinhaDigest[]; vinculos: string | null;
   motivos: Record<string, string[]>; semDono: string[]; omitidas: number;
 }
 
@@ -96,14 +98,13 @@ export function extrairSpecs(resultado: unknown, ativos: string[]): SpecR[] | nu
 const somar = (xs: SpecR[], st: StatusSpec) => xs.filter((s) => s.status === st).length;
 
 /** Tabela de recomendação (RN-1051). `tocadas` = funcionalidades que a PR toca pelo mapa. */
-export function recomendar(c: Pick<Contexto, 'modo' | 'ids' | 'causa' | 'motivos'>, specs: SpecR[]): Recomendacao {
+export function recomendar(c: Pick<Contexto, 'modo' | 'ids' | 'causa' | 'tocadas'>, specs: SpecR[]): Recomendacao {
   const pre = c.modo === 'dev' ? 'atestado (não bloqueia): ' : '';
   const r = (acao: Recomendacao['acao'], texto: string): Recomendacao => ({ acao, texto: pre + texto });
   if (c.causa === 'digest' || c.causa === 'assinatura') return r('bloquear', 'bloquear: digest e assinatura nunca se aceitam; rode o E2E de novo');
   if (c.causa === 'ambiente' || c.causa === 'sem-resposta') return r('rodar de novo', 'rodar de novo; se repetir, aceitar com justificativa');
   if (c.causa === 'spec') {
-    const motivos = c.motivos ?? {};
-    const tocadas = new Set([...Object.keys(motivos), ...(c.modo === 'dev' ? c.ids : [])]);
+    const tocadas = new Set(c.tocadas ?? (c.modo === 'dev' ? c.ids : []));
     const falhas = specs.filter((s) => s.status === 'falhou');
     // Portão da main sem o mapa informado: não dá para dizer que a falha está fora da mudança.
     if (tocadas.size === 0 || falhas.some((s) => s.funcionalidades.some((f) => tocadas.has(f)))) return r('bloquear', 'bloquear: há spec vermelha em funcionalidade que a PR toca; corrigir antes');
@@ -127,7 +128,7 @@ export function montarRelatorio(specsTodas: SpecR[] | null, c: Contexto, omitida
   return {
     versao: 1, modo: c.modo, veredito: c.causa ? 'vermelho' : 'verde', causa: c.causa, recomendacao: recomendar(c, specs),
     origem: c.origem ?? null, run: c.run ?? null, html: c.html ?? null, artefato: c.artefato ?? null, duracao_ms: specs.reduce((a, s) => a + s.duracao_ms, 0),
-    funcionalidades, specs, semFuncionalidade: specs.filter((s) => s.funcionalidades.length === 0), digests: c.digests ?? [], vinculos: c.vinculos ?? null,
+    tocadas: c.tocadas ?? null, funcionalidades, specs, semFuncionalidade: specs.filter((s) => s.funcionalidades.length === 0), digests: c.digests ?? [], vinculos: c.vinculos ?? null,
     motivos, semDono: c.semDono ?? [], omitidas,
   };
 }
@@ -260,6 +261,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const rel = montarRelatorio(specs, {
     catalogo, modo: e.MODO === 'funcionalidades' ? 'dev' : 'main', ids: e.MODO === 'funcionalidades' ? pedidos : ativos, causa, digests: linhas,
     origem: { repo: e.REPO, pr: e.PR, sha: e.HEAD_SHA }, run: url, html: e.HTML_URL || undefined, artefato: e.ARTEFATO_URL || undefined,
+    tocadas: (() => { try { const t = JSON.parse(e.TOCADAS || 'null'); return Array.isArray(t) ? t : undefined; } catch { return undefined; } })(),
     motivos: (() => { try { return JSON.parse(e.MOTIVOS || '{}'); } catch { return {}; } })(), semDono: (() => { try { return JSON.parse(e.SEMDONO || '[]'); } catch { return []; } })(),
   });
   writeFileSync('relatorio-regressivo.json', JSON.stringify(rel, null, 2));

@@ -63,7 +63,7 @@ describe('recomendar', () => {
     expect(recomendar(ctx({ causa: 'assinatura' }), []).acao).toBe('bloquear');
   });
   it('spec em funcionalidade que a PR toca bloqueia; fora da mudança aceita com justificativa', () => {
-    const c = ctx({ causa: 'spec', motivos: { autenticacao: ['src/auth/x.ts'] } });
+    const c = ctx({ causa: 'spec', tocadas: ['autenticacao'] });
     expect(recomendar(c, falha(['autenticacao'])).acao).toBe('bloquear');
     expect(recomendar(c, falha(['projetos'])).acao).toBe('aceitar com justificativa');
     expect(recomendar(c, falha([])).acao).toBe('aceitar com justificativa');

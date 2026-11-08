@@ -159,5 +159,9 @@ describe('validarMotivos', () => {
     expect(validarMotivos('{"a":["src/x.ts"]}', '["foo/bar"]')).toMatchObject({ motivos: { a: ['src/x.ts'] }, semDono: ['foo/bar'] });
     expect(validarMotivos('[1]', undefined).avisos).toHaveLength(1);
   });
+  it('tocadas: só ids kebab, sem repetir; ausente continua ausente', () => {
+    expect(validarMotivos(undefined, undefined, undefined).tocadas).toBeUndefined();
+    expect(validarMotivos(undefined, undefined, '["a","a","Mau Id",3,"b"]').tocadas).toEqual(['a', 'b']);
+  });
   it('nunca reprova o payload', () => expect(validarPayload({ ...base(), motivos: 'lixo', semDono: 7 } as never).ok).toBe(true));
 });
