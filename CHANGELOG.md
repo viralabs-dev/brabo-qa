@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- O run do regressivo mostra cada funcionalidade e gera o relatório de decisão (AT-791, RN-1051 a RN-1053): `scripts/ci/relatorio.ts` (JSON v1, Markdown derivado, recomendação, `caber` até 65 535, balde "sem funcionalidade", sem ANSI), step `Relatório` (`if: always()`) com Summary e artefatos `relatorio-regressivo-<run>` e `relatorio-html-<run>`, reporter `github` do Playwright, jobs de exibição `Funcionalidade · <id>`, `fechar-check.ts` envia o `text`, sanitiza o resumo e mantém o comentário fixo na PR (só nasce vermelho; `issues: write` no token do App), `validar-payload.ts` aceita `motivos` e `semDono` (opcionais, limitados), `cobertura.ts` exporta `catalogoAtivo`. O repin do `.brabo-ci` e da action `vinculos` para o merge da L1 (brabo-ci) vem antes do merge desta PR.
+
 - Regressivo, infraestrutura comum (AT-815 R1, RN-1064): helpers de semeadura em `e2e/suporte/` (`eventos.ts`: evento pela rota pública; `interno.ts`: mapa de módulos, história, tarefa, gate e handoff pelas rotas internas; `execucao.ts`: execução Noop sem LLM; `contextoLogado` para um login por arquivo), `scripts/ci/com-token-de-servico.sh` (o token de serviço do `.env` do run, mascarado e só no ambiente do Playwright, com teste de que não vaza no log) usado no passo "Specs do E2E", `funcionalidades.yml` com `execucao` e `chat-e-pendencias` (`projetos` perde `lib/engine/dev`; catálogo de 16) e a spec de prova `execucao-noop.spec.ts` (`@f-execucao`).
 - E2E da PR: o `up -d --wait` não inclui mais o serviço `backup`, que é um job (`restart: "no"`, sai com 0) e fazia o `--wait` falhar com todos os serviços saudáveis; ele é só criado (`create backup`) para a conferência de digests (AT-765).
 

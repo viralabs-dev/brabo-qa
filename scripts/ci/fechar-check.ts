@@ -4,10 +4,11 @@
 // (checkout em `.brabo-ci`, repinar no merge da AT-765 Task 10).
 import { readFileSync } from 'node:fs';
 import type { LinhaDigest } from './conferir-digests.ts';
-import { idsAtivos, sanitizarCobertura } from './cobertura.ts';
+import { catalogoAtivo, idsAtivos, sanitizarCobertura } from './cobertura.ts';
+import type { Causa } from './relatorio.ts';
+import { caber, montarRelatorio, sanitizarResumo, type Relatorio } from './relatorio.ts';
 
 type Servico = LinhaDigest['servico'];
-type Causa = 'spec' | 'ambiente' | 'digest' | 'assinatura' | 'sem-resposta';
 type Desfecho = 'success' | 'failure' | 'cancelled' | 'skipped' | '';
 export interface Desfechos { validar: Desfecho; job: Desfecho; assinatura: Desfecho; digest: Desfecho; spec: Desfecho }
 
@@ -42,6 +43,21 @@ const lerVinculos = (): string | undefined => {
     return undefined; // os vínculos nunca impedem fechar o check
   }
 };
+
+// Comentário fixo na PR de origem (AT-791): marcado, UM por PR, editado a cada run. Só nasce quando o run é vermelho; se já existe, vira verde.
+export const MARCA_DO_COMENTARIO = '<!-- relatorio-regressivo -->';
+export const corpoDoComentario = (md: string): string => `${MARCA_DO_COMENTARIO}\n${md}`.slice(0, 65000);
+export function comentarioExistente(comentarios: { id: number; body?: string; user?: { type?: string } }[]): number | null {
+  return comentarios.find((c) => c.body?.startsWith(MARCA_DO_COMENTARIO) && c.user?.type === 'Bot')?.id ?? null;
+}
+async function atualizarComentario(repo: string, pr: string, md: string, vermelho: boolean, cab: Record<string, string>): Promise<void> {
+  const base = `https://api.github.com/repos/viralabs-dev/${repo}/issues`;
+  const lista = (await (await fetch(`${base}/${pr}/comments?per_page=100`, { headers: cab })).json()) as Parameters<typeof comentarioExistente>[0];
+  const id = Array.isArray(lista) ? comentarioExistente(lista) : null;
+  if (id === null && !vermelho) return;
+  const res = await fetch(id === null ? `${base}/${pr}/comments` : `${base}/comments/${id}`, { method: id === null ? 'POST' : 'PATCH', headers: cab, body: JSON.stringify({ body: corpoDoComentario(md) }) });
+  if (!res.ok) throw new Error(`${res.status}`);
+}
 
 // Só `cancelled` do job e2e é cancelamento; o timeout dele chega como `failure` e vira `ambiente`.
 export const foiCancelado = (resultadoDoJob: string): boolean => resultadoDoJob === 'cancelled';
@@ -95,7 +111,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
   const urlDoRun = `${env.GITHUB_SERVER_URL}/${env.GITHUB_REPOSITORY}/actions/runs/${env.GITHUB_RUN_ID}`;
   const vinculos = lerVinculos();
-  let c: { conclusion: string; title: string; summary: string; external_id: string };
+  let c: { conclusion: string; title: string; summary: string; text?: string; external_id: string };
+  let comentario: { md: string; vermelho: boolean } | null = null;
   if (decisao.tipo === 'cancelled') {
     c = { conclusion: 'cancelled', title: 'E2E cancelado', summary: anexarVinculos(`Run cancelado (nova execução para o mesmo PR ou cancelamento manual): ${urlDoRun}`, vinculos), external_id: 'causa:' };
   } else if (!v.ok) {
@@ -122,13 +139,27 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     // Tabela por funcionalidade (AT-769); o catálogo vem do checkout limpo da `dev`, o resultado é dado de PR.
     let cobertura: ReturnType<typeof sanitizarCobertura>;
     try { cobertura = sanitizarCobertura(lerEnv<unknown>('COBERTURA'), idsAtivos(readFileSync('funcionalidades.yml', 'utf8'))); } catch { /* sem tabela, o check segue */ }
-    c = montarCheck({ modo: atual.name === NOME_DO_REGRESSIVO ? 'dev' : 'main', cobertura, causa, linhas, specsQueFalharam: causa === 'spec' ? specsQueFalharam() : [], urlDoRun, vinculos });
+    // Relatório de decisão (AT-791): o JSON v1 sai do resumo sanitizado; o `montarCheck` do brabo-ci (repin da L1) o usa e devolve `text`.
+    const modo = atual.name === NOME_DO_REGRESSIVO ? 'dev' : 'main';
+    let relatorio: Relatorio | undefined;
+    try {
+      const yaml = readFileSync('funcionalidades.yml', 'utf8');
+      const catalogo = catalogoAtivo(yaml);
+      const resumo = sanitizarResumo(lerEnv<unknown>('RELATORIO'), catalogo.map((x) => x.id));
+      const { motivos, semDono } = (await import('./validar-payload.ts')).validarMotivos(env.RAW_MOTIVOS, env.RAW_SEMDONO);
+      const pedidos = (await import('./validar-payload.ts')).validarModo(p.modo, p.funcionalidades).ids;
+      if (resumo) relatorio = montarRelatorio(resumo.specs, { catalogo, modo, ids: modo === 'dev' ? pedidos : catalogo.map((x) => x.id), causa, digests: linhas, run: urlDoRun, motivos, semDono }, resumo.omitidas);
+    } catch { /* sem relatório, o check segue com o resumo de sempre */ }
+    c = montarCheck({ modo, cobertura, causa, linhas, specsQueFalharam: causa === 'spec' ? specsQueFalharam() : [], urlDoRun, vinculos, relatorio });
+    if (relatorio) comentario = { md: caber(relatorio, 60000, { comentario: true, detalhe: false }), vermelho: c.conclusion === 'failure' };
   }
   const res = await fetch(api, {
     method: 'PATCH',
     headers: cab,
-    body: JSON.stringify({ status: 'completed', conclusion: c.conclusion, external_id: c.external_id, details_url: urlDoRun, output: { title: c.title, summary: c.summary } }),
+    body: JSON.stringify({ status: 'completed', conclusion: c.conclusion, external_id: c.external_id, details_url: urlDoRun, output: { title: c.title, summary: c.summary, ...(c.text ? { text: c.text.slice(0, 65000) } : {}) } }),
   });
   if (!res.ok) throw new Error(`falha ao fechar o check: ${res.status} ${await res.text()}`);
+  // O comentário nunca impede o fechamento (o token do App pode não ter `issues: write`).
+  if (comentario) await atualizarComentario(repo, p.pr, comentario.md, comentario.vermelho, cab).catch((err) => console.error(`::warning::comentário fixo não atualizado: ${err}`));
   console.log(`check ${p.check_run_id} fechado: ${c.conclusion} (${c.title})`);
 }

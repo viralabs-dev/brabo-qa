@@ -18,6 +18,10 @@ export interface Payload {
   modo?: unknown;
   /** Ids do catálogo, só no modo `funcionalidades`: array (dispatch), JSON ou lista com vírgula (ensaio manual). */
   funcionalidades?: unknown;
+  /** Opcional (AT-791): funcionalidade -> caminhos que a puxaram (brabo-ci). Metadado de exibição, ver `validarMotivos`. */
+  motivos?: unknown;
+  /** Opcional (AT-791): arquivos da PR sem dono no mapa. */
+  semDono?: unknown;
 }
 
 export const MODOS = ['completo', 'funcionalidades'] as const;
@@ -77,6 +81,20 @@ export function validarModo(modo: unknown, funcionalidades: unknown): { modo: (t
   return { modo: (MODOS as readonly string[]).includes(m) ? (m as (typeof MODOS)[number]) : 'completo', ids: [...new Set(ids)], erros };
 }
 
+// Metadado de exibição (AT-791): nunca reprova. Até 50 funcionalidades (kebab), 5 caminhos de 200 caracteres cada; `semDono` até 20 de 200.
+// Texto de PR: sem quebra de linha nem controle, para ir ao $GITHUB_ENV e ao Markdown sem surpresa.
+export function validarMotivos(motivos: unknown, semDono: unknown): { motivos: Record<string, string[]>; semDono: string[]; avisos: string[] } {
+  const avisos: string[] = [];
+  const parse = (v: unknown): unknown => { if (typeof v !== 'string') return v; try { return JSON.parse(v); } catch { return undefined; } };
+  const txt = (v: unknown): string[] => (Array.isArray(v) ? v : []).filter((x): x is string => typeof x === 'string').map((x) => x.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 200)).filter(Boolean);
+  const m = parse(motivos);
+  const out: Record<string, string[]> = {};
+  if (m && typeof m === 'object' && !Array.isArray(m)) {
+    for (const [id, v] of Object.entries(m).slice(0, 50)) if (KEBAB.test(id) && id.length <= 60) out[id] = txt(v).slice(0, 5);
+  } else if (m !== undefined && m !== null) avisos.push('motivos descartados: não é um objeto');
+  return { motivos: out, semDono: txt(parse(semDono)).slice(0, 20), avisos };
+}
+
 // Filtro do Playwright por tag: `@f-a` não pode casar `@f-a-b`, então a tag fecha em espaço ou fim (o título e as tags vão juntos).
 export const grepDe = (ids: string[]): string => `@f-(${ids.join('|')})( |$)`;
 
@@ -126,7 +144,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (e.RAW_ORIGEM && e.RAW_ORIGEM !== 'null') { try { origemRaw = JSON.parse(e.RAW_ORIGEM); } catch { origemRaw = null; } }
   const { origem, avisos } = validarOrigem(origemRaw);
   for (const a of avisos) console.error(`::warning::${a}`);
-  const p: Payload = { repo: e.RAW_REPO ?? '', pr: e.RAW_PR ?? '', head_sha: e.RAW_HEAD_SHA ?? '', check_run_id: e.RAW_CHECK_RUN_ID ?? '', compose_ref: e.RAW_COMPOSE_REF ?? '', imagens, modo: e.RAW_MODO, funcionalidades: e.RAW_FUNCIONALIDADES };
+  const p: Payload = { repo: e.RAW_REPO ?? '', pr: e.RAW_PR ?? '', head_sha: e.RAW_HEAD_SHA ?? '', check_run_id: e.RAW_CHECK_RUN_ID ?? '', compose_ref: e.RAW_COMPOSE_REF ?? '', imagens, modo: e.RAW_MODO, funcionalidades: e.RAW_FUNCIONALIDADES, motivos: e.RAW_MOTIVOS, semDono: e.RAW_SEMDONO };
   const r = validarPayload(p);
   // O repo válido sai mesmo com o resto inválido: é o que deixa fechar o check como `ambiente`.
   const repoOk = REPOS.includes(p.repo.replace(/^viralabs-dev\//, '')) && /^[0-9]+$/.test(p.check_run_id);
@@ -136,10 +154,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   }
   const f = validarModo(p.modo, p.funcionalidades);
+  const mo = validarMotivos(p.motivos, p.semDono);
+  for (const a of mo.avisos) console.error(`::warning::${a}`);
   appendFileSync(process.env.GITHUB_ENV!, [
     `REPO=${r.repo}`, `PR=${p.pr}`, `HEAD_SHA=${p.head_sha}`, `CHECK_RUN_ID=${p.check_run_id}`, `COMPOSE_REF=${p.compose_ref}`,
     `IMAGENS=${JSON.stringify(imagens)}`, `E2E_DIR=${r.repo === 'brabo-qa' ? 'e2e-da-pr/e2e' : 'e2e'}`,
     `MODO=${f.modo}`, `FUNCIONALIDADES=${f.ids.join(',')}`, `GREP=${f.modo === 'funcionalidades' ? grepDe(f.ids) : ''}`,
+    `MOTIVOS=${JSON.stringify(mo.motivos)}`, `SEMDONO=${JSON.stringify(mo.semDono)}`,
     ...envDaOrigem(r.repo, p, origem),
   ].join('\n') + '\n');
 }
