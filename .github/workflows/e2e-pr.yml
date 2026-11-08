@@ -219,7 +219,9 @@ jobs:
         # `completo` (padrão, o portão da main) roda tudo; `funcionalidades` filtra pelas tags @f-<id> (GREP validado e montado no payload).
         # O token de serviço (rotas internas das specs, AT-815 P3) entra só no ambiente do Playwright: mascarado, nunca impresso.
         run: |
-          com_token() { bash "$GITHUB_WORKSPACE/scripts/ci/com-token-de-servico.sh" "$GITHUB_WORKSPACE/brabo-infra/docker/.env" -- "$@"; }
+          # O script vem do checkout do qa do E2E (a PR do qa, ou a dev): a PR já executa as specs com o token, então não ganha exposição.
+          qa="$GITHUB_WORKSPACE/$(dirname "$E2E_DIR")"
+          com_token() { bash "$qa/scripts/ci/com-token-de-servico.sh" "$GITHUB_WORKSPACE/brabo-infra/docker/.env" -- "$@"; }
           if [ "$MODO" = funcionalidades ]; then
             com_token pnpm test --grep "$GREP" --reporter=list,html,json
           else
