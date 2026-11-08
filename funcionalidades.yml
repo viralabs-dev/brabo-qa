@@ -123,7 +123,7 @@ funcionalidades:
     tema: operacao
     status: ativa
     caminhos:
-      infra: ['docker/backup/**']
+      infra: ['docker/backup/**', 'docker/docker-compose.install.yml']
   - id: execucao
     nome: Execução dos dev agents
     descricao: dev agents, disjuntor, Rearmar, execução parada, PR pronta e a aba Executores (AT-815, decisão P4)
