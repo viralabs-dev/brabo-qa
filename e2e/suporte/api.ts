@@ -272,8 +272,8 @@ export async function idsPendentes(token: string, sessao: SessaoSemeada): Promis
 export async function semearSessao(
   token: string,
   kind: 'consultiva' | 'criativa' = 'consultiva',
-  /** `maxConsecutiveBlocked`: o disjuntor do projeto (RN-047); a ativação da execução o herda. */
-  opcoesDoProjeto: { maxConsecutiveBlocked?: number } = {},
+  /** `maxConsecutiveBlocked`: o disjuntor do projeto (RN-047); a ativação da execução o herda. `name`: o nome que a tela mostra (as capturas da doc). */
+  opcoesDoProjeto: { maxConsecutiveBlocked?: number; name?: string } = {},
 ): Promise<SessaoSemeada> {
   const cabecalhos = {
     Authorization: `Bearer ${token}`,
