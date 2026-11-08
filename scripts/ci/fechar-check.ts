@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import type { LinhaDigest } from './conferir-digests.ts';
 import { catalogoAtivo, idsAtivos, sanitizarCobertura } from './cobertura.ts';
 import type { Causa } from './relatorio.ts';
-import { caber, montarRelatorio, sanitizarResumo, type Relatorio } from './relatorio.ts';
+import { caber, limpar, montarRelatorio, sanitizarResumo, type Relatorio } from './relatorio.ts';
 
 type Servico = LinhaDigest['servico'];
 type Desfecho = 'success' | 'failure' | 'cancelled' | 'skipped' | '';
@@ -62,7 +62,8 @@ async function atualizarComentario(repo: string, pr: string, md: string, vermelh
   const id = Array.isArray(lista) ? comentarioExistente(lista) : null;
   if (id === null && !vermelho) return;
   const res = await fetch(id === null ? `${base}/${pr}/comments` : `${base}/comments/${id}`, { method: id === null ? 'POST' : 'PATCH', headers: cab, body: JSON.stringify({ body: corpoDoComentario(md) }) });
-  if (!res.ok) throw new Error(`${res.status}`);
+  // Status e corpo curtos e sem quebra/controle, para o warning dizer por que a API recusou (ex.: 403 de permissão).
+  if (!res.ok) throw new Error(`${res.status} ${limpar(await res.text().catch(() => ''), 200)}`);
 }
 
 // Só `cancelled` do job e2e é cancelamento; o timeout dele chega como `failure` e vira `ambiente`.
@@ -155,7 +156,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       const yaml = readFileSync('funcionalidades.yml', 'utf8');
       const catalogo = catalogoAtivo(yaml);
       const resumo = sanitizarResumo(lerEnv<unknown>('RELATORIO'), catalogo.map((x) => x.id));
-      const { motivos, semDono, tocadas } = (await import('./validar-payload.ts')).validarMotivos(env.RAW_MOTIVOS, env.RAW_SEMDONO, env.RAW_TOCADAS);
+      const { motivos, semDono, tocadas } = (await import('./validar-payload.ts')).validarMotivos(env.RAW_MOTIVOS, env.RAW_SEMDONO, env.RAW_TOCADAS, env.RAW_SELECAO);
       const pedidos = (await import('./validar-payload.ts')).validarModo(p.modo, p.funcionalidades).ids;
       if (resumo) relatorio = montarRelatorio(resumo.specs, { catalogo, modo, ids: modo === 'dev' ? pedidos : catalogo.map((x) => x.id), causa, digests: linhas, run: urlDoRun, html: env.HTML_URL || undefined, motivos, semDono, tocadas, origem: { repo, pr: p.pr, sha: p.head_sha } }, resumo.omitidas);
     } catch { /* sem relatório, o check segue com o resumo de sempre */ }

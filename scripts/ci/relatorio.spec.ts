@@ -26,7 +26,7 @@ describe('extrairSpecs', () => {
     ), ativos)!;
     expect(r.map((s) => s.status)).toEqual(['passou', 'falhou', 'flaky', 'pulou', 'passou']);
     expect(r[1]).toMatchObject({ funcionalidades: ['aprovacoes'], erro: 'boom', anexos: ['trace'] });
-    expect(r[4]!.titulo).toBe('(preparação) login');
+    expect(r[4]!.titulo).toBe('login');
     expect(extrairSpecs(null, ativos)).toBeNull();
   });
 });
@@ -82,12 +82,35 @@ describe('caber', () => {
     const md = caber(r, 60000);
     expect(md.length).toBeLessThanOrEqual(60000);
     expect(md).toContain('a mais no artefato');
-    expect(md).toContain('Regressivo do brabo-qa: VERMELHO');
+    expect(md).toContain('E2E do brabo-qa: VERMELHO');
   });
   it('com folga mostra o detalhe por funcionalidade; no comentário nunca', () => {
     const pequeno = montarRelatorio([sp()], ctx());
     expect(caber(pequeno, 100000)).toContain('<details><summary>autenticacao');
     expect(caber(pequeno, 100000, { comentario: true, detalhe: false })).not.toContain('<details>');
+  });
+});
+
+describe('defeitos menores do ensaio (AT-791)', () => {
+  const md = (specs: SpecR[], c: Partial<Contexto> = {}) => caber(montarRelatorio(specs, ctx(c)), 100000);
+  it('plural: 1 falhou, 2 falharam; 1 passou, 2 passaram', () => {
+    expect(md([sp({ status: 'falhou' })], { causa: 'spec' })).toContain('0 passaram · 1 falhou');
+    expect(md([sp(), sp(), sp({ status: 'falhou' }), sp({ status: 'falhou' })], { causa: 'spec' })).toContain('2 passaram · 2 falharam');
+    expect(md([sp()])).toContain('1 passou · 0 falharam');
+  });
+  it('spec pulada vira pulada, nunca ❌/⚠️', () => {
+    const m = md([sp(), sp({ status: 'pulou', titulo: 'noop' })]);
+    expect(m).toContain('1 pulada');
+    expect(m).toContain('<summary>autenticacao · 1 ✅ · 1 ⏭️</summary>');
+    expect(m).not.toContain('❌/⚠️');
+  });
+  it('"(preparação)" aparece uma vez só, na exibição', () => {
+    const m = md([sp({ funcionalidades: [], titulo: 'entrar', arquivo: '../suporte/entrar.setup.ts' })]);
+    expect(m.match(/\(preparação\)/g)).toHaveLength(1);
+  });
+  it('o título segue o modo: E2E no portão, Regressivo na dev', () => {
+    expect(md([sp()], { modo: 'main' })).toContain('## E2E do brabo-qa: VERDE');
+    expect(md([sp()], { modo: 'dev', ids: ['autenticacao'] })).toContain('## Regressivo do brabo-qa: VERDE');
   });
 });
 

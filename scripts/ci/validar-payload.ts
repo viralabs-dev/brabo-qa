@@ -24,6 +24,8 @@ export interface Payload {
   semDono?: unknown;
   /** Opcional (AT-791): ids que o mapa ligou à PR (sem o smoke). */
   tocadas?: unknown;
+  /** Forma nova (brabo-ci, limite de 10 propriedades do client_payload): `{motivos, semDono, tocadas}`. Se vier, vale no lugar das chaves soltas. */
+  selecao?: unknown;
 }
 
 export const MODOS = ['completo', 'funcionalidades'] as const;
@@ -85,9 +87,12 @@ export function validarModo(modo: unknown, funcionalidades: unknown): { modo: (t
 
 // Metadado de exibição (AT-791): nunca reprova. Até 50 funcionalidades (kebab), 5 caminhos de 200 caracteres cada; `semDono` até 20 de 200.
 // Texto de PR: sem quebra de linha nem controle, para ir ao $GITHUB_ENV e ao Markdown sem surpresa.
-export function validarMotivos(motivos: unknown, semDono: unknown, tocadas?: unknown): { motivos: Record<string, string[]>; semDono: string[]; tocadas?: string[]; avisos: string[] } {
+export function validarMotivos(motivos: unknown, semDono: unknown, tocadas?: unknown, selecao?: unknown): { motivos: Record<string, string[]>; semDono: string[]; tocadas?: string[]; avisos: string[] } {
   const avisos: string[] = [];
   const parse = (v: unknown): unknown => { if (typeof v !== 'string') return v; try { return JSON.parse(v); } catch { return undefined; } };
+  // `selecao` objeto vale inteira; as chaves soltas (compatibilidade) só entram sem ela.
+  const sel = parse(selecao);
+  if (sel && typeof sel === 'object' && !Array.isArray(sel)) ({ motivos, semDono, tocadas } = sel as Record<string, unknown>);
   const txt = (v: unknown): string[] => (Array.isArray(v) ? v : []).filter((x): x is string => typeof x === 'string').map((x) => x.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 200)).filter(Boolean);
   const m = parse(motivos);
   const out: Record<string, string[]> = {};
@@ -148,7 +153,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (e.RAW_ORIGEM && e.RAW_ORIGEM !== 'null') { try { origemRaw = JSON.parse(e.RAW_ORIGEM); } catch { origemRaw = null; } }
   const { origem, avisos } = validarOrigem(origemRaw);
   for (const a of avisos) console.error(`::warning::${a}`);
-  const p: Payload = { repo: e.RAW_REPO ?? '', pr: e.RAW_PR ?? '', head_sha: e.RAW_HEAD_SHA ?? '', check_run_id: e.RAW_CHECK_RUN_ID ?? '', compose_ref: e.RAW_COMPOSE_REF ?? '', imagens, modo: e.RAW_MODO, funcionalidades: e.RAW_FUNCIONALIDADES, motivos: e.RAW_MOTIVOS, semDono: e.RAW_SEMDONO, tocadas: e.RAW_TOCADAS };
+  const p: Payload = { repo: e.RAW_REPO ?? '', pr: e.RAW_PR ?? '', head_sha: e.RAW_HEAD_SHA ?? '', check_run_id: e.RAW_CHECK_RUN_ID ?? '', compose_ref: e.RAW_COMPOSE_REF ?? '', imagens, modo: e.RAW_MODO, funcionalidades: e.RAW_FUNCIONALIDADES, motivos: e.RAW_MOTIVOS, semDono: e.RAW_SEMDONO, tocadas: e.RAW_TOCADAS, selecao: e.RAW_SELECAO };
   const r = validarPayload(p);
   // O repo válido sai mesmo com o resto inválido: é o que deixa fechar o check como `ambiente`.
   const repoOk = REPOS.includes(p.repo.replace(/^viralabs-dev\//, '')) && /^[0-9]+$/.test(p.check_run_id);
@@ -158,7 +163,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   }
   const f = validarModo(p.modo, p.funcionalidades);
-  const mo = validarMotivos(p.motivos, p.semDono, p.tocadas);
+  const mo = validarMotivos(p.motivos, p.semDono, p.tocadas, p.selecao);
   for (const a of mo.avisos) console.error(`::warning::${a}`);
   appendFileSync(process.env.GITHUB_ENV!, [
     `REPO=${r.repo}`, `PR=${p.pr}`, `HEAD_SHA=${p.head_sha}`, `CHECK_RUN_ID=${p.check_run_id}`, `COMPOSE_REF=${p.compose_ref}`,

@@ -92,6 +92,7 @@ Cada run do `e2e-pr` termina com um relatório que compõe a decisão de aprovar
 - **Comentário fixo na PR de origem** (decisão do dono, 07/11/2026): um só, marcado `<!-- relatorio-regressivo -->` e escrito por bot, **criado só quando o run é vermelho** e editado a cada run (vira verde se já existia). Exige `issues: write` no token do App do `fechar`. Falhar em comentar só gera aviso.
 - **Recomendação** (RN-1051): verde aprova (flaky, com aviso); `digest` e `assinatura` bloqueiam; `spec` em funcionalidade que a PR toca (pelos `motivos` do payload) bloqueia; `spec` fora da mudança ou "sem funcionalidade" aceita com justificativa; `ambiente` e `sem-resposta` mandam rodar de novo. Na `dev` o texto leva "atestado (não bloqueia)". Sem `motivos` no portão da `main`, bloqueia por cautela.
 - **Payload:** `motivos` (`{id: [caminhos]}`, até 50 ids, 5 caminhos de 200 caracteres) e `semDono` (até 20) são opcionais e nunca reprovam o payload (`validarMotivos`); o qa antigo os ignora.
+- **Payload, forma nova:** o GitHub aceita no máximo 10 propriedades no `client_payload`, então o `brabo-ci` agrupa as três chaves em `selecao: {motivos, semDono, tocadas}`. O `e2e-pr.yml` (`RAW_SELECAO`) e o `validar-payload.ts` aceitam `selecao` e, por compatibilidade, as chaves soltas; se vierem as duas, vale `selecao`.
 
 ## Vínculos no run (AT-773)
 

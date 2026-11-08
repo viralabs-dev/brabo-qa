@@ -94,6 +94,7 @@ jobs:
       RAW_MOTIVOS: ${{ toJSON(github.event.client_payload.motivos) }}
       RAW_SEMDONO: ${{ toJSON(github.event.client_payload.semDono) }}
       RAW_TOCADAS: ${{ toJSON(github.event.client_payload.tocadas) }}
+      RAW_SELECAO: ${{ toJSON(github.event.client_payload.selecao) }}
     steps:
       # Scripts e workflow vêm da `dev` (inclusive na PR do brabo-qa); só `e2e/` vem do head da PR. Exceção: o ensaio manual
       # (`workflow_dispatch`, só quem tem escrita) usa os scripts do próprio ref do workflow, para provar uma branch antes do merge.
@@ -412,6 +413,7 @@ jobs:
       RAW_MOTIVOS: ${{ toJSON(github.event.client_payload.motivos) }}
       RAW_SEMDONO: ${{ toJSON(github.event.client_payload.semDono) }}
       RAW_TOCADAS: ${{ toJSON(github.event.client_payload.tocadas) }}
+      RAW_SELECAO: ${{ toJSON(github.event.client_payload.selecao) }}
     steps:
       # Checkout LIMPO da `dev`: nada de PR neste job, que é o único com o token do App.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -453,6 +455,7 @@ jobs:
           repositories: ${{ steps.validar.outputs.repo }}
           permission-checks: write
           permission-issues: write  # o comentário fixo da PR (AT-791)
+          permission-pull-requests: write  # o comentário fixo da PR (AT-791): sem isto, 403
 
       - name: Fechar o check
         env:
