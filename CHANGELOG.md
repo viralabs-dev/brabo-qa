@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Regressivo prova o conflito de merge (AT-842, RN-715): `git-conflito` sai de `test.fixme`. O novo `e2e/suporte/git.ts` semeia na `main` um commit conflitante pela ação `open_infra_pr` (com `run`, RN-852) mais o `git_merge` dela, só por rotas públicas, sem Docker; o merge da PR do Noop falha com `conflictingFiles`, a tarefa vai a `in_progress` e a aba PRs mostra `aviso-merge-recusado`. O destino é a `main`, não a `dev`.
+
 - README no esqueleto didático (AT-826): oito seções fixas, títulos sem AT, ADR ou RN, 137 linhas. O detalhe de E2E manual e golden-sets desceu para `docs/rodadas-manuais.md`. Os workflows `readme.yml` ligam `readme-esqueleto` e `mapa-alinhado` do brabo-ci (`v1.4.0-dev.14`), informativos.
 - Regressivo sem `test.fixme` do Noop (AT-839, engine#64, `v2.2.0-dev.4`): voltam `execucao-noop`, `execucao-parada` (2 testes), `execucao-pr-pronta` e `git-mergear-no-chat`, e `gates-veredito` ganha corpo (QA aprovado leva a `run_secops`, SecOps aprovado a `done` e `awaiting_user`). `semearExecucao` passa a decidir a imagem do projeto (`decidirImagem`, rota interna `project-image`): sem ela o portão da aba Code (RN-105/RN-494) responde 409 em `GET /code/pull-requests` e o chat não lista a PR pronta (achado do ensaio, run 42508330455). `git-conflito` continua em `test.fixme` com a causa corrigida: o Noop grava `NOOP-task-<id>.md` por tarefa, então duas PRs dele nunca conflitam.
 
