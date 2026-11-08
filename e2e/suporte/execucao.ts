@@ -8,13 +8,14 @@
  * só é pegável `ready` e ligada ao módulo. O papel de quem ativa é o do
  * usuário semeado (owner do workspace), que é o que o IAM dos agentes herda.
  */
-import { API_URL, semearSessao, type SessaoSemeada } from './api.ts';
-import { anexarEvento } from './eventos.ts';
+import { API_URL, idsPendentes, semearSessao, type SessaoSemeada } from './api.ts';
+import { anexarEvento, eventosDaSessao } from './eventos.ts';
 import {
   criarEpico,
   criarHistoria,
   criarMapaDeModulos,
   criarTarefa,
+  vereditoDeGate,
   ligarModulos,
   type Modulo,
 } from './interno.ts';
@@ -23,6 +24,8 @@ export interface PlanoDeExecucao {
   modulos: Modulo[];
   /** `modulo` é o nome de um módulo do mapa; cada tarefa ganha a própria história. */
   tarefas: Array<{ modulo: string; titulo: string }>;
+  /** O disjuntor do projeto (RN-047): `1` trava o agente na primeira tarefa bloqueada. */
+  maxConsecutiveBlocked?: number;
 }
 
 export interface ExecucaoSemeada extends SessaoSemeada {
@@ -43,7 +46,9 @@ async function postar(token: string, rota: string, corpo: Record<string, unknown
 }
 
 export async function semearExecucao(token: string, plano: PlanoDeExecucao): Promise<ExecucaoSemeada> {
-  const sessao = await semearSessao(token, 'criativa');
+  const sessao = await semearSessao(token, 'criativa', {
+    ...(plano.maxConsecutiveBlocked ? { maxConsecutiveBlocked: plano.maxConsecutiveBlocked } : {}),
+  });
   const sufixo = Date.now();
 
   await postar(token, `/projects/${sessao.projectId}/git/local/repository`, {
@@ -72,4 +77,48 @@ export async function semearExecucao(token: string, plano: PlanoDeExecucao): Pro
   const execucaoId = String(ativada.sessionId ?? '');
   if (!execucaoId) throw new Error(`a ativação não devolveu sessionId: ${JSON.stringify(ativada).slice(0, 300)}`);
   return { ...sessao, execucaoId, tarefaIds };
+}
+
+/** A sessão de EXECUÇÃO da semeadura: onde moram os eventos `dev.*` e onde o engine registra as tarefas. */
+export const sessaoDaExecucao = (e: ExecucaoSemeada) => ({ projectId: e.projectId, sessionId: e.execucaoId });
+
+/**
+ * Espera `tipo` no log da execução APROVANDO as ações pendentes dela. O
+ * `git_push` e o `pr_open` do dev estão no teto de efeito externo (RN-418,
+ * RN-689): nascem `pending` mesmo com o dev em `auto_approve`, e quem decide é
+ * o usuário. Sem este gesto o Noop fica em `awaiting_approval` para sempre.
+ */
+export async function aprovarAcoesAte(token: string, e: ExecucaoSemeada, tipo: string, prazoMs = 150_000) {
+  const sessao = sessaoDaExecucao(e);
+  const limite = Date.now() + prazoMs;
+  for (;;) {
+    const achado = (await eventosDaSessao(token, sessao)).find((ev) => ev.type === tipo);
+    if (achado) return achado;
+    for (const id of await idsPendentes(token, { ...e, sessionId: e.execucaoId })) {
+      // 409 numa corrida com outra decisão não importa: o próximo giro relê a fila.
+      await fetch(`${API_URL}/projects/${e.projectId}/sessions/${e.execucaoId}/actions/${id}/approve`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+    }
+    if (Date.now() > limite) throw new Error(`o evento ${tipo} não apareceu em ${prazoMs} ms`);
+    await new Promise((r) => setTimeout(r, 1_000));
+  }
+}
+
+/**
+ * Espera o Noop abrir a PR da primeira tarefa (aprovando o push e a PR) e
+ * entrar em `dev.awaiting_gate`, com o gate aberto. Devolve o agente e a
+ * tarefa, que as specs usam nas rotas internas.
+ */
+export async function esperarGateAberto(token: string, e: ExecucaoSemeada): Promise<{ agentId: string; taskId: string }> {
+  const aguardando = await aprovarAcoesAte(token, e, 'dev.awaiting_gate');
+  return { agentId: String(aguardando.payload.agentId), taskId: String(aguardando.payload.taskId) };
+}
+
+/** QA e SecOps aprovam: a tarefa vai a `awaiting_user` e a PR fica pronta para o dono mergear (RN-825). */
+export async function aprovarOsGates(e: ExecucaoSemeada, taskId: string): Promise<void> {
+  await vereditoDeGate(sessaoDaExecucao(e), taskId, 'qa', 'approved');
+  await vereditoDeGate(sessaoDaExecucao(e), taskId, 'secops', 'approved');
 }
