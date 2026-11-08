@@ -186,6 +186,8 @@ jobs:
           # AT-840: o catálogo inteiro bate no rate limit padrão (300/usuário, 600/IP por minuto) e no lockout por IP
           # (formato `falhas:segundos`, degraus crescentes). Só o compose de teste sobe os tetos; valores públicos, sem mascarar.
           { echo "RATE_LIMIT_USER=5000"; echo "RATE_LIMIT_IP=10000"; echo "AUTH_LOCKOUT_IP_THRESHOLDS=200:5"; } >> .env
+          # AT-815 R4 (RN-1065): o roteiro do provider dublê da api, lido do checkout das specs; o `compose-duble.yml` o monta na api.
+          echo "LLM_DUBLE_ROTEIRO_ARQUIVO=$GITHUB_WORKSPACE/$E2E_DIR/suporte/llm-duble-roteiro.json" >> .env
           # Senha do usuário do E2E: aleatória por run, usada pelo seed e pelas specs.
           senha="$(openssl rand -hex 16)"
           echo "::add-mask::$senha"
@@ -197,7 +199,7 @@ jobs:
         # `backup` é um job (restart "no", sai com 0): o `--wait` o trata como falha. Sobe sem ele e só o CRIA,
         # para o `conferir-digests` (ps -a) achar o container da imagem de backup.
         run: |
-          docker compose -f docker/docker-compose.install.yml --profile container-broker up -d --wait
+          docker compose -f docker/docker-compose.install.yml -f "$GITHUB_WORKSPACE/$E2E_DIR/suporte/compose-duble.yml" --profile container-broker up -d --wait
           docker compose -f docker/docker-compose.install.yml --profile backup create backup
 
       # Para aqui se algum container roda outra imagem que não a do digest verificado.
@@ -224,6 +226,7 @@ jobs:
         working-directory: ${{ env.E2E_DIR }}
         env:
           CI: 'true'
+          E2E_LLM_DUBLE: '1'
           E2E_WEB_URL: http://localhost:8088
           E2E_API_URL: http://localhost:3000
           PLAYWRIGHT_JSON_OUTPUT_NAME: resultado.json

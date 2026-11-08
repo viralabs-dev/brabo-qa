@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Regressivo com o provider dublê da api (AT-815 R4, RN-1065): `turno-do-agente-delta` (o `agent.delta` entre `working` e `idle`) e `backlog-aceito-todas` (o Criativo fecha 7 perguntas de dois autores com `answer_open_question`). O `e2e-pr.yml` liga o dublê por `suporte/compose-duble.yml` e `llm-duble-roteiro.json`; sem LLM real e sem `token_usage` de provider. Logins por run: 17.
+
 - Regressivo prova o conflito de merge (AT-842, RN-715): `git-conflito` sai de `test.fixme`. O novo `e2e/suporte/git.ts` semeia na `main` um commit conflitante pela ação `open_infra_pr` (com `run`, RN-852) mais o `git_merge` dela, só por rotas públicas, sem Docker; o merge da PR do Noop falha com `conflictingFiles`, a tarefa vai a `in_progress` e a aba PRs mostra `aviso-merge-recusado`. O destino é a `main`, não a `dev`.
 
 - README no esqueleto didático (AT-826): oito seções fixas, títulos sem AT, ADR ou RN, 137 linhas. O detalhe de E2E manual e golden-sets desceu para `docs/rodadas-manuais.md`. Os workflows `readme.yml` ligam `readme-esqueleto` e `mapa-alinhado` do brabo-ci (`v1.4.0-dev.14`), informativos.
