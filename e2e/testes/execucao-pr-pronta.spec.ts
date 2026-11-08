@@ -36,7 +36,8 @@ test.afterAll(async () => {
   await context?.close();
 });
 
-test('a PR pronta aparece no aviso, o título ganha o contador e o Mergear faz o git_merge', { tag: '@f-chat-e-pendencias' }, async () => {
+// fixme (achado do ensaio, run 42504271067): o NoopDevAgentServer nao tem clausula para {:action_settled, _} (ADR 0052). Aprovado o git_push (efeito externo, RN-689), o engine entrega a mensagem, o agente morre com FunctionClauseError e nunca chega a dev.awaiting_gate. O DevAgentServer real tem a clausula (dev_agent_server.ex:308). Volta quando o NoopDevAgentServer ganhar a clausula (brabo-engine).
+test.fixme('a PR pronta aparece no aviso, o título ganha o contador e o Mergear faz o git_merge', { tag: '@f-chat-e-pendencias' }, async () => {
   await page.goto(`/projects/${exec.projectId}/sessions/${exec.sessionId}`);
 
   const aviso = page.locator('[data-testid="aviso-pr-pronta"]');
