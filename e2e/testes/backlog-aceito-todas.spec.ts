@@ -13,8 +13,7 @@ import { anexarEvento, eventosDaSessao, esperarEvento } from '../suporte/eventos
  * A 1ª mensagem consome o passo 0 do roteiro (texto); a 2ª, o passo 1 (ferramentas).
  */
 
-// FIXME(AT-815 R4): a imagem publicada traz a marca `prd` (release.yml e ci.yml da api passam BRABO_AMBIENTE=prd em todo build) e o dublê nunca carrega em `prd` (RN-1065); o run 42515015341 logou LLM_DUBLE=1 ignorado. Sai do fixme quando houver imagem sem a marca prd.
-test.fixme('o agente lista e fecha as 7 perguntas de dois autores', { tag: '@f-backlog' }, async () => {
+test('o agente lista e fecha as 7 perguntas de dois autores', { tag: '@f-backlog' }, async () => {
   const token = await autenticar();
   const sessao = await semearSessaoComDuble(token);
   for (const [i, questionId] of PERGUNTAS_DO_ROTEIRO.entries()) {
