@@ -72,14 +72,17 @@ export const foiCancelado = (resultadoDoJob: string): boolean => resultadoDoJob 
 export const NOME_DO_PORTAO = 'E2E do brabo-qa';
 export const NOME_DO_REGRESSIVO = 'Regressivo do brabo-qa';
 
-// O check só é tocado se for o NOSSO, do head validado e ainda em andamento. Devolve o motivo da recusa.
+// O check só é tocado se for o NOSSO, do head validado e em andamento (ou já fechado: reexecução, RN-1067). Devolve o motivo da recusa.
 export function checkConfere(c: { name: string; head_sha: string; status: string; app?: { id: number } | null }, headSha: string, appId: number): string | null {
   if (c.name !== NOME_DO_PORTAO && c.name !== NOME_DO_REGRESSIVO) return `nome inesperado: ${c.name}`;
   if (c.head_sha !== headSha) return 'head_sha diferente do validado';
-  if (c.status !== 'in_progress') return `status inesperado: ${c.status}`;
+  if (c.status !== 'in_progress' && c.status !== 'completed') return `status inesperado: ${c.status}`;
   if (c.app?.id !== appId) return 'o check não pertence ao nosso App';
   return null;
 }
+
+// Reexecução (RN-1067): o check já fechado não reabre. Nasce um check novo, mesmo nome e mesmo head, e o resumo cita o anterior.
+export const avisoDeReexecucao = (id: string, url?: string): string => `Reexecução: este resultado substitui o do check anterior (${url ?? `check-run ${id}`}), que não foi alterado.\n\n`;
 
 // Até 50 títulos, de até 200 caracteres, vindos do job e2e (o conteúdo é de PR: só texto no resumo).
 const specsQueFalharam = (): string[] => (lerEnv<unknown[]>('SPECS_FALHAS') ?? []).filter((t): t is string => typeof t === 'string').slice(0, 50).map((t) => t.slice(0, 200));
@@ -108,7 +111,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   });
   const api = `https://api.github.com/repos/viralabs-dev/${repo}/check-runs/${p.check_run_id}`;
   const cab = { authorization: `Bearer ${env.GH_TOKEN}`, accept: 'application/vnd.github+json' };
-  const atual = (await (await fetch(api, { headers: cab })).json()) as Parameters<typeof checkConfere>[0];
+  const atual = (await (await fetch(api, { headers: cab })).json()) as Parameters<typeof checkConfere>[0] & { html_url?: string };
   // head_sha inválido: não há o que comparar, mas nome, status e App continuam exigidos.
   const recusa = checkConfere(atual, v.ok ? p.head_sha : atual.head_sha, Number(env.APP_ID));
   if (recusa) {
@@ -159,13 +162,16 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     c = montarCheck({ modo, cobertura, causa, linhas, specsQueFalharam: causa === 'spec' ? specsQueFalharam() : [], urlDoRun, vinculos, semDono: relatorio?.semDono, relatorio: relatorio && deRelatorio(relatorio) });
     if (relatorio) comentario = { md: caber(relatorio, 60000, { comentario: true, detalhe: false }), vermelho: c.conclusion === 'failure' };
   }
-  const res = await fetch(api, {
-    method: 'PATCH',
+  const reexecucao = atual.status === 'completed';
+  const summary = reexecucao ? avisoDeReexecucao(p.check_run_id, atual.html_url) + c.summary : c.summary;
+  const resultado = { status: 'completed', conclusion: c.conclusion, external_id: c.external_id, details_url: urlDoRun, output: { title: c.title, summary: summary.slice(0, 65000), ...(c.text ? { text: c.text.slice(0, 65000) } : {}) } };
+  const res = await fetch(reexecucao ? `https://api.github.com/repos/viralabs-dev/${repo}/check-runs` : api, {
+    method: reexecucao ? 'POST' : 'PATCH',
     headers: cab,
-    body: JSON.stringify({ status: 'completed', conclusion: c.conclusion, external_id: c.external_id, details_url: urlDoRun, output: { title: c.title, summary: c.summary, ...(c.text ? { text: c.text.slice(0, 65000) } : {}) } }),
+    body: JSON.stringify(reexecucao ? { name: atual.name, head_sha: atual.head_sha, ...resultado } : resultado),
   });
   if (!res.ok) throw new Error(`falha ao fechar o check: ${res.status} ${await res.text()}`);
   // O comentário nunca impede o fechamento (o token do App pode não ter `issues: write`).
   if (comentario) await atualizarComentario(repo, p.pr, comentario.md, comentario.vermelho, cab).catch((err) => console.error(`::warning::comentário fixo não atualizado: ${err}`));
-  console.log(`check ${p.check_run_id} fechado: ${c.conclusion} (${c.title})`);
+  console.log(`check ${p.check_run_id} ${reexecucao ? 'reexecutado em check novo' : 'fechado'}: ${c.conclusion} (${c.title})`);
 }
