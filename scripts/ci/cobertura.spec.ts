@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { coberturaDe, idsAtivos, sanitizarCobertura } from './cobertura.ts';
+import { catalogoAtivo, coberturaDe, idsAtivos, sanitizarCobertura } from './cobertura.ts';
 
 const spec = (tags: string[], ok = true) => ({ title: 't', ok, tags });
 const rel = (...specs: object[]) => ({ suites: [{ suites: [{ specs }], specs: [] }] });
@@ -12,6 +12,13 @@ describe('idsAtivos', () => {
   it('o catálogo real tem 16 ativas', async () => {
     const { readFileSync } = await import('node:fs');
     expect(idsAtivos(readFileSync(new URL('../../funcionalidades.yml', import.meta.url), 'utf8'))).toHaveLength(16);
+  });
+});
+
+describe('catalogoAtivo', () => {
+  it('traz id e nome das ativas', () => {
+    const y = ['funcionalidades:', '  - id: a', '    nome: Alfa e beta', '    status: ativa', '  - id: b', '    nome: B', '    status: aposentada'].join('\n');
+    expect(catalogoAtivo(y)).toEqual([{ id: 'a', nome: 'Alfa e beta' }]);
   });
 });
 

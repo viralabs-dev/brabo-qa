@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { anexarVinculos, checkConfere, decidirFechamento, foiCancelado } from './fechar-check.ts';
+import { anexarVinculos, checkConfere, comentarioExistente, corpoDoComentario, MARCA_DO_COMENTARIO, decidirFechamento, foiCancelado } from './fechar-check.ts';
 
 const ok = { validar: 'success', job: 'success', assinatura: 'success', digest: 'success', spec: 'success' } as const;
 const dec = (d: Partial<Record<keyof typeof ok, string>>, cancelado = false) =>
@@ -60,5 +60,21 @@ describe('anexarVinculos', () => {
   it('anexa a tabela e limita o tamanho', () => {
     expect(anexarVinculos('r', '## Vínculos\n')).toBe('r\n\n## Vínculos');
     expect(anexarVinculos('r', 'x'.repeat(9000)).length).toBe(1 + 2 + 8000);
+  });
+});
+
+describe('comentário fixo da PR', () => {
+  it('acha só o comentário marcado e de bot; o resto é ignorado', () => {
+    const cs = [
+      { id: 1, body: `${MARCA_DO_COMENTARIO}\nforjado`, user: { type: 'User' } },
+      { id: 2, body: 'outro', user: { type: 'Bot' } },
+      { id: 3, body: corpoDoComentario('x'), user: { type: 'Bot' } },
+    ];
+    expect(comentarioExistente(cs)).toBe(3);
+    expect(comentarioExistente(cs.slice(0, 2))).toBeNull();
+  });
+  it('o corpo leva a marca e cabe no limite do GitHub', () => {
+    expect(corpoDoComentario('x'.repeat(70000)).startsWith(MARCA_DO_COMENTARIO)).toBe(true);
+    expect(corpoDoComentario('x'.repeat(70000)).length).toBeLessThanOrEqual(65536);
   });
 });

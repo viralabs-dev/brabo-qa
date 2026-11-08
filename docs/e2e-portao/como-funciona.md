@@ -29,7 +29,7 @@ só entra com o check **`E2E do brabo-qa`** verde (ruleset "main exige E2E"). O 
    <!-- print P4 -->
 
 5. O `fechar-check` fecha o check na PR de origem com a tabela `serviço | digest esperado | digest em execução | assinatura`.
-   Os relatórios do Playwright, `digests.json` e os logs dos containers ficam como artefato do run.
+   O relatório de decisão (AT-791) vai ao Summary, ao `text` do check e, se vermelho, a um comentário fixo na PR; o HTML do Playwright é o artefato `relatorio-html-<run>`, o relatório é `relatorio-regressivo-<run>`, e `digests.json` e os logs dos containers ficam no `e2e-<run>`. Detalhes em `docs/regressivo/como-funciona.md`.
 
    <!-- print P5 -->
 
@@ -51,6 +51,8 @@ vermelho por `spec`, `ambiente` ou `sem-resposta`. O check vira verde com o tít
 Comentário editado, comentário de review e segundo `/qa-aceitar` no mesmo head são ignorados ou recusados.
 
 <!-- print P6 -->
+
+O resumo e o `text` do check do vermelho são preservados pelo `/qa-aceitar` (brabo-ci), que acrescenta o bloco do aceite e a recomendação que o relatório dava; o aceite contra a recomendação `bloquear` vale (a decisão é do dono) e fica registrado.
 
 ## Ensaio manual
 

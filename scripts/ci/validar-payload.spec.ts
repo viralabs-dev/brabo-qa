@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { envDaOrigem, grepDe, validarModo, validarOrigem, validarPayload } from './validar-payload.ts';
+import { envDaOrigem, grepDe, validarModo, validarMotivos, validarOrigem, validarPayload } from './validar-payload.ts';
 
 const img = (s: string, tag = 'v1.2.3-dev.4') => `ghcr.io/viralabs-dev/brabo-${s}:${tag}`;
 const base = () => ({
@@ -139,4 +139,29 @@ describe('modo e funcionalidades (AT-769)', () => {
     expect(re.test('um teste @f-git-hub')).toBe(false);
     expect(re.test('um teste @f-aprovacoes-extra')).toBe(false);
   });
+});
+
+describe('validarMotivos', () => {
+  it('ausente ou nulo: vazio, sem aviso (qa antigo e ci novo convivem)', () => {
+    expect(validarMotivos(undefined, undefined)).toEqual({ motivos: {}, semDono: [], avisos: [] });
+    expect(validarMotivos('null', 'null')).toEqual({ motivos: {}, semDono: [], avisos: [] });
+  });
+  it('limita: 50 ids kebab, 5 caminhos de 200 caracteres, sem controle; semDono até 20', () => {
+    const m = Object.fromEntries([...Array.from({ length: 60 }, (_, i) => [`f-${i}`, ['a']]), ['Mau Id', ['x']]]);
+    expect(Object.keys(validarMotivos(m, undefined).motivos)).toHaveLength(50);
+    const r = validarMotivos({ autenticacao: Array.from({ length: 9 }, () => `${'x'.repeat(300)}\nEVIL=1`) }, Array.from({ length: 30 }, () => 'p'));
+    expect(r.motivos.autenticacao).toHaveLength(5);
+    expect(r.motivos.autenticacao![0]).toHaveLength(200);
+    expect(r.motivos.autenticacao![0]).not.toContain('\n');
+    expect(r.semDono).toHaveLength(20);
+  });
+  it('aceita JSON em texto (env do workflow) e avisa quando não é objeto', () => {
+    expect(validarMotivos('{"a":["src/x.ts"]}', '["foo/bar"]')).toMatchObject({ motivos: { a: ['src/x.ts'] }, semDono: ['foo/bar'] });
+    expect(validarMotivos('[1]', undefined).avisos).toHaveLength(1);
+  });
+  it('tocadas: só ids kebab, sem repetir; ausente continua ausente', () => {
+    expect(validarMotivos(undefined, undefined, undefined).tocadas).toBeUndefined();
+    expect(validarMotivos(undefined, undefined, '["a","a","Mau Id",3,"b"]').tocadas).toEqual(['a', 'b']);
+  });
+  it('nunca reprova o payload', () => expect(validarPayload({ ...base(), motivos: 'lixo', semDono: 7 } as never).ok).toBe(true));
 });

@@ -79,6 +79,20 @@ resultado vem de PR, então o `fechar` só aceita linhas com id do catálogo e n
 gh workflow run e2e-pr.yml -R viralabs-dev/brabo-qa -f modo=funcionalidades -f funcionalidades=autenticacao,aprovacoes -f repo=... 
 ```
 
+## O relatório de decisão do run (AT-791)
+
+Cada run do `e2e-pr` termina com um relatório que compõe a decisão de aprovar ou não. A fonte é **um JSON v1** (`relatorio-regressivo.json`) montado por `scripts/ci/relatorio.ts` a partir do `resultado.json` do Playwright; o Markdown (Summary, texto do check e comentário da PR) é sempre derivado dele.
+
+- **Grafo do run:** os jobs `Funcionalidade · <id>` (um por funcionalidade com spec executada) são só de **exibição**: não sobem compose, não têm token nem checkout de PR e saem vermelhos se a funcionalidade falhou (flaky vira aviso). O portão continua no `fechar`. Funcionalidade "sem cobertura" não vira job.
+- **Summary** do job `Rodar o E2E` (step `Relatório`, `if: always()`): cabeçalho com veredito e recomendação, motivos (de onde veio cada funcionalidade), tabela por funcionalidade, falhas sem ANSI (arquivo:linha, tentativas, 15 linhas do erro), flaky, `<details>` por funcionalidade, digests e Vínculos. Até 900 KB.
+- **Balde "sem funcionalidade":** a spec sem tag `@f-*` (e o `setup`, marcado "(preparação)") nunca some e reprova como qualquer outra.
+- **Anotações:** o reporter `github` do Playwright (`--reporter=list,github,html,json`) anota cada spec que falhou (10 `error` por step, 50 por job; o Summary é a lista completa).
+- **Artefatos:** `relatorio-regressivo-<run>` (`.md` e `.json`), `relatorio-html-<run>` (o `playwright-report/`, à parte do zip `e2e-<run>`; abre com `npx playwright show-report`) e o `e2e-<run>`.
+- **Check:** o `fechar` passa o JSON ao `montarCheck` do brabo-ci (que devolve `summary` e `text`, 65 535 caracteres cada, com aviso de corte) e envia o `text`. O job `e2e` entrega ao `fechar` só um resumo compacto (até 300 specs, erro até 1000 caracteres) e o `fechar` o **sanitiza**: ids do catálogo, números no intervalo, texto sem ANSI e sem `|`, crase, `<` nem `@menção`.
+- **Comentário fixo na PR de origem** (decisão do dono, 07/11/2026): um só, marcado `<!-- relatorio-regressivo -->` e escrito por bot, **criado só quando o run é vermelho** e editado a cada run (vira verde se já existia). Exige `issues: write` no token do App do `fechar`. Falhar em comentar só gera aviso.
+- **Recomendação** (RN-1051): verde aprova (flaky, com aviso); `digest` e `assinatura` bloqueiam; `spec` em funcionalidade que a PR toca (pelos `motivos` do payload) bloqueia; `spec` fora da mudança ou "sem funcionalidade" aceita com justificativa; `ambiente` e `sem-resposta` mandam rodar de novo. Na `dev` o texto leva "atestado (não bloqueia)". Sem `motivos` no portão da `main`, bloqueia por cautela.
+- **Payload:** `motivos` (`{id: [caminhos]}`, até 50 ids, 5 caminhos de 200 caracteres) e `semDono` (até 20) são opcionais e nunca reprovam o payload (`validarMotivos`); o qa antigo os ignora.
+
 ## Vínculos no run (AT-773)
 
 Cada run do `e2e-pr` mostra de onde veio: o `run-name` é `E2E ← brabo-api#48 · a1b2c3d · autor · c=<run_id>-<attempt>` (`Regressivo ← ...` na dev). A
