@@ -9,21 +9,21 @@ import { API_URL, autenticar, semearSessao } from '../suporte/api.ts';
  */
 const ENGINE = process.env.E2E_ENGINE_URL ?? 'http://localhost:4000';
 
-function conectar(ticket: string): Promise<'aberto' | 'recusado'> {
+/** O ticket é consumido no JOIN do canal (session_channel.ex), então a prova é a resposta do `phx_join`. */
+function entrar(ticket: string, sessionId: string): Promise<'aceito' | 'recusado'> {
   return new Promise((resolve) => {
     const ws = new WebSocket(`${ENGINE.replace(/^http/, 'ws')}/socket/websocket?vsn=2.0.0&ticket=${encodeURIComponent(ticket)}`);
-    const limite = setTimeout(() => {
-      ws.close();
-      resolve('recusado');
-    }, 15_000);
-    ws.addEventListener('open', () => {
+    const fim = (r: 'aceito' | 'recusado') => {
       clearTimeout(limite);
       ws.close();
-      resolve('aberto');
-    });
-    ws.addEventListener('error', () => {
-      clearTimeout(limite);
-      resolve('recusado');
+      resolve(r);
+    };
+    const limite = setTimeout(() => fim('recusado'), 15_000);
+    ws.addEventListener('open', () => ws.send(JSON.stringify(['1', '1', `session:${sessionId}`, 'phx_join', {}])));
+    ws.addEventListener('error', () => fim('recusado'));
+    ws.addEventListener('message', (m) => {
+      const [, , , evento, carga] = JSON.parse(String(m.data)) as [unknown, unknown, unknown, string, { status?: string }];
+      if (evento === 'phx_reply') fim(carga.status === 'ok' ? 'aceito' : 'recusado');
     });
   });
 }
@@ -39,6 +39,6 @@ test('o ticket usado uma vez é recusado na segunda conexão', { tag: '@f-sessao
   expect(resposta.status, 'a api recusou emitir o ticket').toBe(201);
   const { ticket } = (await resposta.json()) as { ticket: string };
 
-  expect(await conectar(ticket), 'a primeira conexão devia abrir').toBe('aberto');
-  expect(await conectar(ticket), 'o ticket foi reaproveitado (RN-108)').toBe('recusado');
+  expect(await entrar(ticket, sessao.sessionId), 'o primeiro join devia ser aceito').toBe('aceito');
+  expect(await entrar(ticket, sessao.sessionId), 'o ticket foi reaproveitado (RN-108)').toBe('recusado');
 });

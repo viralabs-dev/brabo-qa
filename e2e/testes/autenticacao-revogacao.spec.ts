@@ -8,8 +8,10 @@ import { API_URL, cookiesDeUmLoginProprio, type CookieDaSemeadura } from '../sup
  */
 test.use({ storageState: { cookies: [], origins: [] } });
 
-const jarra = (cookies: CookieDaSemeadura[]) => cookies.map((c) => `${c.name}=${c.value}`).join('; ');
-const csrf = (cookies: CookieDaSemeadura[]) => cookies.find((c) => c.name === 'brabo_csrf')?.value ?? '';
+// O login pode emitir o mesmo nome mais de uma vez (paths diferentes): vale o último, na jarra e no cabeçalho.
+const unicos = (cookies: CookieDaSemeadura[]) => [...new Map(cookies.map((c) => [c.name, c])).values()];
+const jarra = (cookies: CookieDaSemeadura[]) => unicos(cookies).map((c) => `${c.name}=${c.value}`).join('; ');
+const csrf = (cookies: CookieDaSemeadura[]) => unicos(cookies).find((c) => c.name === 'brabo_csrf')?.value ?? '';
 
 function post(rota: string, cookies: CookieDaSemeadura[]) {
   return fetch(`${API_URL}${rota}`, {
@@ -38,7 +40,7 @@ test.describe('revogação do refresh', { tag: '@f-autenticacao' }, () => {
     const cookies = await cookiesDeUmLoginProprio();
     const primeiro = await post('/auth/refresh', cookies);
     expect(primeiro.status).toBe(200);
-    const novos = dosCabecalhos(primeiro);
+    const novos = [...cookies, ...dosCabecalhos(primeiro)];
     expect((await post('/auth/refresh', cookies)).status, 'o refresh velho foi aceito').toBe(401);
     expect((await post('/auth/refresh', novos)).status, 'a família não foi revogada').toBe(401);
   });
