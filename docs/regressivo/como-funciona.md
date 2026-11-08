@@ -58,6 +58,10 @@ pnpm --dir scripts exec vitest run ci/funcionalidades.spec.ts
 - O check `Regressivo do brabo-qa` (PR para a `dev`) só atesta e **nunca é exigido**; o `E2E do brabo-qa` na `main` roda o catálogo
   inteiro (ver `docs/e2e-portao/como-funciona.md`).
 
+## O que o regressivo não cobre
+
+O `brabo-runner` não tem regressivo no catálogo: a PR dele se atesta pelo próprio CI (o binário linux-x64 entra na PR, runner#28), e o contrato runner ↔ engine só é provado no TP-01 ([RN-1075](https://github.com/viralabs-dev/brabo-ci/blob/dev/scripts/ci/docs/business-rules/ci.md), no `brabo-ci`).
+
 ## O que roda aqui: `modo` e a tabela por funcionalidade (Rodada B)
 
 O `e2e-pr.yml` tem dois modos, escolhidos pelo payload (`modo`) ou pelo input do ensaio manual:
