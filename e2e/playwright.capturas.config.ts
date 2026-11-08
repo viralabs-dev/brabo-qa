@@ -30,7 +30,7 @@ export default defineConfig({
     locale: 'pt-BR',
     actionTimeout: 30_000,
     navigationTimeout: 30_000,
-    trace: 'off',
+    trace: 'retain-on-failure',
     video: 'off',
     screenshot: 'off',
   },
