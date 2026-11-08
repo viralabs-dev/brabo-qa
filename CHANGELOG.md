@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- E2E: o `.env` do compose de teste sobe `RATE_LIMIT_USER=5000`, `RATE_LIMIT_IP=10000` e `AUTH_LOCKOUT_IP_THRESHOLDS=200:5`, para o catálogo inteiro não bater em 429 (AT-840). Depende do repasse no compose do brabo-infra.
+
+- Regressivo, R3 sem LLM (AT-815): cenários P2. `sessao-e-canal-ticket-uso-unico` (`@f-sessao-e-canal`, RN-108: o segundo uso do ticket é recusado no handshake do engine), `aprovacoes-aprovar-inline` (`@f-aprovacoes`), `backlog-aba` (`@f-backlog`), `conhecimento-c4` (`@f-conhecimento`: a aba Arquitetura desenha o C4 semeado), `autenticacao-revogacao` (`@f-autenticacao`: logout e reuso de refresh, só HTTP) e `instalacao` (`@f-instalacao`: /health de api e engine). `git-conflito` (RN-715) e `gates-veredito` entram em `test.fixme` até a AT-839 (Noop com `action_settled`). 16 logins por run.
+
 - CI: check `Dependências de merge` (AT-787). `.github/workflows/dependencias.yml` chama o reutilizável `dependencias-de-merge.yml` do `brabo-ci` pinado em `b75c803` (`v1.4.0-dev.11`), no mesmo formato do `brabo-web`.
 
 - Regressivo por funcionalidade: a funcionalidade `instalacao` passa a mapear também `docker/docker-compose.install.yml` do `infra`, então uma PR que muda o compose de instalação dispara o regressivo de instalação (AT-837).

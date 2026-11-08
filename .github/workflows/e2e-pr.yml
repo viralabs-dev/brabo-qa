@@ -183,6 +183,9 @@ jobs:
           put CREDENTIALS_MASTER_KEY "$(b64 32)"
           put SECRET_KEY_BASE "$(b64 64)"
           put NEO4J_PASSWORD "$(openssl rand -hex 24)"
+          # AT-840: o catálogo inteiro bate no rate limit padrão (300/usuário, 600/IP por minuto) e no lockout por IP
+          # (formato `falhas:segundos`, degraus crescentes). Só o compose de teste sobe os tetos; valores públicos, sem mascarar.
+          { echo "RATE_LIMIT_USER=5000"; echo "RATE_LIMIT_IP=10000"; echo "AUTH_LOCKOUT_IP_THRESHOLDS=200:5"; } >> .env
           # Senha do usuário do E2E: aleatória por run, usada pelo seed e pelas specs.
           senha="$(openssl rand -hex 16)"
           echo "::add-mask::$senha"

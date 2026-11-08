@@ -147,7 +147,7 @@ IP** do próprio produto (`AUTH_LOCKOUT_IP_THRESHOLDS`, default
 uniforme** de senha errada — de propósito: distinguir os dois diria ao
 atacante quando ele acertou o e-mail.
 
-Cada execução gasta **11 logins** (AT-815 R2): o `setup`, o spec de
+Cada execução gasta **16 logins** (AT-815 R3; 11 na R2 mais 5: `aprovacoes-aprovar-inline`, `backlog-aba`, `conhecimento-c4` e 2 de `autenticacao-revogacao`, que fala só por HTTP): o `setup`, o spec de
 autenticação, a semeadura por HTTP, o login próprio de
 `turno-pelo-canal.spec.ts` e UM por arquivo novo que abre navegador
 (`sessao-e-canal-frame`, `turno-do-agente-fio`, `execucao-parada`,
@@ -169,6 +169,10 @@ Saídas, em ordem de preferência:
 `suporte/api.ts` já reconhece esse 401 e devolve uma mensagem dizendo isto —
 sem ela, a próxima pessoa caça um bug de credencial que não existe. Foi o que
 quase aconteceu ao escrever esta camada.
+
+## Tetos da api no job (AT-840)
+
+O `e2e-pr.yml` grava no `.env` do compose `RATE_LIMIT_USER=5000`, `RATE_LIMIT_IP=10000` e `AUTH_LOCKOUT_IP_THRESHOLDS=200:5` (formato `falhas:segundos`). Com o catálogo inteiro, as specs passam do rate limit padrão (300 por usuário e 600 por IP por minuto) e a api devolve 429 (run 42506755991). O mecanismo continua provado nas suítes da api; aqui os tetos só tiram o ruído. Vale para o regressivo da `dev` e para o portão, porque os dois usam o mesmo passo. O compose de instalação precisa repassar as variáveis (brabo-infra `bugfix/repassa-limites-da-api`); sem o repasse o `.env` não tem efeito e nada quebra.
 
 ## Semeadura comum (AT-815 R1, RN-1064)
 
