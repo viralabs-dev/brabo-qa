@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Regressivo (AT-843, qa): `semearExecucao` aceita `decidirImagem: false` (o padrão segue decidindo). `execucao-pr-pronta` e `git-mergear-no-chat` semeiam sem a decisão de imagem e provam que o aviso e a fila de PRs prontas do chat aparecem mesmo assim (api#80, web#53, RN-105); a aba Code segue atrás do portão.
 - CI: `anunciar` e `fechar` do `e2e-pr.yml` liam só `inputs.check_run_id`, vazio no `repository_dispatch` (`null != '0'` é falso), e eram pulados: o check `Regressivo do brabo-qa` da PR ficava `pending` para sempre. Passam a ler `client_payload.check_run_id || inputs.check_run_id`.
 - Docs (AT-853): `regressivo/como-funciona` ganha a seção "O que o regressivo não cobre". O `brabo-runner` se atesta pelo próprio CI (binário linux-x64 na PR, runner#28), e o contrato runner ↔ engine só é provado no TP-01 (RN-1075, `brabo-ci`).
 - CI (AT-851): a PR do brabo-qa para a `dev` roda o regressivo (`qa-e2e.yml` com `branches: [dev, main]`, check `Regressivo do brabo-qa`). O ensaio manual aceita `check_run_id=0`: os jobs `anunciar` e `fechar` do `e2e-pr.yml` são pulados, e o run não sai vermelho por falta de check. Docs em `docs/e2e-portao/` e `docs/regressivo/`.

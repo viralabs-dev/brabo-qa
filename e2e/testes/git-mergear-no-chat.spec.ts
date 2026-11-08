@@ -24,6 +24,7 @@ test.beforeAll(async ({ browser }) => {
   exec = await semearExecucao(token, {
     modulos: [{ name: 'api' }],
     tarefas: [{ modulo: 'api', titulo: 'Listagem' }],
+    decidirImagem: false, // o aviso e a fila do chat escapam do portão da imagem (AT-843, RN-105)
   });
   const { taskId } = await esperarGateAberto(token, exec);
   await aprovarOsGates(exec, taskId);
