@@ -12,6 +12,7 @@ import { API_URL, idsPendentes, semearSessao, type SessaoSemeada } from './api.t
 import { anexarEvento, eventosDaSessao } from './eventos.ts';
 import {
   criarEpico,
+  decidirImagem,
   criarHistoria,
   criarMapaDeModulos,
   criarTarefa,
@@ -56,6 +57,7 @@ export async function semearExecucao(token: string, plano: PlanoDeExecucao): Pro
     visibility: 'private',
   });
   await criarMapaDeModulos(sessao, plano.modulos);
+  await decidirImagem(sessao); // libera GET /code/pull-requests (portão da aba Code)
 
   // A história só é promovida com ao menos uma regra de negócio EXISTENTE (evento `artifact.business_rule`).
   const regra = await anexarEvento(token, sessao, 'artifact.business_rule', { kind: 'agent', id: 'po' }, {
