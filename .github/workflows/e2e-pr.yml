@@ -18,7 +18,7 @@ on:
         description: 'SHA do head da PR'
         required: true
       check_run_id:
-        description: 'Id do check run E2E do brabo-qa já criado'
+        description: 'Id do check run E2E do brabo-qa já criado. 0 = ensaio sem check (AT-851): anunciar e fechar são pulados'
         required: true
       compose_ref:
         description: 'SHA (40 hex) ou tag vX.Y.Z do brabo-infra com o docker-compose.install.yml'
@@ -346,6 +346,8 @@ jobs:
   # Aponta o check da PR para ESTE run assim que ele começa (AT-773); o `fechar` o conclui. Só avisa se falhar.
   anunciar:
     name: Anunciar no check
+    # Ensaio manual com check_run_id=0 (AT-851): não há check para apontar.
+    if: ${{ inputs.check_run_id != '0' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     continue-on-error: true
@@ -400,7 +402,8 @@ jobs:
   fechar:
     name: Fechar o check
     needs: e2e
-    if: ${{ always() }}
+    # Ensaio manual com check_run_id=0 (AT-851): não há check para fechar; o resultado é o do job `e2e`.
+    if: ${{ always() && inputs.check_run_id != '0' }}
     permissions:
       contents: read
     runs-on: ubuntu-26.04

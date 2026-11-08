@@ -79,6 +79,10 @@ resultado vem de PR, então o `fechar` só aceita linhas com id do catálogo e n
 gh workflow run e2e-pr.yml -R viralabs-dev/brabo-qa -f modo=funcionalidades -f funcionalidades=autenticacao,aprovacoes -f repo=... 
 ```
 
+**Ensaio sem check (AT-851):** `-f check_run_id=0` pula os jobs `anunciar` e `fechar`, e o run termina verde se o E2E for verde. Sem isso o `fechar` saía vermelho com `nome inesperado: undefined`, porque o id falso não tem check para conferir. Ensaio com id real segue o fluxo normal.
+
+**PR do próprio brabo-qa para a `dev` (AT-851):** o `qa-e2e.yml` do qa liga `branches: [dev, main]`, então a PR para a `dev` ganha o check `Regressivo do brabo-qa` (`modo` `funcionalidades` pelas tags tocadas; `e2e/suporte/**` e `playwright.config.ts` contam como regra 2 da RN-1033, e o `qa-e2e.yml` cai no smoke). O check é só atestado, nunca exigido.
+
 ## O relatório de decisão do run (AT-791)
 
 Cada run do `e2e-pr` termina com um relatório que compõe a decisão de aprovar ou não. A fonte é **um JSON v1** (`relatorio-regressivo.json`) montado por `scripts/ci/relatorio.ts` a partir do `resultado.json` do Playwright; o Markdown (Summary, texto do check e comentário da PR) é sempre derivado dele.

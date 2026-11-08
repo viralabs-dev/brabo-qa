@@ -58,6 +58,16 @@ O resumo e o `text` do check do vermelho são preservados pelo `/qa-aceitar` (br
 
 `workflow_dispatch` do `e2e-pr.yml` com os mesmos campos do payload (`repo`, `pr`, `head_sha`, `check_run_id`, `compose_ref`, `imagens`).
 
+**Ensaio sem check (AT-851): `check_run_id=0`.** Quando não há check para fechar (ensaio de branch antes da PR, ou de uma PR que muda o próprio `e2e-pr.yml` ou um `scripts/ci/*.ts`), passe `-f check_run_id=0`. Os jobs `anunciar` e `fechar` são pulados, então o run não fica vermelho por falta de check (antes, `check_run_id` falso dava `nome inesperado: undefined`). O resultado é o do job `Rodar o E2E`. Com um id real o fluxo é o de sempre, sem afrouxar a defesa do `fechar`.
+
+```bash
+gh workflow run e2e-pr.yml -R viralabs-dev/brabo-qa --ref <branch> \
+  -f repo=brabo-qa -f pr=<n> -f head_sha=<sha-40> -f check_run_id=0 -f compose_ref=<sha-do-brabo-infra-dev> \
+  -f imagens='{"api":"ghcr.io/viralabs-dev/brabo-api:v1.x.y-dev.N",...}' -f modo=funcionalidades -f funcionalidades=autenticacao
+```
+
+Quando se usa: a PR do brabo-qa para a `dev` já roda o regressivo pelo `qa-e2e.yml` (AT-851), mas o dispatch usa os scripts e o workflow do **ref** informado, então o ensaio é a prova de uma mudança no `e2e-pr.yml` ou nos `scripts/ci/` do qa antes do merge.
+
 ## Origem e vínculos (AT-773)
 O payload do `e2e-pr` pode trazer `origem` (`run_id`, `run_attempt`, `ator`, `sha_curto`, `correlacao` = `<run_id>-<attempt>`). O `validar-payload.ts` a valida por regex (uma `origem` malformada é descartada inteira com `::warning::`, sem exportar nada e sem reprovar o payload; campos extras são aceitos) e exporta `ORIGEM_RUN_ID`, `ORIGEM_ATOR`, `ORIGEM_CORRELACAO` e `ORIGEM_JSON` para os passos seguintes; sem `origem`, nada é exportado. O `fechar-check.ts` anexa ao resumo do check o `vinculos.md` gerado pela action `vinculos` do brabo-ci (variável `VINCULOS_MD`), e nunca deixa a ausência dele impedir o fechamento. Na Rodada B (AT-773) o YAML consome isso: `run-name` com a origem e `c=<correlacao>`, job `anunciar` (aponta o check para o run do brabo-qa assim que ele começa) e a action `vinculos` nos jobs `e2e`, `anunciar` e `fechar`. A tabela por funcionalidade e o `modo` (AT-769) estão em `docs/regressivo/como-funciona.md`.
 
