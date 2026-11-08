@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- CI: `anunciar` e `fechar` do `e2e-pr.yml` liam só `inputs.check_run_id`, vazio no `repository_dispatch` (`null != '0'` é falso), e eram pulados: o check `Regressivo do brabo-qa` da PR ficava `pending` para sempre. Passam a ler `client_payload.check_run_id || inputs.check_run_id`.
 - Docs (AT-853): `regressivo/como-funciona` ganha a seção "O que o regressivo não cobre". O `brabo-runner` se atesta pelo próprio CI (binário linux-x64 na PR, runner#28), e o contrato runner ↔ engine só é provado no TP-01 (RN-1075, `brabo-ci`).
 - CI (AT-851): a PR do brabo-qa para a `dev` roda o regressivo (`qa-e2e.yml` com `branches: [dev, main]`, check `Regressivo do brabo-qa`). O ensaio manual aceita `check_run_id=0`: os jobs `anunciar` e `fechar` do `e2e-pr.yml` são pulados, e o run não sai vermelho por falta de check. Docs em `docs/e2e-portao/` e `docs/regressivo/`.
 - Docs (AT-848): o bloco do mapa do README é regenerado do `repos.yml` do brabo, que ganha a aresta `brabo → brabo-contracts` e a prova em `{arquivo, trecho}` (`mapa-alinhado` volta a bater).

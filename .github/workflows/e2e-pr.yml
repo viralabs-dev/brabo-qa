@@ -347,7 +347,7 @@ jobs:
   anunciar:
     name: Anunciar no check
     # Ensaio manual com check_run_id=0 (AT-851): não há check para apontar.
-    if: ${{ inputs.check_run_id != '0' }}
+    if: ${{ (github.event.client_payload.check_run_id || inputs.check_run_id) != '0' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     continue-on-error: true
@@ -403,7 +403,7 @@ jobs:
     name: Fechar o check
     needs: e2e
     # Ensaio manual com check_run_id=0 (AT-851): não há check para fechar; o resultado é o do job `e2e`.
-    if: ${{ always() && inputs.check_run_id != '0' }}
+    if: ${{ always() && (github.event.client_payload.check_run_id || inputs.check_run_id) != '0' }}
     permissions:
       contents: read
     runs-on: ubuntu-26.04
