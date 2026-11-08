@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Regressivo sem `test.fixme` do Noop (AT-839, engine#64, `v2.2.0-dev.4`): voltam `execucao-noop`, `execucao-parada` (2 testes), `execucao-pr-pronta` e `git-mergear-no-chat`, e `gates-veredito` ganha corpo (QA aprovado leva a `run_secops`, SecOps aprovado a `done` e `awaiting_user`). `git-conflito` continua em `test.fixme` com a causa corrigida: o Noop grava `NOOP-task-<id>.md` por tarefa, então duas PRs dele nunca conflitam.
+
 - E2E: o `.env` do compose de teste sobe `RATE_LIMIT_USER=5000`, `RATE_LIMIT_IP=10000` e `AUTH_LOCKOUT_IP_THRESHOLDS=200:5`, para o catálogo inteiro não bater em 429 (AT-840). Depende do repasse no compose do brabo-infra.
 
 - Regressivo, R3 sem LLM (AT-815): cenários P2. `sessao-e-canal-ticket-uso-unico` (`@f-sessao-e-canal`, RN-108: o segundo uso do ticket é recusado no handshake do engine), `aprovacoes-aprovar-inline` (`@f-aprovacoes`), `backlog-aba` (`@f-backlog`), `conhecimento-c4` (`@f-conhecimento`: a aba Arquitetura desenha o C4 semeado), `autenticacao-revogacao` (`@f-autenticacao`: logout e reuso de refresh, só HTTP) e `instalacao` (`@f-instalacao`: /health de api e engine). `git-conflito` (RN-715) e `gates-veredito` entram em `test.fixme` até a AT-839 (Noop com `action_settled`). 16 logins por run.
