@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- CI: repina todos os `uses:` e `ci_ref` do `brabo-ci` em `6390ef5` (`v1.4.0-dev.17`, ci#53), que aceita a prova `{arquivo, trecho}` do `mapa-dos-repos.ts`; o pin antigo dá `throw` no formato novo e o `mapa-alinhado` quebra.
 - Regressivo com o provider dublê da api (AT-815 R4, RN-1065): `turno-do-agente-delta` (o `agent.delta` entre `working` e `idle`) e `backlog-aceito-todas` (o Criativo fecha 7 perguntas de dois autores com `answer_open_question`). O `e2e-pr.yml` liga o dublê por `suporte/compose-duble.yml` e `llm-duble-roteiro.json`; sem LLM real e sem `token_usage` de provider. As duas specs ficam em `test.fixme`: toda imagem publicada tem a marca `prd` e o dublê não carrega nela (RN-1065).
 
 - Regressivo prova o conflito de merge (AT-842, RN-715): `git-conflito` sai de `test.fixme`. O novo `e2e/suporte/git.ts` semeia na `main` um commit conflitante pela ação `open_infra_pr` (com `run`, RN-852) mais o `git_merge` dela, só por rotas públicas, sem Docker; o merge da PR do Noop falha com `conflictingFiles`, a tarefa vai a `in_progress` e a aba PRs mostra `aviso-merge-recusado`. O destino é a `main`, não a `dev`.
