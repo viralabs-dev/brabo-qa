@@ -15,7 +15,7 @@ O roteiro do TP-01 mora no Vault (`personal/projetos/brabo/`), não aqui.
 
 ## CI de PR
 
-`scripts` (typecheck + specs), `e2e` (typecheck), `actionlint` e a conferência dos caminhos dos irmãos.
+`scripts` (typecheck + specs), `e2e` (typecheck), `cadeia` (actionlint e pins) e a conferência dos caminhos dos irmãos.
 
 ## E2E como portão da main (AT-765)
 

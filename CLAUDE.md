@@ -40,7 +40,7 @@ próprios; aqui só entra o que precisa de MAIS DE UM repositório ou do sistema
 
 ## Golden-sets (ADR 0123, 0132, 0138, 0168)
 - São AGENDADOS (RAG diário, QA semanal) ou sob `workflow_dispatch`, NUNCA em PR. Não os ponha em PR para "provar" o YAML:
-  o CI de PR só roda `actionlint` e confere os caminhos dos irmãos.
+  o CI de PR só roda o `cadeia` (actionlint e pins do brabo-ci) e confere os caminhos dos irmãos.
 - Rodam DENTRO do `brabo-engine`: o workflow copia `golden/engine/test/` para o `test/` dele e o teste chama o seed do
   `brabo-api` (`pnpm run golden-set:{qa,rag}-seed`, `BRABO_API_DIR`).
 - O teste PULA por desenho quando a api ou o embedding faltam; o workflow tem a guarda do falso-verde (a linha de resultado
