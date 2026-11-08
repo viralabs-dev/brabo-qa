@@ -1,0 +1,19 @@
+name: readme
+
+# README no esqueleto didático e bloco do mapa em dia, pelos workflows reutilizáveis do brabo-ci (AT-826).
+# Informativos: não são checks obrigatórios.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  esqueleto:
+    uses: viralabs-dev/brabo-ci/.github/workflows/readme-esqueleto.yml@b5df60b6e114827dd3a59889d6a4b0ecda730ecc  # v1.4.0-dev.14
+    with:
+      ci_ref: b5df60b6e114827dd3a59889d6a4b0ecda730ecc  # v1.4.0-dev.14
+  mapa:
+    uses: viralabs-dev/brabo-ci/.github/workflows/mapa-alinhado.yml@b5df60b6e114827dd3a59889d6a4b0ecda730ecc  # v1.4.0-dev.14
+    with:
+      ci_ref: b5df60b6e114827dd3a59889d6a4b0ecda730ecc  # v1.4.0-dev.14
