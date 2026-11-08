@@ -86,7 +86,8 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$API_TAG" ]; then
-            API_TAG="$(git ls-remote --tags --sort=-v:refname https://github.com/viralabs-dev/brabo-api 'refs/tags/v*-dev.*' | head -n1 | sed 's#.*refs/tags/##')"
+            # `head` fecha o pipe e mata o git com SIGPIPE sob pipefail (run 42533650837); `awk NR==1` lê até o fim e o grep tira as refs ^{}
+            API_TAG="$(git ls-remote --tags --sort=-v:refname https://github.com/viralabs-dev/brabo-api 'refs/tags/v*-dev.*' | grep -v '\^{}$' | awk 'NR==1' | sed 's#.*refs/tags/##')"
           fi
           printf '%s' "$API_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+-dev\.[0-9]+$' || { echo "::error::sem tag -dev.N da api: $API_TAG"; exit 1; }
           pin() { jq -er --arg s "$1" '.imagens[$s] | "\(.imagem):\(.tag)"' componentes.json; }

@@ -207,7 +207,8 @@ jobs:
           curl -fsS --max-time 1200 -X POST http://localhost:11434/api/pull \
             -d '{"name":"qwen2.5-coder:latest","stream":false}'
           echo
-          curl -fsS http://localhost:11434/api/tags | grep -q 'qwen2.5-coder:latest' \
+          tags="$(curl -fsS http://localhost:11434/api/tags)"
+          grep -q 'qwen2.5-coder:latest' <<<"$tags" \
             || { echo "::error::qwen2.5-coder:latest não apareceu em /api/tags depois do pull"; exit 1; }
           echo "TEMPO pull do modelo: $(( $(date +%s) - inicio ))s"
 
