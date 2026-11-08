@@ -81,7 +81,7 @@ export function extrairSpecs(resultado: unknown, ativos: string[]): SpecR[] | nu
         const fs = [...new Set(tags.map((t: string) => /^f-([a-z0-9-]+)$/.exec(t)?.[1]).filter((i: string | undefined): i is string => !!i && ativos.includes(i)))];
         const arquivo = String(s.file ?? '');
         out.push({
-          funcionalidades: fs, titulo: (/\.setup\.ts$/.test(arquivo) ? '(preparação) ' : '') + String(s.title ?? ''), arquivo, linha: Number(s.line) || 0, status,
+          funcionalidades: fs, titulo: String(s.title ?? ''), arquivo, linha: Number(s.line) || 0, status,
           tentativas: Math.max(1, ...tests.map((t) => (Array.isArray(t.results) ? t.results.length : 1))),
           duracao_ms: results.reduce((a, r) => a + (Number(r.duration) || 0), 0),
           ...(msg ? { erro: semAnsi(String(msg)) } : {}),
@@ -135,6 +135,9 @@ export function montarRelatorio(specsTodas: SpecR[] | null, c: Contexto, omitida
 
 const seg = (ms: number) => (ms >= 60000 ? `${Math.floor(ms / 60000)}m${String(Math.round((ms % 60000) / 1000)).padStart(2, '0')}s` : `${(ms / 1000).toFixed(1)}s`);
 const icone = (s: StatusSpec) => ({ passou: '✅', falhou: '❌', flaky: '⚠️', pulou: '⏭️' })[s];
+// O sufixo mora na exibição (o brabo-ci também o põe no check): o título guardado fica limpo.
+const prep = (s: SpecR) => (/\.setup\.[jt]s$/.test(s.arquivo) ? ' (preparação)' : '');
+const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 const rotulo = (r: Relatorio) => r.veredito.toUpperCase() + (r.causa ? ` · causa ${r.causa}` : '');
 
 export interface Opcoes { detalhe: boolean; linhasErro: number; maxFalhas: number; comentario?: boolean }
@@ -145,10 +148,10 @@ function montar(r: Relatorio, o: Opcoes): { md: string; cortes: string[] } {
   const t = r.specs;
   const origem = r.origem?.repo ? `${r.origem.repo}${r.origem.pr ? `#${r.origem.pr}` : ''}${r.origem.sha ? ` (${r.origem.sha.slice(0, 7)})` : ''}` : null;
   const L: string[] = [
-    `## Regressivo do brabo-qa: ${rotulo(r)}`, '',
+    `## ${r.modo === 'main' ? 'E2E' : 'Regressivo'} do brabo-qa: ${rotulo(r)}`, '',
     `**Recomendação: ${r.recomendacao.texto}**`, '',
     `Modo: ${r.modo === 'main' ? 'portão da main' : 'atestado da dev'}${origem ? ` · origem ${lim(origem, 80)}` : ''} · ${seg(r.duracao_ms)} · ` +
-    `${t.length + r.omitidas} specs · ${somar(t, 'passou')} passaram · ${somar(t, 'falhou')} falharam · ${somar(t, 'flaky')} flaky`,
+    `${t.length + r.omitidas} specs · ${plural(somar(t, 'passou'), 'passou', 'passaram')} · ${plural(somar(t, 'falhou'), 'falhou', 'falharam')} · ${somar(t, 'flaky')} flaky${somar(t, 'pulou') ? ` · ${plural(somar(t, 'pulou'), 'pulada', 'puladas')}` : ''}`,
   ];
   const motivos = r.funcionalidades.filter((f) => f.motivo.length > 0);
   if (motivos.length > 0 || r.semDono.length > 0) {
@@ -168,7 +171,7 @@ function montar(r: Relatorio, o: Opcoes): { md: string; cortes: string[] } {
   if (falhas.length > 0) {
     L.push('', '### Falhas', '');
     for (const s of falhas.slice(0, o.maxFalhas)) {
-      L.push(`**${s.funcionalidades.length ? s.funcionalidades.map((f) => `[f-${f}]`).join(' ') : '[sem funcionalidade]'} ${lim(s.titulo, 200)}**`,
+      L.push(`**${s.funcionalidades.length ? s.funcionalidades.map((f) => `[f-${f}]`).join(' ') : '[sem funcionalidade]'} ${lim(s.titulo, 200)}${prep(s)}**`,
         `${lim(s.arquivo, 200)}:${s.linha} · ${s.tentativas} tentativa(s)${s.anexos.length ? ` · anexos no artefato: ${s.anexos.map((a) => lim(a, 40)).join(', ')}` : ''}`);
       if (s.erro) L.push('```', emBloco(s.erro.split('\n').slice(0, o.linhasErro).join('\n'), 3000), '```');
       L.push('');
@@ -186,7 +189,7 @@ function montar(r: Relatorio, o: Opcoes): { md: string; cortes: string[] } {
     L.push('', '### Detalhe por funcionalidade', '');
     const baldes = [...cobertas.map((f) => ({ id: f.id, xs: t.filter((s) => s.funcionalidades.includes(f.id)) })), ...(r.semFuncionalidade.length ? [{ id: 'sem funcionalidade', xs: r.semFuncionalidade }] : [])];
     for (const b of baldes) {
-      L.push(`<details><summary>${lim(b.id, 60)} · ${somar(b.xs, 'passou')} ✅${somar(b.xs, 'falhou') ? ` · ${somar(b.xs, 'falhou')} ❌` : ''}</summary>`, '', ...b.xs.map((s) => `- ${icone(s.status)} ${lim(s.titulo, 160)} (${seg(s.duracao_ms)})`), '', '</details>', '');
+      L.push(`<details><summary>${lim(b.id, 60)} · ${somar(b.xs, 'passou')} ✅${somar(b.xs, 'falhou') ? ` · ${somar(b.xs, 'falhou')} ❌` : ''}${somar(b.xs, 'flaky') ? ` · ${somar(b.xs, 'flaky')} ⚠️` : ''}${somar(b.xs, 'pulou') ? ` · ${somar(b.xs, 'pulou')} ⏭️` : ''}</summary>`, '', ...b.xs.map((s) => `- ${icone(s.status)} ${lim(s.titulo, 160)}${prep(s)} (${seg(s.duracao_ms)})`), '', '</details>', '');
     }
   } else if (!o.comentario) cortes.push('o detalhe por spec');
   if (r.omitidas > 0) cortes.push(`${r.omitidas} specs fora do resumo`);

@@ -164,4 +164,13 @@ describe('validarMotivos', () => {
     expect(validarMotivos(undefined, undefined, '["a","a","Mau Id",3,"b"]').tocadas).toEqual(['a', 'b']);
   });
   it('nunca reprova o payload', () => expect(validarPayload({ ...base(), motivos: 'lixo', semDono: 7 } as never).ok).toBe(true));
+  it('selecao agrupa as três chaves; as soltas continuam valendo; juntas, vale selecao', () => {
+    const nova = { motivos: { a: ['x.ts'] }, semDono: ['s'], tocadas: ['a'] };
+    const solta = validarMotivos({ b: ['y.ts'] }, ['t'], ['b']);
+    expect(validarMotivos(undefined, undefined, undefined, nova)).toMatchObject({ motivos: { a: ['x.ts'] }, semDono: ['s'], tocadas: ['a'] });
+    expect(validarMotivos(undefined, undefined, undefined, JSON.stringify(nova)).tocadas).toEqual(['a']);
+    expect(solta).toMatchObject({ motivos: { b: ['y.ts'] }, semDono: ['t'], tocadas: ['b'] });
+    expect(validarMotivos({ b: ['y.ts'] }, ['t'], ['b'], nova)).toMatchObject({ motivos: { a: ['x.ts'] }, semDono: ['s'], tocadas: ['a'] });
+    expect(validarMotivos({ b: ['y.ts'] }, ['t'], ['b'], 'null').tocadas).toEqual(['b']);
+  });
 });

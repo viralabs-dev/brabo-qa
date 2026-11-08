@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Payload do `e2e-pr` aceita `selecao: {motivos, semDono, tocadas}` (limite de 10 propriedades do `client_payload`) e, por compatibilidade, as chaves soltas; juntas, vale `selecao`. O token do job `fechar` ganha `permission-pull-requests: write` (o comentário fixo da PR dava 403) e o warning de falha mostra status e corpo curtos da resposta. Relatório: plural correto ("1 falhou"), spec pulada contada como pulada, "(preparação)" uma vez só e título do `.md` pelo modo ("E2E" no portão, "Regressivo" na dev).
+
 - `fechar-check.ts` aceita reexecução (AT-790, RN-1067): com o check já `completed`, cria um check run novo (mesmo nome e head SHA), cita o anterior no Summary e não o altera; mantém as defesas de nome, head e App.
 
 - O run do regressivo mostra cada funcionalidade e gera o relatório de decisão (AT-791, RN-1051 a RN-1053): `scripts/ci/relatorio.ts` (JSON v1, Markdown derivado, recomendação, `caber` até 65 535, balde "sem funcionalidade", sem ANSI), step `Relatório` (`if: always()`) com Summary e artefatos `relatorio-regressivo-<run>` e `relatorio-html-<run>`, reporter `github` do Playwright, jobs de exibição `Funcionalidade · <id>`, `fechar-check.ts` envia o `text`, sanitiza o resumo e mantém o comentário fixo na PR (só nasce vermelho; `issues: write` no token do App), `validar-payload.ts` aceita `motivos` e `semDono` (opcionais, limitados), `cobertura.ts` exporta `catalogoAtivo`. `validar-payload.ts` aceita também `tocadas`. Repina o `.brabo-ci` e a action `vinculos` em `42feff3` (merge da ci#30) em todos os pins; o `fechar` passa o relatório no formato `RelatorioRegressivo` do brabo-ci.
