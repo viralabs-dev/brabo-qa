@@ -135,7 +135,7 @@ jobs:
           persist-credentials: false
 
       - name: Vínculos
-        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@0a9eba831fb82b9a20a5ad03bc2273a3ede69796  # v1.4.0-dev.5
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@6390ef56b6c405db9a24956bf41c55a7ea601612  # v1.4.0-dev.17
         with:
           origem: ${{ env.ORIGEM_JSON }}
           irmaos: |
@@ -374,7 +374,7 @@ jobs:
         run: node scripts/ci/validar-payload.ts
       - name: Vínculos
         id: vinculos
-        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@0a9eba831fb82b9a20a5ad03bc2273a3ede69796  # v1.4.0-dev.5
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@6390ef56b6c405db9a24956bf41c55a7ea601612  # v1.4.0-dev.17
         with:
           origem: ${{ env.ORIGEM_JSON }}
           destino: Check na PR|https://github.com/viralabs-dev/${{ env.REPO }}/runs/${{ env.CHECK_RUN_ID }}
@@ -428,7 +428,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           repository: viralabs-dev/brabo-ci
-          ref: 0a9eba831fb82b9a20a5ad03bc2273a3ede69796  # v1.4.0-dev.5
+          ref: 6390ef56b6c405db9a24956bf41c55a7ea601612  # v1.4.0-dev.17
           path: .brabo-ci
           persist-credentials: false
         continue-on-error: true
@@ -442,7 +442,7 @@ jobs:
 
       - name: Vínculos
         id: vinculos
-        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@0a9eba831fb82b9a20a5ad03bc2273a3ede69796  # v1.4.0-dev.5
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@6390ef56b6c405db9a24956bf41c55a7ea601612  # v1.4.0-dev.17
         with:
           origem: ${{ env.ORIGEM_JSON }}
           destino: Check na PR|https://github.com/viralabs-dev/${{ env.REPO }}/runs/${{ env.CHECK_RUN_ID }}
