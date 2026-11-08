@@ -147,7 +147,7 @@ IP** do próprio produto (`AUTH_LOCKOUT_IP_THRESHOLDS`, default
 uniforme** de senha errada — de propósito: distinguir os dois diria ao
 atacante quando ele acertou o e-mail.
 
-Cada execução gasta **11 logins** (AT-815 R2): o `setup`, o spec de
+Cada execução gasta **16 logins** (AT-815 R3; 11 na R2 mais 5: `aprovacoes-aprovar-inline`, `backlog-aba`, `conhecimento-c4` e 2 de `autenticacao-revogacao`, que fala só por HTTP): o `setup`, o spec de
 autenticação, a semeadura por HTTP, o login próprio de
 `turno-pelo-canal.spec.ts` e UM por arquivo novo que abre navegador
 (`sessao-e-canal-frame`, `turno-do-agente-fio`, `execucao-parada`,
