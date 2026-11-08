@@ -221,14 +221,17 @@ jobs:
           retention-days: 14
           path: capturas-saida
 
-      # Só em falha: os logs podem ajudar a achar a causa e NÃO vão no artefato que o `publicar` consome.
+      # Só em falha: os logs e o outputDir do Playwright (error-context.md, trace) podem ajudar a achar a causa e NÃO vão no artefato que o `publicar` consome.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         if: failure()
         with:
           name: capturas-da-doc-falha
           if-no-files-found: ignore
+          include-hidden-files: true
           retention-days: 7
-          path: containers.log
+          path: |
+            containers.log
+            e2e/capturas/.resultado
 
   # DESLIGADO até o merge (variável `CAPTURAS_PUBLICAR`). Único job com o token do App; não executa nada do artefato.
   # TODO(humano): conferir se a instalação do App `viralabs-dev-brabo` no `brabo` concede `contents: write` e `pull-requests: write`.
@@ -236,7 +239,7 @@ jobs:
   publicar:
     name: Publicar a PR no brabo
     needs: [decidir, capturar]
-    if: ${{ vars.CAPTURAS_PUBLICAR == 'true' && needs.decidir.outputs.seguir == 'true' }}
+    if: ${{ vars.CAPTURAS_PUBLICAR == 'true' && needs.decidir.outputs.seguir == 'true' && github.ref == 'refs/heads/dev' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:

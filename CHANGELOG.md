@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Capturas da doc: o job `publicar` só roda na `dev` (`github.ref`); na prova da qa#54 ele abriu a brabo#90 a partir de uma branch. O artefato de falha do "Capturar" passa a levar também `e2e/capturas/.resultado` (`error-context.md` e trace do Playwright) (AT-859).
+
 - Capturas da doc: o job usava a pin `v1.3.0` do infra, que não repassa `RATE_LIMIT_*` à api (infra#38); os tetos gravados no `.env` não chegavam e a tela de gastos mostrava erro, derrubando o run 42534027204. O `compose_ref` passa a ser `v1.4.0-dev.7`, a menor tag que contém a infra#38 (AT-859).
 
 - CI: o job `decidir` do `capturas-da-doc.yml` morria com exit 141 (SIGPIPE) sob `pipefail` no `git ls-remote | head -n1` (run 42533650837). A consulta agora tira as refs `^{}` com `grep -v` e pega a primeira com `awk 'NR==1'`, que lê até o fim. O `golden-set-qa`/`golden-set-rag` deixam de fazer `curl | grep -q` (mesmo risco) e guardam a resposta de `/api/tags` numa variável.
