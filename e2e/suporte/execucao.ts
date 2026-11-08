@@ -27,6 +27,8 @@ export interface PlanoDeExecucao {
   tarefas: Array<{ modulo: string; titulo: string }>;
   /** O disjuntor do projeto (RN-047): `1` trava o agente na primeira tarefa bloqueada. */
   maxConsecutiveBlocked?: number;
+  /** `false` semeia sem a decisão de imagem (padrão: decide, e libera `/code/*`). AT-843. */
+  decidirImagem?: boolean;
 }
 
 export interface ExecucaoSemeada extends SessaoSemeada {
@@ -57,7 +59,7 @@ export async function semearExecucao(token: string, plano: PlanoDeExecucao): Pro
     visibility: 'private',
   });
   await criarMapaDeModulos(sessao, plano.modulos);
-  await decidirImagem(sessao); // libera GET /code/pull-requests (portão da aba Code)
+  if (plano.decidirImagem !== false) await decidirImagem(sessao); // libera `/code/*` (portão da aba Code, RN-105)
 
   // A história só é promovida com ao menos uma regra de negócio EXISTENTE (evento `artifact.business_rule`).
   const regra = await anexarEvento(token, sessao, 'artifact.business_rule', { kind: 'agent', id: 'po' }, {
