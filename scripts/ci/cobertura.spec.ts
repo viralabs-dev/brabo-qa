@@ -9,9 +9,9 @@ describe('idsAtivos', () => {
     const y = ['funcionalidades:', '  - id: a', '    status: ativa', '  - id: b-c', '    status: aposentada', '  - id: d', '    nome: x', '    status: ativa'].join('\n');
     expect(idsAtivos(y)).toEqual(['a', 'd']);
   });
-  it('o catálogo real tem 14 ativas', async () => {
+  it('o catálogo real tem 16 ativas', async () => {
     const { readFileSync } = await import('node:fs');
-    expect(idsAtivos(readFileSync(new URL('../../funcionalidades.yml', import.meta.url), 'utf8'))).toHaveLength(14);
+    expect(idsAtivos(readFileSync(new URL('../../funcionalidades.yml', import.meta.url), 'utf8'))).toHaveLength(16);
   });
 });
 

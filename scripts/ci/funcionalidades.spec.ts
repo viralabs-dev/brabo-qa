@@ -49,7 +49,7 @@ describe('validarCatalogo', () => {
 describe('funcionalidades.yml real', () => {
   it('passa no validador contra os repos irmãos achados', () => {
     const { catalogo, ctx: real } = carregar();
-    expect(catalogo).toHaveLength(14);
+    expect(catalogo).toHaveLength(16);
     expect(validarCatalogo(catalogo, real, !!process.env.CI).erros).toEqual([]);
   });
 });

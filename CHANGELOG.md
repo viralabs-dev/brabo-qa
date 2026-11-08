@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Regressivo, infraestrutura comum (AT-815 R1, RN-1064): helpers de semeadura em `e2e/suporte/` (`eventos.ts`: evento pela rota pública; `interno.ts`: mapa de módulos, história, tarefa, gate e handoff pelas rotas internas; `execucao.ts`: execução Noop sem LLM; `contextoLogado` para um login por arquivo), `scripts/ci/com-token-de-servico.sh` (o token de serviço do `.env` do run, mascarado e só no ambiente do Playwright, com teste de que não vaza no log) usado no passo "Specs do E2E", `funcionalidades.yml` com `execucao` e `chat-e-pendencias` (`projetos` perde `lib/engine/dev`; catálogo de 16) e a spec de prova `execucao-noop.spec.ts` (`@f-execucao`).
 - E2E da PR: o `up -d --wait` não inclui mais o serviço `backup`, que é um job (`restart: "no"`, sai com 0) e fazia o `--wait` falhar com todos os serviços saudáveis; ele é só criado (`create backup`) para a conferência de digests (AT-765).
 
 - CI: repina os reutilizáveis do `brabo-ci` em `384b5d1` (merge da ci#22: o job `disparar` do `qa-e2e-gatilho.yml` agora instala as dependências) em todos os pins, `uses:`, `ci_ref:` e checkout do `brabo-ci` (AT-785).

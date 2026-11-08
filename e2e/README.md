@@ -165,6 +165,10 @@ Saídas, em ordem de preferência:
 sem ela, a próxima pessoa caça um bug de credencial que não existe. Foi o que
 quase aconteceu ao escrever esta camada.
 
+## Semeadura comum (AT-815 R1, RN-1064)
+
+`suporte/eventos.ts` (evento pela rota pública), `suporte/interno.ts` (mapa, história, tarefa, gate e handoff pelas rotas internas) e `suporte/execucao.ts` (execução Noop, sem LLM) são os caminhos de semeadura das specs. As rotas internas exigem `E2E_SERVICE_TOKEN`, que no CI vem do `.env` do próprio run por `scripts/ci/com-token-de-servico.sh`: mascarado, nunca impresso nem gravado em artefato. Localmente, exporte o `BRABO_SERVICE_TOKEN` do `.env` do compose como `E2E_SERVICE_TOKEN` (sem imprimi-lo). Login de navegador: um por ARQUIVO (`contextoLogado` no `beforeAll`, `describe` em modo serial). O `execucao-noop.spec.ts` não abre navegador e não gasta login além da semeadura. Detalhes em `docs/regressivo/como-funciona.md`.
+
 ## O que NÃO está coberto
 
 Declarado, não esquecido (ver as Consequências do ADR 0120): diferenças

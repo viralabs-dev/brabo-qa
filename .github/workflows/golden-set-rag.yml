@@ -36,6 +36,7 @@ run-name: ${{ format('Golden-set do RAG · {0} · api@{1}', github.event_name ==
 
 permissions:
   contents: read
+  packages: read # AT-832
 
 env:
   # Mesmas versões do ci.yml — arquivo separado, sem `env:` compartilhado
@@ -68,6 +69,7 @@ jobs:
     permissions:
       contents: read
       issues: write
+      packages: read # AT-832
     services:
       postgres:
         # pgvector, não `postgres:16` puro — mesmo motivo do `test-engine` em
@@ -134,6 +136,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
           cache-dependency-path: brabo-api/pnpm-lock.yaml
+          registry-url: https://npm.pkg.github.com
+          scope: '@viralabs-dev'
 
       - name: Vínculos
         id: vinculos
@@ -166,6 +170,8 @@ jobs:
       # NestFactory + Drizzle + todo o resto que o AppModule importa.
       - run: pnpm install --frozen-lockfile
         working-directory: brabo-api
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # `/api/pull` com `stream:false` bloqueia até completar e devolve o
       # JSON final — sem loop de polling. ~274MB; --max-time generoso pra
