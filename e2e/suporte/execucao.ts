@@ -8,8 +8,8 @@
  * só é pegável `ready` e ligada ao módulo. O papel de quem ativa é o do
  * usuário semeado (owner do workspace), que é o que o IAM dos agentes herda.
  */
-import { API_URL, semearSessao, type SessaoSemeada } from './api.ts';
-import { anexarEvento, esperarEvento } from './eventos.ts';
+import { API_URL, idsPendentes, semearSessao, type SessaoSemeada } from './api.ts';
+import { anexarEvento, eventosDaSessao } from './eventos.ts';
 import {
   criarEpico,
   criarHistoria,
@@ -83,12 +83,37 @@ export async function semearExecucao(token: string, plano: PlanoDeExecucao): Pro
 export const sessaoDaExecucao = (e: ExecucaoSemeada) => ({ projectId: e.projectId, sessionId: e.execucaoId });
 
 /**
- * Espera o Noop abrir a PR da primeira tarefa e entrar em `dev.awaiting_gate`
- * (o gate já está aberto). Devolve o agente e a tarefa, que as specs usam nas
- * rotas internas.
+ * Espera `tipo` no log da execução APROVANDO as ações pendentes dela. O
+ * `git_push` e o `pr_open` do dev estão no teto de efeito externo (RN-418,
+ * RN-689): nascem `pending` mesmo com o dev em `auto_approve`, e quem decide é
+ * o usuário. Sem este gesto o Noop fica em `awaiting_approval` para sempre.
+ */
+export async function aprovarAcoesAte(token: string, e: ExecucaoSemeada, tipo: string, prazoMs = 150_000) {
+  const sessao = sessaoDaExecucao(e);
+  const limite = Date.now() + prazoMs;
+  for (;;) {
+    const achado = (await eventosDaSessao(token, sessao)).find((ev) => ev.type === tipo);
+    if (achado) return achado;
+    for (const id of await idsPendentes(token, { ...e, sessionId: e.execucaoId })) {
+      // 409 numa corrida com outra decisão não importa: o próximo giro relê a fila.
+      await fetch(`${API_URL}/projects/${e.projectId}/sessions/${e.execucaoId}/actions/${id}/approve`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+    }
+    if (Date.now() > limite) throw new Error(`o evento ${tipo} não apareceu em ${prazoMs} ms`);
+    await new Promise((r) => setTimeout(r, 1_000));
+  }
+}
+
+/**
+ * Espera o Noop abrir a PR da primeira tarefa (aprovando o push e a PR) e
+ * entrar em `dev.awaiting_gate`, com o gate aberto. Devolve o agente e a
+ * tarefa, que as specs usam nas rotas internas.
  */
 export async function esperarGateAberto(token: string, e: ExecucaoSemeada): Promise<{ agentId: string; taskId: string }> {
-  const aguardando = await esperarEvento(token, sessaoDaExecucao(e), 'dev.awaiting_gate', 120_000);
+  const aguardando = await aprovarAcoesAte(token, e, 'dev.awaiting_gate');
   return { agentId: String(aguardando.payload.agentId), taskId: String(aguardando.payload.taskId) };
 }
 
