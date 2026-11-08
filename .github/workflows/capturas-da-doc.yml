@@ -94,7 +94,9 @@ jobs:
           tag() { jq -er --arg s "$1" '.imagens[$s].tag' componentes.json; }
           {
             echo "imagens=$(jq -cn --arg api "ghcr.io/viralabs-dev/brabo-api:$API_TAG" --arg engine "$(pin engine)" --arg web "$(pin web)" --arg broker "$(pin broker)" --arg backup "$(pin backup)" '{api:$api,engine:$engine,web:$web,broker:$broker,backup:$backup}')"
-            echo "compose_ref=$(jq -er '.infra.ref' componentes.json)"
+            # A pin do infra (v1.3.0) não repassa RATE_LIMIT_* à api (infra#38): a tela de gastos levava 429 e mostrava erro.
+            # shortcut: tag -dev fixa da infra; voltar à pin do componentes.json quando ela passar da infra#38.
+            echo "compose_ref=v1.4.0-dev.7"
             echo "web=$(tag web)"
             echo "api=$API_TAG"
             echo "engine=$(tag engine)"
