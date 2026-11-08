@@ -10,8 +10,7 @@ import { semearExecucao } from '../suporte/execucao.ts';
  * a PR abrir (`noop_dev_agent_server.ex`), então prova repo, worktree, commit,
  * push e PR de uma vez. Sem navegador: não gasta login do balde do lockout.
  */
-// fixme: AT-833, o Noop cai na guarda de container da RN-502 (blocked_by_container); volta quando o engine dispensar a guarda
-test.fixme('a execução Noop pega a tarefa e abre a PR, sem LLM', { tag: '@f-execucao' }, async () => {
+test('a execução Noop pega a tarefa e abre a PR, sem LLM', { tag: '@f-execucao' }, async () => {
   test.setTimeout(180_000);
   const token = await autenticar();
   const exec = await semearExecucao(token, {

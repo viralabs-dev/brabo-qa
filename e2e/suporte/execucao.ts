@@ -9,12 +9,13 @@
  * usuário semeado (owner do workspace), que é o que o IAM dos agentes herda.
  */
 import { API_URL, semearSessao, type SessaoSemeada } from './api.ts';
-import { anexarEvento } from './eventos.ts';
+import { anexarEvento, esperarEvento } from './eventos.ts';
 import {
   criarEpico,
   criarHistoria,
   criarMapaDeModulos,
   criarTarefa,
+  vereditoDeGate,
   ligarModulos,
   type Modulo,
 } from './interno.ts';
@@ -23,6 +24,8 @@ export interface PlanoDeExecucao {
   modulos: Modulo[];
   /** `modulo` é o nome de um módulo do mapa; cada tarefa ganha a própria história. */
   tarefas: Array<{ modulo: string; titulo: string }>;
+  /** O disjuntor do projeto (RN-047): `1` trava o agente na primeira tarefa bloqueada. */
+  maxConsecutiveBlocked?: number;
 }
 
 export interface ExecucaoSemeada extends SessaoSemeada {
@@ -43,7 +46,9 @@ async function postar(token: string, rota: string, corpo: Record<string, unknown
 }
 
 export async function semearExecucao(token: string, plano: PlanoDeExecucao): Promise<ExecucaoSemeada> {
-  const sessao = await semearSessao(token, 'criativa');
+  const sessao = await semearSessao(token, 'criativa', {
+    ...(plano.maxConsecutiveBlocked ? { maxConsecutiveBlocked: plano.maxConsecutiveBlocked } : {}),
+  });
   const sufixo = Date.now();
 
   await postar(token, `/projects/${sessao.projectId}/git/local/repository`, {
@@ -72,4 +77,23 @@ export async function semearExecucao(token: string, plano: PlanoDeExecucao): Pro
   const execucaoId = String(ativada.sessionId ?? '');
   if (!execucaoId) throw new Error(`a ativação não devolveu sessionId: ${JSON.stringify(ativada).slice(0, 300)}`);
   return { ...sessao, execucaoId, tarefaIds };
+}
+
+/** A sessão de EXECUÇÃO da semeadura: onde moram os eventos `dev.*` e onde o engine registra as tarefas. */
+export const sessaoDaExecucao = (e: ExecucaoSemeada) => ({ projectId: e.projectId, sessionId: e.execucaoId });
+
+/**
+ * Espera o Noop abrir a PR da primeira tarefa e entrar em `dev.awaiting_gate`
+ * (o gate já está aberto). Devolve o agente e a tarefa, que as specs usam nas
+ * rotas internas.
+ */
+export async function esperarGateAberto(token: string, e: ExecucaoSemeada): Promise<{ agentId: string; taskId: string }> {
+  const aguardando = await esperarEvento(token, sessaoDaExecucao(e), 'dev.awaiting_gate', 120_000);
+  return { agentId: String(aguardando.payload.agentId), taskId: String(aguardando.payload.taskId) };
+}
+
+/** QA e SecOps aprovam: a tarefa vai a `awaiting_user` e a PR fica pronta para o dono mergear (RN-825). */
+export async function aprovarOsGates(e: ExecucaoSemeada, taskId: string): Promise<void> {
+  await vereditoDeGate(sessaoDaExecucao(e), taskId, 'qa', 'approved');
+  await vereditoDeGate(sessaoDaExecucao(e), taskId, 'secops', 'approved');
 }

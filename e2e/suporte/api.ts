@@ -272,6 +272,8 @@ export async function idsPendentes(token: string, sessao: SessaoSemeada): Promis
 export async function semearSessao(
   token: string,
   kind: 'consultiva' | 'criativa' = 'consultiva',
+  /** `maxConsecutiveBlocked`: o disjuntor do projeto (RN-047); a ativação da execução o herda. */
+  opcoesDoProjeto: { maxConsecutiveBlocked?: number } = {},
 ): Promise<SessaoSemeada> {
   const cabecalhos = {
     Authorization: `Bearer ${token}`,
@@ -293,7 +295,7 @@ export async function semearSessao(
     await fetch(`${API}/workspaces/${workspaceId}/projects`, {
       method: 'POST',
       headers: cabecalhos,
-      body: JSON.stringify({ name: `E2E ${sufixo}`, slug: `e2e-${sufixo}` }),
+      body: JSON.stringify({ name: `E2E ${sufixo}`, slug: `e2e-${sufixo}`, ...opcoesDoProjeto }),
     }),
     'POST /workspaces/:id/projects',
   );
