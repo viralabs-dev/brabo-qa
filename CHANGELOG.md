@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Capturas da doc (AT-872): cinco telas novas, nos dois temas (10 PNGs): `adr-no-chat`, `arquitetura`, `plano-e-modo-automatico`, `dev-agent` e `merges-no-chat`, para os passos 4 a 6 do tutorial e os READMEs do `brabo`. Helpers `proporAdr` e `proporPlanoDoDevLead` (ação proposta por agente, sempre `pending`), opção `name` em `semearExecucao`, `bot.brabo.local` nos domínios de teste da ocultação (com caso no spec) e o passo "Capturar" do `capturas-da-doc.yml` sob `com-token-de-servico.sh` (o `E2E_SERVICE_TOKEN` das rotas internas). O engine das capturas passa a ser a `-dev.N` mais nova (input `engine_tag`), como a api: com o engine `v2.1.0` da pin o dev Noop ficava em `dev.blocked_by_container` (RN-502) e a captura do dev agent não saía.
+- Docs (AT-873): a tabela "Onde se encaixa" do README linka cada repo no GitHub (o do próprio README fica sem link), gerada pelo `mapa-dos-repos.ts` do brabo-ci repinado em `a571e82` (`v1.4.0-dev.28`, ci#63).
 
 - Capturas da doc: o job `publicar` só roda na `dev` (`github.ref`); na prova da qa#54 ele abriu a brabo#90 a partir de uma branch. O artefato de falha do "Capturar" passa a levar também `e2e/capturas/.resultado` (`error-context.md` e trace do Playwright) (AT-859).
 
