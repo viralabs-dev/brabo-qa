@@ -2,11 +2,13 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { test, type Page } from '@playwright/test';
-import { autenticar, API_URL, type SessaoSemeada } from '../suporte/api.ts';
+import { autenticar, API_URL, proporAdr, proporPlanoDoDevLead, type SessaoSemeada } from '../suporte/api.ts';
 import { semearSessaoComDuble } from '../suporte/duble.ts';
 import { anexarEvento, eventosDaSessao } from '../suporte/eventos.ts';
 import { contextoLogado } from '../suporte/navegador.ts';
 import { abrirFila } from '../suporte/chat.ts';
+import { aprovarOsGates, esperarGateAberto, semearExecucao } from '../suporte/execucao.ts';
+import { chamarInterno, criarEpico, criarHistoria, criarMapaDeModulos, criarTarefa, ligarModulos } from '../suporte/interno.ts';
 import { COR_DA_MASCARA, conferirSemDadoSensivel, mascaras } from '../suporte/ocultar.ts';
 
 /**
@@ -180,4 +182,90 @@ test('gastos: o consumo do projeto', async () => {
   await page.goto(`/projects/${sessao.projectId}?tab=spend`);
   await page.waitForLoadState('networkidle');
   await fotografar(page, 'gastos', 'Gastos do projeto');
+});
+
+// AT-872: as telas dos passos 4 a 6 e dos READMEs. A ORDEM importa: os testes de execução criam outro projeto (que apareceria
+// em `projetos` se viesse antes), e as três primeiras telas precisam ser fotografadas antes de o plano ser proposto.
+// Tudo vem de estado semeado por HTTP, sem turno de LLM, e nada é aprovado: aprovar o ADR abriria PR e aprovar o plano ativaria dev real.
+
+let tarefasDoPlano: string[] = [];
+
+/** Mapa, regra, backlog e o ADR do Arquiteto pendente na sessão do Criativo. */
+async function semearArquitetura(): Promise<void> {
+  // `agent.activated` é o que liga o botão "Confirmar arquitetura pronta" (session-readiness do web).
+  await anexarEvento(token, sessao, 'agent.activated', { kind: 'agent', id: 'arquiteto' }, { agent: 'arquiteto' });
+  await criarMapaDeModulos(sessao, [
+    { name: 'api', responsibility: 'Cria e resolve os links curtos' },
+    { name: 'web', responsibility: 'Tela para colar o endereço', dependsOn: ['api'] },
+  ]);
+  await chamarInterno(sessao, 'c4-diagram', { systemName: 'Encurtador de links', actors: [{ name: 'Pessoa que cola o endereço' }] });
+  const regra = await anexarEvento(token, sessao, 'artifact.business_rule', { kind: 'agent', id: 'po' }, {
+    title: 'Só endereços http e https',
+    text: 'O encurtador só aceita endereços http e https.',
+  });
+  const epico = await criarEpico(sessao, 'Encurtar e acompanhar links');
+  for (const [titulo, modulo] of [['Encurtar um endereço', 'api'], ['Tela de colar o endereço', 'web']] as const) {
+    const historia = await criarHistoria(sessao, epico.id, titulo, [regra.id]);
+    await ligarModulos(sessao, historia.id, [modulo]);
+    tarefasDoPlano.push((await criarTarefa(sessao, historia.id, titulo)).id);
+  }
+  await proporAdr(token, sessao, {
+    title: 'Módulo único com SQLite em volume persistente',
+    slug: 'modulo-unico-com-sqlite',
+    content: '# Módulo único com SQLite em volume persistente\n\n## Contexto\nO encurtador guarda poucos milhares de links.\n\n## Decisão\nUm só serviço, com SQLite em volume persistente.\n\n## Consequências\nSem servidor de banco para operar; escalar exige migrar.\n',
+  });
+}
+
+test('adr no chat: o Arquiteto propõe o ADR', async () => {
+  await semearArquitetura();
+  await page.goto(`/projects/${sessao.projectId}/sessions/${sessao.sessionId}`);
+  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ timeout: 30_000 });
+  await fotografar(page, 'adr-no-chat', 'ADR proposto no chat');
+});
+
+test('arquitetura: a aba com o mapa, o C4 e o ADR', async () => {
+  await page.goto(`/projects/${sessao.projectId}?tab=arquitetura`);
+  await page.locator('svg[id^="mermaid"], svg[aria-roledescription]').first().waitFor({ timeout: 45_000 });
+  await fotografar(page, 'arquitetura', 'Aba Arquitetura', async () => {
+    await page.locator('svg[id^="mermaid"], svg[aria-roledescription]').first().waitFor({ timeout: 45_000 });
+  });
+});
+
+test('plano e modo automático: o plano do Dev Lead pendente', async () => {
+  await proporPlanoDoDevLead(token, sessao, {
+    resumo: 'A api primeiro, depois a web que a consome.',
+    modulos: ['api', 'web'],
+    tarefas: [
+      { taskId: tarefasDoPlano[0]!, modulo: 'api' },
+      { taskId: tarefasDoPlano[1]!, modulo: 'web' },
+    ],
+  });
+  await page.goto(`/projects/${sessao.projectId}/sessions/${sessao.sessionId}`);
+  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ timeout: 30_000 });
+  await fotografar(page, 'plano-e-modo-automatico', 'Plano de execução e modo automático');
+});
+
+let execucao: Awaited<ReturnType<typeof semearExecucao>>;
+let tarefaDaExecucao = '';
+
+test('dev-agent: o fio do dev agent na execução', async () => {
+  test.setTimeout(240_000);
+  execucao = await semearExecucao(token, {
+    name: 'Encurtador de links (execução)',
+    modulos: [{ name: 'api' }],
+    tarefas: [{ modulo: 'api', titulo: 'Encurtar um endereço' }],
+  });
+  ({ taskId: tarefaDaExecucao } = await esperarGateAberto(token, execucao));
+  await page.goto(`/projects/${execucao.projectId}/sessions/${execucao.execucaoId}`);
+  await page.waitForLoadState('networkidle');
+  await fotografar(page, 'dev-agent', 'Dev agent trabalhando na execução');
+});
+
+test('merges no chat: a PR pronta para o dono', async () => {
+  await aprovarOsGates(execucao, tarefaDaExecucao); // a PR fica pronta para o dono; NÃO mergeia (RN-825)
+  await page.goto(`/projects/${execucao.projectId}/sessions/${execucao.sessionId}`);
+  await fotografar(page, 'merges-no-chat', 'PR pronta para o merge no chat', async () => {
+    await abrirFila(page, 'prontas');
+    await page.locator('[data-testid="pr-pronta"]').first().waitFor({ timeout: 45_000 });
+  });
 });

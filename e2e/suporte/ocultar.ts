@@ -13,8 +13,8 @@
  * satisfaz as interfaces abaixo por estrutura.
  */
 
-/** Domínios de e-mail que são de teste/fictícios. Qualquer outro e-mail visível reprova a captura. */
-export const DOMINIOS_DE_TESTE = ['brabo.dev', 'brabo.test', 'loja-teste.local', 'exemplo.com'];
+/** Domínios de e-mail que são de teste/fictícios (`bot.brabo.local` é o do commit dos dev agents, fictício do produto). Qualquer outro e-mail visível reprova a captura. */
+export const DOMINIOS_DE_TESTE = ['brabo.dev', 'brabo.test', 'loja-teste.local', 'exemplo.com', 'bot.brabo.local'];
 
 /**
  * Padrões proibidos no que a imagem mostra. `tipo` entra na mensagem; o TRECHO achado nunca entra

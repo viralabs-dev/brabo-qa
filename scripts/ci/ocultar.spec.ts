@@ -23,6 +23,7 @@ describe('ocultar: a guarda de texto da captura (AT-864)', () => {
 
   it('deixa passar texto limpo e e-mail de domínio de teste', () => {
     expect(achadosSensiveis('Projeto encurtador, owner@brabo.dev, dono@loja-teste.local, 12 tarefas')).toEqual([]);
+    expect(achadosSensiveis('commit de dev-api@bot.brabo.local')).toEqual([]);
   });
 
   it('a mensagem da falha não repete o trecho achado', async () => {

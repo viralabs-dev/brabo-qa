@@ -32,9 +32,16 @@ flowchart LR
 | `perguntas-abertas` | a fila de perguntas abertas |
 | `providers` | provedores de modelo, sem chave |
 | `gastos` | consumo do projeto |
+| `adr-no-chat` | o ADR que o Arquiteto propôs, pendente para o dono (passo 4) |
+| `arquitetura` | a aba Arquitetura: mapa de módulos, C4 e ADR (README) |
+| `plano-e-modo-automatico` | o plano do Dev Lead pendente e a oferta do modo automático (passo 5) |
+| `dev-agent` | o fio da execução: o dev agent pega a tarefa e entrega a PR (README) |
+| `merges-no-chat` | a PR pronta na fila do chat, para o dono mergear (passo 6 e README) |
+
+As cinco últimas (AT-872) vêm de estado semeado por HTTP, sem turno de LLM: `proporAdr` e `proporPlanoDoDevLead` propõem a ação como agente e exigem que nasça `pending`, e `semearExecucao({ name })` cria a execução com o dev Noop. Nada é aprovado (aprovar o ADR abriria PR; aprovar o plano ativaria dev real) e nada é mergeado. A ordem no arquivo importa: os testes de execução criam outro projeto, e as telas do chat precisam sair antes de o plano ser proposto. Por isso o engine das capturas é a `-dev.N` mais nova (ou o `engine_tag` do dispatch), como a api: o dev Noop só pega a tarefa sem container registrado nas `-dev` (engine#58). O passo "Capturar" roda sob `scripts/ci/com-token-de-servico.sh` porque a semeadura usa rotas internas (`E2E_SERVICE_TOKEN`).
 
 - **Conta:** `owner@brabo.dev`, a do seed do compose de produção (fictícia). O acesso rápido (`<papel>@brabo.dev`) não serve: só existe em imagem sem a marca (RN-984, ADR 0245), e a doc descreve a imagem da release.
-- **O dublê** só carrega em imagem sem a marca `prd` (RN-1065). Por isso a api das capturas é a `-dev.N` mais nova (ou a `api_tag` do dispatch), e as outras quatro imagens seguem as pins. O manifesto grava a tag que de fato rodou.
+- **O dublê** só carrega em imagem sem a marca `prd` (RN-1065). Por isso a api das capturas é a `-dev.N` mais nova (ou a `api_tag` do dispatch), e as outras três imagens (web, broker, backup) seguem as pins; o engine também é a `-dev.N` mais nova (AT-872). O manifesto grava a tag que de fato rodou.
 - **Um login só.** Os dois temas saem do mesmo contexto: o refresh do login vale uma vez, e navegar com a renovação em voo a aborta e derruba a sessão (por isso o `fotografar` espera a rede assentar antes de recarregar).
 
 ## A ocultação (AT-864)
@@ -42,7 +49,7 @@ flowchart LR
 `e2e/suporte/ocultar.ts` tem duas camadas:
 
 1. **`mask`:** o `page.screenshot({ mask })` cobre com cor chapada o e-mail e o nome do usuário (o botão do menu da barra lateral), campos de senha, e-mail, chave, token e caminho. Os seletores são estruturais, nunca texto.
-2. **Guarda de texto:** `conferirSemDadoSensivel` LANÇA antes do screenshot se o texto visível ou o valor de um campo casar com `/home/`, o usuário da máquina, o handle do GitHub, um token (`ghp_`, `github_pat_`, `sk-`, JWT, chave AWS) ou um e-mail fora dos domínios de teste (`brabo.dev`, `brabo.test`, `loja-teste.local`, `exemplo.com`). A mensagem diz o TIPO do achado, nunca o trecho: ela vai para log de Actions.
+2. **Guarda de texto:** `conferirSemDadoSensivel` LANÇA antes do screenshot se o texto visível ou o valor de um campo casar com `/home/`, o usuário da máquina, o handle do GitHub, um token (`ghp_`, `github_pat_`, `sk-`, JWT, chave AWS) ou um e-mail fora dos domínios de teste (`brabo.dev`, `brabo.test`, `loja-teste.local`, `exemplo.com`, `bot.brabo.local`, o e-mail fictício que o worktree do dev agent grava). A mensagem diz o TIPO do achado, nunca o trecho: ela vai para log de Actions.
 
 A captura não é repetida até passar (`retries: 0`). A guarda cobre o que a página mostra; o que a imagem tem de visual (um nome dentro de um gráfico, por exemplo) só a leitura com zoom pega.
 
