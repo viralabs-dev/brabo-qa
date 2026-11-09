@@ -8,16 +8,22 @@ O `brabo-qa` fotografa as telas que a documentação do `brabo` mostra (AT-859, 
 
 ```mermaid
 flowchart LR
-  D[decidir: o MAJOR.MINOR do web mudou?] -->|sim| C[capturar: compose + dublê + Playwright]
+  G[gatilho: repository_dispatch, cron ou manual] --> D[decidir: a tag do web mudou?]
+  D -->|sim| C[capturar: compose + dublê + Playwright + diff de pixels]
   D -->|não| F[em dia, para em verde]
-  C --> A[(artefato: PNGs + capturas.json)]
-  A --> P[publicar: valida e abre a PR no brabo]
+  C --> A[(artefato: PNGs + capturas.json + mudancas.json)]
+  A --> P[publicar: valida o veredito]
+  P -->|versao| V[PR chore/capturas-versao: só capturas.json]
+  P -->|visual| W[PR chore/capturas-da-doc: só os PNG mudados]
 ```
 
-- **`decidir`** compara a pin do `web` em `componentes.json` do `brabo` (na `dev`) com o `web` de `docs/assets/capturas.json`. Mesmo MAJOR.MINOR: para em verde ("em dia") e não abre PR de ruído. Sem manifesto, segue. O `workflow_dispatch` aceita `forcar`.
-- **`capturar`** não tem o token do App. Sobe o compose do `brabo-infra` com as imagens por digest (tag resolvida uma vez, `cosign verify` antes), liga o provider dublê da api com o roteiro DIDÁTICO deste repo (`e2e/capturas/roteiro.json`, um encurtador de links) e roda `e2e/playwright.capturas.config.ts`.
-- **`publicar`** é o único job com o token do App (`repositories: brabo`, `contents: write`, `pull-requests: write`). Faz checkout limpo do `brabo` na `dev`, baixa o artefato e VALIDA na fronteira de confiança (`scripts/ci/capturas.ts validar`): só `.png` com nome do manifesto, cada um com até 400 KB, e o JSON conferido. Copia para `docs/assets/capturas/`, faz o commit do bot na branch fixa `chore/capturas-da-doc` e abre ou atualiza a PR para a `dev` (ou a fecha quando não há diferença).
-- A PR passa pela escada INTEIRA do `brabo-ci`. A aprovação do dono é a conferência com zoom da AT-864.
+- **Gatilhos:** o `repository_dispatch` `capturas-pin-mudou` (o `brabo` o dispara quando a pin do `web` muda na `dev`, AT-878), o cron diário e o `workflow_dispatch` (com `forcar`).
+- **`decidir`** compara a pin do `web` em `componentes.json` do `brabo` (na `dev`) com o `web` de `docs/assets/capturas.json`. Mesma TAG: para em verde ("em dia"). Tag diferente, PATCH incluso: segue, porque a tela decide se há PR, não a versão. Sem manifesto, segue.
+- **`capturar`** não tem o token do App. Sobe o compose do `brabo-infra` com as imagens por digest (tag resolvida uma vez, `cosign verify` antes), liga o provider dublê da api com o roteiro DIDÁTICO deste repo (`e2e/capturas/roteiro.json`, um encurtador de links) e roda `e2e/playwright.capturas.config.ts`. Depois baixa os PNG atuais de `raw.githubusercontent.com/viralabs-dev/brabo/dev` (repo público, sem token) e roda `capturas.ts diferenca`: cada PNG novo contra o da `dev`, com `pixelmatch` (`threshold: 0.1`) e o limiar de 0,02% dos pixels (`LIMIAR = 0.0002`, ≈210 px em 1366×768). O veredito vai em `mudancas.json`, no artefato: `versao` (nada passou do limiar) ou `visual` (a lista dos PNG que passaram, com a fração). PNG novo, removido ou de outro tamanho conta como mudança.
+- **`publicar`** é o único job com o token do App (`repositories: brabo`, `contents: write`, `pull-requests: write`). Faz checkout limpo do `brabo` na `dev`, baixa o artefato e VALIDA na fronteira de confiança (`scripts/ci/capturas.ts validar <pasta> veredito`): só `.png` com nome do manifesto, cada um com até 400 KB, o JSON conferido e o `mudancas.json` bem formado e coerente. Nenhum PNG entra se o veredito for `versao`. Dois caminhos, com a mesma App:
+  - **`versao`:** só `docs/assets/capturas.json` (os campos `web`, `api`, `engine` e `data`), na branch `chore/capturas-versao`, título "docs: as capturas da doc conferem com o web vX.Y.Z". A isenção da escada para essa branch é do `brabo-ci`, e o `capturas-check` do `brabo` reprova se a PR tocar outra coisa.
+  - **`visual`:** só os PNG listados em `mudancas.json` mais o manifesto, na branch `chore/capturas-da-doc`. A PR passa pela escada INTEIRA do `brabo-ci`, o corpo lista os arquivos e a fração de cada um, e a aprovação do dono é a conferência com zoom da AT-864.
+  - Cada caminho fecha a PR do outro (o veredito mais novo a substitui), e fecha a sua quando não há diferença.
 
 ## O cenário
 
@@ -51,6 +57,10 @@ As cinco últimas (AT-872) vêm de estado semeado por HTTP, sem turno de LLM: `p
 1. **`mask`:** o `page.screenshot({ mask })` cobre com cor chapada o e-mail e o nome do usuário (o botão do menu da barra lateral), campos de senha, e-mail, chave, token e caminho. Os seletores são estruturais, nunca texto.
 2. **Guarda de texto:** `conferirSemDadoSensivel` LANÇA antes do screenshot se o texto visível ou o valor de um campo casar com `/home/`, o usuário da máquina, o handle do GitHub, um token (`ghp_`, `github_pat_`, `sk-`, JWT, chave AWS) ou um e-mail fora dos domínios de teste (`brabo.dev`, `brabo.test`, `loja-teste.local`, `exemplo.com`, `bot.brabo.local`, o e-mail fictício que o worktree do dev agent grava). A mensagem diz o TIPO do achado, nunca o trecho: ela vai para log de Actions.
 
+### O que muda a cada execução (AT-878)
+
+O diff de pixels só presta se duas capturas do mesmo build saírem iguais. Por isso `fixarNaPagina` (em `ocultar.ts`) troca, nos nós de texto e antes do screenshot, o que é de cada execução: o hash curto da sessão (`#425583c8`), o hash da branch da tarefa (`task-bb58781d`), o "iniciada às HH:MM:SS" e o "há N min". Antes dessa troca, o ruído ia de 0,02% a 0,48% dos pixels, acima do limiar. Ela também espera o texto e as rolagens assentarem (o feed do chat media linhas depois do carregamento). O que a tela mostra de verdade continua igual, e a lista de padrões (`VOLATEIS`) tem spec. Ao achar outro valor que muda sozinho, acrescente-o lá.
+
 A captura não é repetida até passar (`retries: 0`). A guarda cobre o que a página mostra; o que a imagem tem de visual (um nome dentro de um gráfico, por exemplo) só a leitura com zoom pega.
 
 ## Rodar na máquina
@@ -64,6 +74,12 @@ CAPTURAS_WEB=v1.2.1 CAPTURAS_API=v2.2.0-dev.21 CAPTURAS_ENGINE=v2.1.0 \
 ```
 
 A saída vai para `e2e/capturas/saida/` (ignorada pelo git), ou para `CAPTURAS_SAIDA`. Nunca use o Postgres da instalação.
+
+Para ver o veredito entre duas pastas de capturas (precisa de `pnpm --dir scripts install`):
+
+```bash
+node scripts/ci/capturas.ts diferenca <pasta-atual> <pasta-nova> <mudancas.json>   # imprime veredito=versao|visual e os PNG
+```
 
 ## Ligar a publicação
 
