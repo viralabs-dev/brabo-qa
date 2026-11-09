@@ -228,6 +228,8 @@ test('arquitetura: a aba com o mapa, o C4 e o ADR', async () => {
   await page.locator('svg[id^="mermaid"], svg[aria-roledescription]').first().waitFor({ timeout: 45_000 });
   await fotografar(page, 'arquitetura', 'Aba Arquitetura', async () => {
     await page.locator('svg[id^="mermaid"], svg[aria-roledescription]').first().waitFor({ timeout: 45_000 });
+    // O ADR pendente fica abaixo da dobra: rola até a lista, na mesma captura (AT-874).
+    await page.getByText('ADRs', { exact: true }).evaluate((el) => el.scrollIntoView({ block: 'center' }));
   });
 });
 
@@ -254,7 +256,18 @@ test('dev-agent: o fio do dev agent na execução', async () => {
     name: 'Encurtador de links (execução)',
     modulos: [{ name: 'api' }],
     tarefas: [{ modulo: 'api', titulo: 'Encurtar um endereço' }],
+    regra: { title: 'Só endereços http e https', text: 'O encurtador só aceita endereços http e https.' },
+    epico: 'Encurtar e acompanhar links',
   });
+  // Modo automático dos 3 QAs: o cartão "Modo automático para o time" some e o fio fica à mostra (AT-874).
+  for (const agentId of ['qa', 'qa-automacao', 'qa-performance-seguranca']) {
+    const r = await fetch(`${API_URL}/projects/${execucao.projectId}/agent-autonomy`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agentId, actionType: '*', mode: 'auto_approve' }),
+    });
+    if (!r.ok) throw new Error(`agent-autonomy ${agentId} respondeu ${r.status}`);
+  }
   ({ taskId: tarefaDaExecucao } = await esperarGateAberto(token, execucao));
   await page.goto(`/projects/${execucao.projectId}/sessions/${execucao.execucaoId}`);
   await page.waitForLoadState('networkidle');
