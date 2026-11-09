@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Docs (AT-873): a tabela "Onde se encaixa" do README linka cada repo no GitHub (o do próprio README fica sem link), gerada pelo `mapa-dos-repos.ts` do brabo-ci repinado em `a571e82` (`v1.4.0-dev.28`, ci#63).
+
 - Capturas da doc: o job `publicar` só roda na `dev` (`github.ref`); na prova da qa#54 ele abriu a brabo#90 a partir de uma branch. O artefato de falha do "Capturar" passa a levar também `e2e/capturas/.resultado` (`error-context.md` e trace do Playwright) (AT-859).
 
 - Capturas da doc: o job usava a pin `v1.3.0` do infra, que não repassa `RATE_LIMIT_*` à api (infra#38); os tetos gravados no `.env` não chegavam e a tela de gastos mostrava erro, derrubando o run 42534027204. O `compose_ref` passa a ser `v1.4.0-dev.7`, a menor tag que contém a infra#38 (AT-859).
