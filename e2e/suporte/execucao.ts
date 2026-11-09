@@ -29,6 +29,8 @@ export interface PlanoDeExecucao {
   maxConsecutiveBlocked?: number;
   /** `false` semeia sem a decisão de imagem (padrão: decide, e libera `/code/*`). AT-843. */
   decidirImagem?: boolean;
+  /** O nome que a tela mostra para o projeto (as capturas da doc, AT-872). */
+  name?: string;
 }
 
 export interface ExecucaoSemeada extends SessaoSemeada {
@@ -51,6 +53,7 @@ async function postar(token: string, rota: string, corpo: Record<string, unknown
 export async function semearExecucao(token: string, plano: PlanoDeExecucao): Promise<ExecucaoSemeada> {
   const sessao = await semearSessao(token, 'criativa', {
     ...(plano.maxConsecutiveBlocked ? { maxConsecutiveBlocked: plano.maxConsecutiveBlocked } : {}),
+    ...(plano.name ? { name: plano.name } : {}),
   });
   const sufixo = Date.now();
 

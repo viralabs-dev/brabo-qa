@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Capturas da doc (AT-872): cinco telas novas, nos dois temas (10 PNGs): `adr-no-chat`, `arquitetura`, `plano-e-modo-automatico`, `dev-agent` e `merges-no-chat`, para os passos 4 a 6 do tutorial e os READMEs do `brabo`. Helpers `proporAdr` e `proporPlanoDoDevLead` (ação proposta por agente, sempre `pending`), opção `name` em `semearExecucao`, `bot.brabo.local` nos domínios de teste da ocultação (com caso no spec) e o passo "Capturar" do `capturas-da-doc.yml` sob `com-token-de-servico.sh` (o `E2E_SERVICE_TOKEN` das rotas internas). O engine das capturas passa a ser a `-dev.N` mais nova (input `engine_tag`), como a api: com o engine `v2.1.0` da pin o dev Noop ficava em `dev.blocked_by_container` (RN-502) e a captura do dev agent não saía.
+
 - Capturas da doc: o job `publicar` só roda na `dev` (`github.ref`); na prova da qa#54 ele abriu a brabo#90 a partir de uma branch. O artefato de falha do "Capturar" passa a levar também `e2e/capturas/.resultado` (`error-context.md` e trace do Playwright) (AT-859).
 
 - Capturas da doc: o job usava a pin `v1.3.0` do infra, que não repassa `RATE_LIMIT_*` à api (infra#38); os tetos gravados no `.env` não chegavam e a tela de gastos mostrava erro, derrubando o run 42534027204. O `compose_ref` passa a ser `v1.4.0-dev.7`, a menor tag que contém a infra#38 (AT-859).
