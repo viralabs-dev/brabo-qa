@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Capturas da doc (AT-878, ADR 0289): a recaptura segue a tag do `web` e só pede o dono quando a imagem muda. `capturas.ts` ganha o diff de pixels (`diferenca`, pixelmatch, limiar de 0,02%) e o `mudancas.json` (`versao` | `visual`, validado na fronteira do `publicar`); `deveCapturar` compara a tag inteira, PATCH incluso. O `capturas-da-doc.yml` aceita `repository_dispatch` (`capturas-pin-mudou`) e o `publicar` tem dois caminhos com a mesma App: `versao` (só `capturas.json`, branch `chore/capturas-versao`) e `visual` (só os PNG mudados mais o manifesto, `chore/capturas-da-doc`, escada inteira). `ocultar.ts` fixa hash da sessão, hash da branch, "iniciada às" e "há N min" antes do screenshot (`fixarNaPagina`), e o cenário espera o texto e as rolagens assentarem: duas capturas do mesmo build deixam de passar do limiar. Devdeps do `scripts/`: `pixelmatch` e `pngjs`.
+
 - CI: repina o brabo-ci na release final `v1.4.0` (`5320046`), para a promoção `dev → main` de 09/11/2026 (a `main` só aceita release final).
 
 - Capturas da doc (AT-874): as três ressalvas da brabo#104. `arquitetura` rola até a lista "ADRs" na mesma captura; `semearExecucao` aceita `regra` e `epico` (padrão igual ao de hoje) e `merges-no-chat` usa os nomes do Encurtador de links; `dev-agent` liga o modo automático dos 3 QAs antes de fotografar, e o cartão "Modo automático para o time" deixa de cobrir o fio.

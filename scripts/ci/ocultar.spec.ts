@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { achadosSensiveis, conferirSemDadoSensivel, mascaras, SELETORES_MASCARADOS } from '../../e2e/suporte/ocultar.ts';
+import { achadosSensiveis, conferirSemDadoSensivel, fixarVolateis, mascaras, SELETORES_MASCARADOS } from '../../e2e/suporte/ocultar.ts';
 
 const pagina = (corpo: string, campos = '') => ({
   locator: (s: string) => ({
@@ -44,5 +44,18 @@ describe('ocultar: a guarda de texto da captura (AT-864)', () => {
   it('mascaras devolve uma caixa por seletor', () => {
     const vistos: string[] = [];
     expect(mascaras({ locator: (s) => (vistos.push(s), s) })).toEqual([...SELETORES_MASCARADOS]);
+  });
+});
+
+describe('ocultar: o que muda a cada execução vira valor fixo (AT-878)', () => {
+  it('fixa hash da sessão, hash da branch, "iniciada às" e "há N min"', () => {
+    const a = 'Sessão #425583c8 · #425583c8 · iniciada às 13:38:39 · feature/task-bb58781d · há 3 min';
+    const b = 'Sessão #013d29ab · #013d29ab · iniciada às 09:01:02 · feature/task-d1c68acf · há 12 min';
+    expect(fixarVolateis(a)).toBe(fixarVolateis(b));
+    expect(fixarVolateis(a)).toBe('Sessão #00000000 · #00000000 · iniciada às 12:00:00 · feature/task-00000000 · há 3 min');
+  });
+  it('não toca no texto que é da tela', () => {
+    const t = 'Pronta este minuto. PR #1 "dev-agent" · feature/task-curta · iniciada';
+    expect(fixarVolateis(t)).toBe(t);
   });
 });
