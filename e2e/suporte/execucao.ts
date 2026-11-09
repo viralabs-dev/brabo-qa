@@ -31,6 +31,9 @@ export interface PlanoDeExecucao {
   decidirImagem?: boolean;
   /** O nome que a tela mostra para o projeto (as capturas da doc, AT-872). */
   name?: string;
+  /** Os textos que a tela mostra (as capturas da doc, AT-874); o padrão é o do E2E. */
+  regra?: { title: string; text: string };
+  epico?: string;
 }
 
 export interface ExecucaoSemeada extends SessaoSemeada {
@@ -65,11 +68,11 @@ export async function semearExecucao(token: string, plano: PlanoDeExecucao): Pro
   if (plano.decidirImagem !== false) await decidirImagem(sessao); // libera `/code/*` (portão da aba Code, RN-105)
 
   // A história só é promovida com ao menos uma regra de negócio EXISTENTE (evento `artifact.business_rule`).
-  const regra = await anexarEvento(token, sessao, 'artifact.business_rule', { kind: 'agent', id: 'po' }, {
+  const regra = await anexarEvento(token, sessao, 'artifact.business_rule', { kind: 'agent', id: 'po' }, plano.regra ?? {
     title: 'Regra semeada pelo E2E',
     text: 'O módulo entrega o combinado.',
   });
-  const epico = await criarEpico(sessao, 'Épico semeado pelo E2E');
+  const epico = await criarEpico(sessao, plano.epico ?? 'Épico semeado pelo E2E');
 
   const tarefaIds: string[] = [];
   for (const [i, t] of plano.tarefas.entries()) {
