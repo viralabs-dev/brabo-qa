@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- CI: repina o brabo-ci na release final `v1.4.0` (`5320046`), para a promoção `dev → main` de 09/11/2026 (a `main` só aceita release final).
+
 - Capturas da doc (AT-874): as três ressalvas da brabo#104. `arquitetura` rola até a lista "ADRs" na mesma captura; `semearExecucao` aceita `regra` e `epico` (padrão igual ao de hoje) e `merges-no-chat` usa os nomes do Encurtador de links; `dev-agent` liga o modo automático dos 3 QAs antes de fotografar, e o cartão "Modo automático para o time" deixa de cobrir o fio.
 - Capturas da doc (AT-872): cinco telas novas, nos dois temas (10 PNGs): `adr-no-chat`, `arquitetura`, `plano-e-modo-automatico`, `dev-agent` e `merges-no-chat`, para os passos 4 a 6 do tutorial e os READMEs do `brabo`. Helpers `proporAdr` e `proporPlanoDoDevLead` (ação proposta por agente, sempre `pending`), opção `name` em `semearExecucao`, `bot.brabo.local` nos domínios de teste da ocultação (com caso no spec) e o passo "Capturar" do `capturas-da-doc.yml` sob `com-token-de-servico.sh` (o `E2E_SERVICE_TOKEN` das rotas internas). O engine das capturas passa a ser a `-dev.N` mais nova (input `engine_tag`), como a api: com o engine `v2.1.0` da pin o dev Noop ficava em `dev.blocked_by_container` (RN-502) e a captura do dev agent não saía.
 - Docs (AT-873): a tabela "Onde se encaixa" do README linka cada repo no GitHub (o do próprio README fica sem link), gerada pelo `mapa-dos-repos.ts` do brabo-ci repinado em `a571e82` (`v1.4.0-dev.28`, ci#63).
