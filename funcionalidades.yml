@@ -55,7 +55,7 @@ funcionalidades:
     tema: modos
     status: ativa
     caminhos:
-      engine: ['lib/engine/{projects,dev}/**']
+      engine: ['lib/engine/projects/**']
       web: ['src/**/{NewProjectWizard,FolderBrowserModal,AdoptionPlanPage}*']
       runner: ['src/{espelho,pasta-do-projeto}*']
   - id: git
@@ -123,4 +123,19 @@ funcionalidades:
     tema: operacao
     status: ativa
     caminhos:
-      infra: ['docker/backup/**']
+      infra: ['docker/backup/**', 'docker/docker-compose.install.yml']
+  - id: execucao
+    nome: Execução dos dev agents
+    descricao: dev agents, disjuntor, Rearmar, execução parada, PR pronta e a aba Executores (AT-815, decisão P4)
+    tema: execucao
+    status: ativa
+    caminhos:
+      engine: ['lib/engine/{dev,workers}/**']
+      web: ['src/**/{AgentCard,AgentTeamGrid,ProjectExecutorsTab,ProjectOverviewTab}*']
+  - id: chat-e-pendencias
+    nome: Chat e pendências
+    descricao: o fio da sessão, a montagem da linha do tempo, as pendências de outras sessões e as perguntas em aberto (AT-815, decisão P4)
+    tema: agentes
+    status: ativa
+    caminhos:
+      web: ['src/**/{SessionFio,session-fio,session-timeline,SessionPage,PendenciasDeOutrasSessoes,PerguntasEmAberto,RetomarGateEstacionado}*']

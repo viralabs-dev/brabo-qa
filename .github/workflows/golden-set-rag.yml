@@ -36,6 +36,7 @@ run-name: ${{ format('Golden-set do RAG · {0} · api@{1}', github.event_name ==
 
 permissions:
   contents: read
+  packages: read # AT-832
 
 env:
   # Mesmas versões do ci.yml — arquivo separado, sem `env:` compartilhado
@@ -68,6 +69,7 @@ jobs:
     permissions:
       contents: read
       issues: write
+      packages: read # AT-832
     services:
       postgres:
         # pgvector, não `postgres:16` puro — mesmo motivo do `test-engine` em
@@ -134,10 +136,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
           cache-dependency-path: brabo-api/pnpm-lock.yaml
+          registry-url: https://npm.pkg.github.com
+          scope: '@viralabs-dev'
 
       - name: Vínculos
         id: vinculos
-        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@53200467cadc73c5c23b90545474d4948764932f  # v1.4.0
         with:
           irmaos: |
             brabo-api
@@ -166,6 +170,8 @@ jobs:
       # NestFactory + Drizzle + todo o resto que o AppModule importa.
       - run: pnpm install --frozen-lockfile
         working-directory: brabo-api
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # `/api/pull` com `stream:false` bloqueia até completar e devolve o
       # JSON final — sem loop de polling. ~274MB; --max-time generoso pra
@@ -176,7 +182,8 @@ jobs:
           curl -fsS --max-time 300 -X POST http://localhost:11434/api/pull \
             -d '{"name":"nomic-embed-text","stream":false}'
           echo
-          curl -fsS http://localhost:11434/api/tags | grep -q nomic-embed-text \
+          tags="$(curl -fsS http://localhost:11434/api/tags)"
+          grep -q nomic-embed-text <<<"$tags" \
             || { echo "::error::nomic-embed-text não apareceu em /api/tags depois do pull"; exit 1; }
 
       # AppModule não migra sozinho no boot (main.ts/app.module.ts não

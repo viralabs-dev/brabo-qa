@@ -1,0 +1,68 @@
+{
+  "agentes": {
+    "criativo": [
+      {
+        "texto": "Resposta do dublê em streaming: este texto chega como agent.delta antes da resposta final.",
+        "inputTokens": 12,
+        "outputTokens": 9
+      },
+      {
+        "tool_calls": [
+          {
+            "name": "list_open_questions",
+            "arguments": {}
+          },
+          {
+            "name": "answer_open_question",
+            "arguments": {
+              "questionId": "00000000-0000-4000-8000-000000000001"
+            }
+          },
+          {
+            "name": "answer_open_question",
+            "arguments": {
+              "questionId": "00000000-0000-4000-8000-000000000002"
+            }
+          },
+          {
+            "name": "answer_open_question",
+            "arguments": {
+              "questionId": "00000000-0000-4000-8000-000000000003"
+            }
+          },
+          {
+            "name": "answer_open_question",
+            "arguments": {
+              "questionId": "00000000-0000-4000-8000-000000000004"
+            }
+          },
+          {
+            "name": "answer_open_question",
+            "arguments": {
+              "questionId": "00000000-0000-4000-8000-000000000005"
+            }
+          },
+          {
+            "name": "answer_open_question",
+            "arguments": {
+              "questionId": "00000000-0000-4000-8000-000000000006"
+            }
+          },
+          {
+            "name": "answer_open_question",
+            "arguments": {
+              "questionId": "00000000-0000-4000-8000-000000000007"
+            }
+          }
+        ],
+        "inputTokens": 40,
+        "outputTokens": 20
+      },
+      {
+        "texto": "Fechei as 7 perguntas em aberto com as sugestões.",
+        "inputTokens": 20,
+        "outputTokens": 8
+      }
+    ]
+  }
+}

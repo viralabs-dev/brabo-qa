@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  packages: read # instalar @viralabs-dev/brabo-shared e brabo-docker-port do GitHub Packages (AT-832)
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -19,22 +20,14 @@ concurrency:
 env:
   NODE_VERSION: '26.10.0'
   PNPM_VERSION: '11.3.0'
-  ACTIONLINT_VERSION: '1.7.12'
-  ACTIONLINT_SHA256: '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8'
 
 jobs:
-  actionlint:
-    name: actionlint
-    runs-on: ubuntu-26.04
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - name: Instalar o actionlint
-        run: |
-          curl -fsSL -o /tmp/al.tgz https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
-          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  /tmp/al.tgz" | sha256sum -c -
-          tar -xzf /tmp/al.tgz -C /tmp actionlint
-      - run: /tmp/actionlint -color
+  # Actionlint e pins do brabo-ci (AT-819). Não é check obrigatório.
+  cadeia:
+    name: Cadeia (actionlint e pins)
+    uses: viralabs-dev/brabo-ci/.github/workflows/cadeia.yml@53200467cadc73c5c23b90545474d4948764932f  # v1.4.0
+    with:
+      ci_ref: 53200467cadc73c5c23b90545474d4948764932f  # v1.4.0
   scripts:
     name: Scripts (jev, idioma)
     runs-on: ubuntu-26.04
@@ -79,9 +72,11 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
+          registry-url: https://npm.pkg.github.com
+          scope: '@viralabs-dev'
       - name: Vínculos
         id: vinculos
-        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@53200467cadc73c5c23b90545474d4948764932f  # v1.4.0
         with:
           irmaos: |
             brabo-api
@@ -93,6 +88,8 @@ jobs:
       # O typecheck lê o código do api: precisa dos tipos dele (@brabo/shared vem do brabo-contracts).
       - run: pnpm install --frozen-lockfile
         working-directory: brabo-api
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: pnpm install --frozen-lockfile
         working-directory: qa/scripts
       - name: Typecheck
@@ -120,7 +117,7 @@ jobs:
         working-directory: e2e
 
   workflows:
-    name: actionlint e caminhos dos irmãos
+    name: Caminhos dos irmãos
     runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
@@ -147,20 +144,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
       - name: Vínculos
         id: vinculos
-        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@53200467cadc73c5c23b90545474d4948764932f  # v1.4.0
         with:
           irmaos: |
             brabo-api
             brabo-engine
             brabo-broker
-      - name: actionlint
-        run: |
-          set -euo pipefail
-          curl -fsSL -o /tmp/actionlint.tar.gz \
-            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
-          echo "${ACTIONLINT_SHA256}  /tmp/actionlint.tar.gz" | sha256sum -c -
-          sudo tar -xzf /tmp/actionlint.tar.gz -C /usr/local/bin actionlint
-          cd qa && actionlint
       # Os golden-sets só rodam agendados: aqui se prova que o que eles pedem aos irmãos existe.
       - name: Caminhos dos irmãos que os golden-sets usam
         run: |

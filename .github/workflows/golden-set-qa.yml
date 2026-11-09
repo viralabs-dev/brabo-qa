@@ -58,6 +58,7 @@ run-name: ${{ format('Golden-set do QA · {0} · api@{1}', github.event_name == 
 
 permissions:
   contents: read
+  packages: read # AT-832
 
 env:
   # Mesmas versões do ci.yml — arquivo separado, sem `env:` compartilhado
@@ -84,6 +85,7 @@ jobs:
     permissions:
       contents: read
       issues: write
+      packages: read # AT-832
     # 150: as duas rodadas medidas da AT-076 levaram 52 e 86 min, com o mesmo
     # modelo e o mesmo placar — a variância é do modelo (um caso repetiu
     # `npm test` 30 vezes antes de terminar `blocked(modelo)`). 86 min + ~75%
@@ -165,10 +167,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
           cache-dependency-path: brabo-api/pnpm-lock.yaml
+          registry-url: https://npm.pkg.github.com
+          scope: '@viralabs-dev'
 
       - name: Vínculos
         id: vinculos
-        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@53200467cadc73c5c23b90545474d4948764932f  # v1.4.0
         with:
           irmaos: |
             brabo-api
@@ -193,6 +197,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
         working-directory: brabo-api
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Puxar qwen2.5-coder:latest no Ollama do job
         run: |
@@ -201,7 +207,8 @@ jobs:
           curl -fsS --max-time 1200 -X POST http://localhost:11434/api/pull \
             -d '{"name":"qwen2.5-coder:latest","stream":false}'
           echo
-          curl -fsS http://localhost:11434/api/tags | grep -q 'qwen2.5-coder:latest' \
+          tags="$(curl -fsS http://localhost:11434/api/tags)"
+          grep -q 'qwen2.5-coder:latest' <<<"$tags" \
             || { echo "::error::qwen2.5-coder:latest não apareceu em /api/tags depois do pull"; exit 1; }
           echo "TEMPO pull do modelo: $(( $(date +%s) - inicio ))s"
 
@@ -253,6 +260,8 @@ jobs:
       - name: Dependências do broker
         working-directory: brabo-broker
         run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Subir o broker (nativo, com o Docker do runner) e esperar o /health
         working-directory: brabo-broker

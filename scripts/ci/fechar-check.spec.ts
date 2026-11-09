@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { anexarVinculos, checkConfere, decidirFechamento, foiCancelado } from './fechar-check.ts';
+import { anexarVinculos, avisoDeReexecucao, checkConfere, comentarioExistente, corpoDoComentario, MARCA_DO_COMENTARIO, decidirFechamento, foiCancelado } from './fechar-check.ts';
 
 const ok = { validar: 'success', job: 'success', assinatura: 'success', digest: 'success', spec: 'success' } as const;
 const dec = (d: Partial<Record<keyof typeof ok, string>>, cancelado = false) =>
@@ -39,8 +39,25 @@ describe('checkConfere', () => {
     expect(checkConfere({ ...check, name: 'outro' }, 'a'.repeat(40), 7)).not.toBeNull();
     expect(checkConfere({ ...check, name: 'E2E do brabo-qa ' }, 'a'.repeat(40), 7)).not.toBeNull();
     expect(checkConfere(check, 'b'.repeat(40), 7)).not.toBeNull();
-    expect(checkConfere({ ...check, status: 'completed' }, 'a'.repeat(40), 7)).not.toBeNull();
+    expect(checkConfere({ ...check, status: 'queued' }, 'a'.repeat(40), 7)).not.toBeNull();
     expect(checkConfere({ ...check, app: { id: 8 } }, 'a'.repeat(40), 7)).not.toBeNull();
+  });
+});
+
+describe('reexecução (RN-1067)', () => {
+  const done = { name: 'E2E do brabo-qa', head_sha: 'a'.repeat(40), status: 'completed', app: { id: 7 } };
+  it('check completed é aceito para criar um novo; in_progress segue aceito', () => {
+    expect(checkConfere(done, 'a'.repeat(40), 7)).toBeNull();
+    expect(checkConfere({ ...done, status: 'in_progress' }, 'a'.repeat(40), 7)).toBeNull();
+  });
+  it('as defesas valem também no completed: nome, head e App', () => {
+    expect(checkConfere({ ...done, name: 'outro' }, 'a'.repeat(40), 7)).toBe('nome inesperado: outro');
+    expect(checkConfere(done, 'b'.repeat(40), 7)).not.toBeNull();
+    expect(checkConfere({ ...done, app: { id: 8 } }, 'a'.repeat(40), 7)).not.toBeNull();
+  });
+  it('o resumo cita o check anterior', () => {
+    expect(avisoDeReexecucao('9', 'https://x/y')).toContain('https://x/y');
+    expect(avisoDeReexecucao('9')).toContain('check-run 9');
   });
 });
 
@@ -60,5 +77,21 @@ describe('anexarVinculos', () => {
   it('anexa a tabela e limita o tamanho', () => {
     expect(anexarVinculos('r', '## Vínculos\n')).toBe('r\n\n## Vínculos');
     expect(anexarVinculos('r', 'x'.repeat(9000)).length).toBe(1 + 2 + 8000);
+  });
+});
+
+describe('comentário fixo da PR', () => {
+  it('acha só o comentário marcado e de bot; o resto é ignorado', () => {
+    const cs = [
+      { id: 1, body: `${MARCA_DO_COMENTARIO}\nforjado`, user: { type: 'User' } },
+      { id: 2, body: 'outro', user: { type: 'Bot' } },
+      { id: 3, body: corpoDoComentario('x'), user: { type: 'Bot' } },
+    ];
+    expect(comentarioExistente(cs)).toBe(3);
+    expect(comentarioExistente(cs.slice(0, 2))).toBeNull();
+  });
+  it('o corpo leva a marca e cabe no limite do GitHub', () => {
+    expect(corpoDoComentario('x'.repeat(70000)).startsWith(MARCA_DO_COMENTARIO)).toBe(true);
+    expect(corpoDoComentario('x'.repeat(70000)).length).toBeLessThanOrEqual(65536);
   });
 });

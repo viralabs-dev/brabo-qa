@@ -18,7 +18,7 @@ on:
         description: 'SHA do head da PR'
         required: true
       check_run_id:
-        description: 'Id do check run E2E do brabo-qa já criado'
+        description: 'Id do check run E2E do brabo-qa já criado. 0 = ensaio sem check (AT-851): anunciar e fechar são pulados'
         required: true
       compose_ref:
         description: 'SHA (40 hex) ou tag vX.Y.Z do brabo-infra com o docker-compose.install.yml'
@@ -77,6 +77,9 @@ jobs:
       conferencia: ${{ steps.resultados.outputs.conferencia }}
       specs_falhas: ${{ steps.resultados.outputs.specs_falhas }}
       cobertura: ${{ steps.cobertura.outputs.cobertura }}
+      funcionalidades: ${{ steps.relatorio.outputs.funcionalidades }}
+      resumo: ${{ steps.relatorio.outputs.resumo }}
+      html: ${{ steps.html.outputs.artifact-url }}
     # Valores CRUS: só o passo `validar` os lê (por env, nunca interpolados em script). Os validados vão ao GITHUB_ENV.
     env:
       RAW_REPO: ${{ github.event.client_payload.repo || inputs.repo }}
@@ -88,11 +91,16 @@ jobs:
       RAW_ORIGEM: ${{ toJSON(github.event.client_payload.origem) }}
       RAW_MODO: ${{ github.event.client_payload.modo || inputs.modo }}
       RAW_FUNCIONALIDADES: ${{ github.event_name == 'workflow_dispatch' && inputs.funcionalidades || toJSON(github.event.client_payload.funcionalidades) }}
+      RAW_MOTIVOS: ${{ toJSON(github.event.client_payload.motivos) }}
+      RAW_SEMDONO: ${{ toJSON(github.event.client_payload.semDono) }}
+      RAW_TOCADAS: ${{ toJSON(github.event.client_payload.tocadas) }}
+      RAW_SELECAO: ${{ toJSON(github.event.client_payload.selecao) }}
     steps:
-      # Scripts e workflow vêm SEMPRE da `dev` (inclusive na PR do brabo-qa); só `e2e/` vem do head da PR.
+      # Scripts e workflow vêm da `dev` (inclusive na PR do brabo-qa); só `e2e/` vem do head da PR. Exceção: o ensaio manual
+      # (`workflow_dispatch`, só quem tem escrita) usa os scripts do próprio ref do workflow, para provar uma branch antes do merge.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
-          ref: dev
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || 'dev' }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
@@ -127,7 +135,7 @@ jobs:
           persist-credentials: false
 
       - name: Vínculos
-        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@53200467cadc73c5c23b90545474d4948764932f  # v1.4.0
         with:
           origem: ${{ env.ORIGEM_JSON }}
           irmaos: |
@@ -175,6 +183,11 @@ jobs:
           put CREDENTIALS_MASTER_KEY "$(b64 32)"
           put SECRET_KEY_BASE "$(b64 64)"
           put NEO4J_PASSWORD "$(openssl rand -hex 24)"
+          # AT-840: o catálogo inteiro bate no rate limit padrão (300/usuário, 600/IP por minuto) e no lockout por IP
+          # (formato `falhas:segundos`, degraus crescentes). Só o compose de teste sobe os tetos; valores públicos, sem mascarar.
+          { echo "RATE_LIMIT_USER=5000"; echo "RATE_LIMIT_IP=10000"; echo "AUTH_LOCKOUT_IP_THRESHOLDS=200:5"; } >> .env
+          # AT-815 R4 (RN-1065): o roteiro do provider dublê da api, lido do checkout das specs; o `compose-duble.yml` o monta na api.
+          echo "LLM_DUBLE_ROTEIRO_ARQUIVO=$GITHUB_WORKSPACE/$E2E_DIR/suporte/llm-duble-roteiro.json" >> .env
           # Senha do usuário do E2E: aleatória por run, usada pelo seed e pelas specs.
           senha="$(openssl rand -hex 16)"
           echo "::add-mask::$senha"
@@ -186,7 +199,7 @@ jobs:
         # `backup` é um job (restart "no", sai com 0): o `--wait` o trata como falha. Sobe sem ele e só o CRIA,
         # para o `conferir-digests` (ps -a) achar o container da imagem de backup.
         run: |
-          docker compose -f docker/docker-compose.install.yml --profile container-broker up -d --wait
+          docker compose -f docker/docker-compose.install.yml -f "$GITHUB_WORKSPACE/$E2E_DIR/suporte/compose-duble.yml" --profile container-broker up -d --wait
           docker compose -f docker/docker-compose.install.yml --profile backup create backup
 
       # Para aqui se algum container roda outra imagem que não a do digest verificado.
@@ -217,11 +230,15 @@ jobs:
           E2E_API_URL: http://localhost:3000
           PLAYWRIGHT_JSON_OUTPUT_NAME: resultado.json
         # `completo` (padrão, o portão da main) roda tudo; `funcionalidades` filtra pelas tags @f-<id> (GREP validado e montado no payload).
+        # O token de serviço (rotas internas das specs, AT-815 P3) entra só no ambiente do Playwright: mascarado, nunca impresso.
         run: |
+          # O script vem do checkout do qa do E2E (a PR do qa, ou a dev): a PR já executa as specs com o token, então não ganha exposição.
+          qa="$GITHUB_WORKSPACE/$(dirname "$E2E_DIR")"
+          com_token() { bash "$qa/scripts/ci/com-token-de-servico.sh" "$GITHUB_WORKSPACE/brabo-infra/docker/.env" -- "$@"; }
           if [ "$MODO" = funcionalidades ]; then
-            pnpm test --grep "$GREP" --reporter=list,html,json
+            com_token pnpm test --grep "$GREP" --reporter=list,github,html,json
           else
-            pnpm test --reporter=list,html,json
+            com_token pnpm test --reporter=list,github,html,json
           fi
 
       # Tabela por funcionalidade (AT-769); funcionalidade sem spec é "sem cobertura" e não reprova.
@@ -236,6 +253,39 @@ jobs:
         working-directory: brabo-infra
         run: docker compose -f docker/docker-compose.install.yml --profile container-broker --profile backup logs --no-color > "$GITHUB_WORKSPACE/containers.log" 2>&1 || true
 
+      # O HTML do Playwright vai à parte do zip do E2E (AT-791): o link entra no Summary e no check.
+      - name: Relatório HTML do Playwright
+        id: html
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: relatorio-html-${{ github.run_id }}
+          if-no-files-found: ignore
+          path: ${{ env.E2E_DIR }}/playwright-report
+
+      # Relatório de decisão (AT-791): escreve o Summary e os arquivos do artefato; a saída `resumo` é o JSON compacto para o `fechar`.
+      - name: Relatório
+        id: relatorio
+        if: always()
+        continue-on-error: true
+        env:
+          ASSINATURA: ${{ steps.assinatura.outcome }}
+          DIGEST: ${{ steps.digest.outcome }}
+          SPEC: ${{ steps.spec.outcome }}
+          HTML_URL: ${{ steps.html.outputs.artifact-url }}
+          ARTEFATO_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts
+        run: node scripts/ci/relatorio.ts
+
+      - name: Artefato do relatório
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: relatorio-regressivo-${{ github.run_id }}
+          if-no-files-found: ignore
+          path: |
+            relatorio-regressivo.md
+            relatorio-regressivo.json
+
       - name: Artefatos
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
@@ -243,7 +293,6 @@ jobs:
           name: e2e-${{ github.run_id }}
           if-no-files-found: ignore
           path: |
-            ${{ env.E2E_DIR }}/playwright-report
             ${{ env.E2E_DIR }}/test-results
             ${{ env.E2E_DIR }}/resultado.json
             digests.json
@@ -265,9 +314,40 @@ jobs:
             if [ -f "$r" ]; then echo "specs_falhas=$(jq -c '[.. | objects | select(has("specs")) | .specs[] | select(.ok == false) | .title] | .[:50]' "$r" 2>/dev/null || echo '[]')"; else echo 'specs_falhas=[]'; fi
           } >> "$GITHUB_OUTPUT"
 
+  # Exibição (AT-791): uma linha por funcionalidade com spec executada no grafo do run. NÃO roda nada e não tem token nem checkout:
+  # só lê o resumo do job e2e (dado de PR) e sai vermelho se a funcionalidade falhou. O portão continua sendo o `fechar`.
+  funcionalidade:
+    name: Funcionalidade · ${{ matrix.id }}
+    needs: e2e
+    if: ${{ always() && needs.e2e.outputs.funcionalidades != '' && needs.e2e.outputs.funcionalidades != '[]' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions: {}
+    strategy:
+      fail-fast: false
+      matrix:
+        id: ${{ fromJSON(needs.e2e.outputs.funcionalidades) }}
+    env:
+      ID: ${{ matrix.id }}
+      RESUMO: ${{ needs.e2e.outputs.resumo }}
+    steps:
+      - name: Specs da funcionalidade
+        run: |
+          set -uo pipefail
+          [[ "$ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || { echo "::error::id inválido"; exit 1; }
+          lista="$(jq -r --arg id "$ID" '[.specs[] | select(.funcionalidades | index($id))]
+            | .[] | "| \(.status) | \(.titulo | gsub("[|`<]"; " ") | .[0:120]) | \(.duracao_ms / 1000 | floor)s |"' <<<"$RESUMO")"
+          { echo "### $ID"; echo; echo '| status | spec | tempo |'; echo '|---|---|---|'; echo "$lista"; } >> "$GITHUB_STEP_SUMMARY"
+          flaky="$(jq --arg id "$ID" '[.specs[] | select((.funcionalidades | index($id)) and .status == "flaky")] | length' <<<"$RESUMO")"
+          falhou="$(jq --arg id "$ID" '[.specs[] | select((.funcionalidades | index($id)) and .status == "falhou")] | length' <<<"$RESUMO")"
+          [ "$flaky" -gt 0 ] && echo "::warning::$flaky spec(s) flaky em $ID"
+          [ "$falhou" -eq 0 ]
+
   # Aponta o check da PR para ESTE run assim que ele começa (AT-773); o `fechar` o conclui. Só avisa se falhar.
   anunciar:
     name: Anunciar no check
+    # Ensaio manual com check_run_id=0 (AT-851): não há check para apontar.
+    if: ${{ (github.event.client_payload.check_run_id || inputs.check_run_id) != '0' }}
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     continue-on-error: true
@@ -296,7 +376,7 @@ jobs:
         run: node scripts/ci/validar-payload.ts
       - name: Vínculos
         id: vinculos
-        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@53200467cadc73c5c23b90545474d4948764932f  # v1.4.0
         with:
           origem: ${{ env.ORIGEM_JSON }}
           destino: Check na PR|https://github.com/viralabs-dev/${{ env.REPO }}/runs/${{ env.CHECK_RUN_ID }}
@@ -322,7 +402,8 @@ jobs:
   fechar:
     name: Fechar o check
     needs: e2e
-    if: ${{ always() }}
+    # Ensaio manual com check_run_id=0 (AT-851): não há check para fechar; o resultado é o do job `e2e`.
+    if: ${{ always() && (github.event.client_payload.check_run_id || inputs.check_run_id) != '0' }}
     permissions:
       contents: read
     runs-on: ubuntu-26.04
@@ -337,6 +418,10 @@ jobs:
       RAW_ORIGEM: ${{ toJSON(github.event.client_payload.origem) }}
       RAW_MODO: ${{ github.event.client_payload.modo || inputs.modo }}
       RAW_FUNCIONALIDADES: ${{ github.event_name == 'workflow_dispatch' && inputs.funcionalidades || toJSON(github.event.client_payload.funcionalidades) }}
+      RAW_MOTIVOS: ${{ toJSON(github.event.client_payload.motivos) }}
+      RAW_SEMDONO: ${{ toJSON(github.event.client_payload.semDono) }}
+      RAW_TOCADAS: ${{ toJSON(github.event.client_payload.tocadas) }}
+      RAW_SELECAO: ${{ toJSON(github.event.client_payload.selecao) }}
     steps:
       # Checkout LIMPO da `dev`: nada de PR neste job, que é o único com o token do App.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -346,7 +431,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           repository: viralabs-dev/brabo-ci
-          ref: 384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
+          ref: 53200467cadc73c5c23b90545474d4948764932f  # v1.4.0
           path: .brabo-ci
           persist-credentials: false
         continue-on-error: true
@@ -360,12 +445,12 @@ jobs:
 
       - name: Vínculos
         id: vinculos
-        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@384b5d134cf099087b2f8e6b9fa911f1c8ee345d  # brabo-ci dev, merge da ci#22
+        uses: viralabs-dev/brabo-ci/.github/actions/vinculos@53200467cadc73c5c23b90545474d4948764932f  # v1.4.0
         with:
           origem: ${{ env.ORIGEM_JSON }}
           destino: Check na PR|https://github.com/viralabs-dev/${{ env.REPO }}/runs/${{ env.CHECK_RUN_ID }}
 
-      # Escrita no brabo-qa equivale a poder aprovar o portão (README). Escopo: só o repo validado e só `checks: write`.
+      # Escrita no brabo-qa equivale a poder aprovar o portão (README). Escopo: só o repo validado, `checks: write` e `issues: write` (comentário fixo da PR).
       - name: Token do App
         id: app
         if: ${{ steps.validar.outputs.repo != '' }}
@@ -377,6 +462,8 @@ jobs:
           owner: viralabs-dev
           repositories: ${{ steps.validar.outputs.repo }}
           permission-checks: write
+          permission-issues: write  # o comentário fixo da PR (AT-791)
+          permission-pull-requests: write  # o comentário fixo da PR (AT-791): sem isto, 403
 
       - name: Fechar o check
         env:
@@ -393,5 +480,7 @@ jobs:
           CONFERENCIA: ${{ needs.e2e.outputs.conferencia }}
           SPECS_FALHAS: ${{ needs.e2e.outputs.specs_falhas }}
           COBERTURA: ${{ needs.e2e.outputs.cobertura }}
+          RELATORIO: ${{ needs.e2e.outputs.resumo }}
+          HTML_URL: ${{ needs.e2e.outputs.html }}
           VINCULOS_MD: ${{ steps.vinculos.outputs.arquivo }}
         run: node scripts/ci/fechar-check.ts

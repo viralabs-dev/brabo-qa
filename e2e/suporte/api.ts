@@ -245,6 +245,47 @@ export async function proporAcaoPendente(token: string, sessao: SessaoSemeada): 
   return exigirId(acao, 'ação');
 }
 
+/**
+ * Propõe uma ação de AGENTE pela rota pública (as capturas da doc, AT-872) e exige que nasça `pending`: a tela mostra o
+ * cartão de aprovação. Aprovar é do dono e executaria o efeito (PR do ADR, ativação do plano), então a semeadura não aprova.
+ */
+async function proporComoAgente(
+  token: string,
+  sessao: Pick<SessaoSemeada, 'projectId' | 'sessionId'>,
+  agente: string,
+  actionType: string,
+  payload: Record<string, unknown>,
+): Promise<string> {
+  const acao = await json(
+    await fetch(`${API}/projects/${sessao.projectId}/sessions/${sessao.sessionId}/actions`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actionType, actor: { kind: 'agent', id: agente }, payload }),
+    }),
+    `POST .../actions (${actionType})`,
+  );
+  if (acao.status !== 'pending') {
+    throw new Error(`${actionType} não nasceu pending (status ${String(acao.status)}, política ${String(acao.resolvedPolicy)})`);
+  }
+  return exigirId(acao, 'ação');
+}
+
+/** O ADR que o Arquiteto propõe (`open_adr_pr`, forma de `AdrPayload` da api): fica pendente para o dono. */
+export const proporAdr = (token: string, sessao: Pick<SessaoSemeada, 'projectId' | 'sessionId'>, adr: { title: string; slug: string; content: string }) =>
+  proporComoAgente(token, sessao, 'arquiteto', 'open_adr_pr', adr);
+
+/** O plano que o Dev Lead propõe (`propose_execution_plan`, RN-678): `tarefas` e `modulos` conferem com o mapa. NÃO aprovar (RN-677). */
+export const proporPlanoDoDevLead = (
+  token: string,
+  sessao: Pick<SessaoSemeada, 'projectId' | 'sessionId'>,
+  plano: { resumo: string; modulos: string[]; tarefas: Array<{ taskId: string; modulo: string }> },
+) =>
+  proporComoAgente(token, sessao, 'dev-lead', 'propose_execution_plan', {
+    resumo: plano.resumo,
+    modulos: plano.modulos.map((modulo) => ({ modulo })),
+    tarefas: plano.tarefas,
+  });
+
 /** Os ids das ações `pending` da sessão, lidos pela api — a FILA, não a tela. */
 export async function idsPendentes(token: string, sessao: SessaoSemeada): Promise<string[]> {
   const pagina = await json(
@@ -272,6 +313,8 @@ export async function idsPendentes(token: string, sessao: SessaoSemeada): Promis
 export async function semearSessao(
   token: string,
   kind: 'consultiva' | 'criativa' = 'consultiva',
+  /** `maxConsecutiveBlocked`: o disjuntor do projeto (RN-047); a ativação da execução o herda. `name`: o nome que a tela mostra (as capturas da doc). */
+  opcoesDoProjeto: { maxConsecutiveBlocked?: number; name?: string } = {},
 ): Promise<SessaoSemeada> {
   const cabecalhos = {
     Authorization: `Bearer ${token}`,
@@ -293,7 +336,7 @@ export async function semearSessao(
     await fetch(`${API}/workspaces/${workspaceId}/projects`, {
       method: 'POST',
       headers: cabecalhos,
-      body: JSON.stringify({ name: `E2E ${sufixo}`, slug: `e2e-${sufixo}` }),
+      body: JSON.stringify({ name: `E2E ${sufixo}`, slug: `e2e-${sufixo}`, ...opcoesDoProjeto }),
     }),
     'POST /workspaces/:id/projects',
   );

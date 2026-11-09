@@ -6,17 +6,21 @@ export type LinhaDeCobertura = { funcionalidade: string; specs: number; resultad
 
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-/** Ids das funcionalidades `ativa` do `funcionalidades.yml`, na ordem do arquivo. */
-export function idsAtivos(yaml: string): string[] {
-  const ids: string[] = [];
-  let atual: string | null = null;
+/** Funcionalidades `ativa` do `funcionalidades.yml` (id e nome), na ordem do arquivo. */
+export function catalogoAtivo(yaml: string): { id: string; nome: string }[] {
+  const out: { id: string; nome: string }[] = [];
+  let atual: { id: string; nome: string } | null = null;
   for (const l of yaml.split('\n')) {
     const id = /^ {2}- id: ([a-z0-9-]+)\s*$/.exec(l);
-    if (id) atual = id[1]!;
-    else if (atual && /^ {4}status: ativa\s*$/.test(l)) ids.push(atual);
+    if (id) atual = { id: id[1]!, nome: id[1]! };
+    else if (atual && /^ {4}nome: (.+?)\s*$/.test(l)) atual.nome = /^ {4}nome: (.+?)\s*$/.exec(l)![1]!;
+    else if (atual && /^ {4}status: ativa\s*$/.test(l)) out.push(atual);
   }
-  return ids;
+  return out;
 }
+
+/** Ids das funcionalidades `ativa` do `funcionalidades.yml`, na ordem do arquivo. */
+export const idsAtivos = (yaml: string): string[] => catalogoAtivo(yaml).map((x) => x.id);
 
 /** `null` = a suíte não produziu resultado (não se diz "sem cobertura" de quem nem rodou). `ids` = o que o run devia cobrir. */
 export function coberturaDe(resultado: unknown, ids: string[]): LinhaDeCobertura[] | null {

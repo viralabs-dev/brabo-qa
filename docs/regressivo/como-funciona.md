@@ -6,7 +6,7 @@ o mapa de caminhos, a ligação com as specs e o validador. O gatilho e a seleç
 
 ## O catálogo: `funcionalidades.yml`
 
-Um único arquivo na raiz, com as 14 funcionalidades e o mapa caminho → funcionalidade. Cada entrada tem:
+Um único arquivo na raiz, com as 16 funcionalidades e o mapa caminho → funcionalidade. Cada entrada tem:
 
 | Campo | Significado |
 | --- | --- |
@@ -30,7 +30,7 @@ test('o canal da sessão sobe com ticket na query', { tag: '@f-sessao-e-canal' }
 ```
 
 Não há lista de arquivos no catálogo. Hoje: `autenticacao`, `sessao-e-canal`, `turno-do-agente` (parcial: só o desfecho de falha por
-credencial) e `aprovacoes` (parcial: decisão inline). As outras ainda não têm spec e aparecem como **sem cobertura**, o que não reprova.
+credencial) `aprovacoes` (decisão inline e a trava de merge), `execucao` (Noop, disjuntor, execução parada e Rearmar), `chat-e-pendencias` (fio sem repetição, PR pronta e perguntas em aberto), `git` (Mergear no repo local) e `time-e-handoffs` (aceite no chat), da AT-815 R1 e R2. As outras ainda não têm spec e aparecem como **sem cobertura**, o que não reprova.
 
 ## O validador
 
@@ -58,6 +58,10 @@ pnpm --dir scripts exec vitest run ci/funcionalidades.spec.ts
 - O check `Regressivo do brabo-qa` (PR para a `dev`) só atesta e **nunca é exigido**; o `E2E do brabo-qa` na `main` roda o catálogo
   inteiro (ver `docs/e2e-portao/como-funciona.md`).
 
+## O que o regressivo não cobre
+
+O `brabo-runner` não tem regressivo no catálogo: a PR dele se atesta pelo próprio CI (o binário linux-x64 entra na PR, runner#28), e o contrato runner ↔ engine só é provado no TP-01 ([RN-1075](https://github.com/viralabs-dev/brabo-ci/blob/dev/scripts/ci/docs/business-rules/ci.md), no `brabo-ci`).
+
 ## O que roda aqui: `modo` e a tabela por funcionalidade (Rodada B)
 
 O `e2e-pr.yml` tem dois modos, escolhidos pelo payload (`modo`) ou pelo input do ensaio manual:
@@ -79,6 +83,25 @@ resultado vem de PR, então o `fechar` só aceita linhas com id do catálogo e n
 gh workflow run e2e-pr.yml -R viralabs-dev/brabo-qa -f modo=funcionalidades -f funcionalidades=autenticacao,aprovacoes -f repo=... 
 ```
 
+**Ensaio sem check (AT-851):** `-f check_run_id=0` pula os jobs `anunciar` e `fechar`, e o run termina verde se o E2E for verde. Sem isso o `fechar` saía vermelho com `nome inesperado: undefined`, porque o id falso não tem check para conferir. Ensaio com id real segue o fluxo normal.
+
+**PR do próprio brabo-qa para a `dev` (AT-851):** o `qa-e2e.yml` do qa liga `branches: [dev, main]`, então a PR para a `dev` ganha o check `Regressivo do brabo-qa` (`modo` `funcionalidades` pelas tags tocadas; `e2e/suporte/**` e `playwright.config.ts` contam como regra 2 da RN-1033, e o `qa-e2e.yml` cai no smoke). O check é só atestado, nunca exigido.
+
+## O relatório de decisão do run (AT-791)
+
+Cada run do `e2e-pr` termina com um relatório que compõe a decisão de aprovar ou não. A fonte é **um JSON v1** (`relatorio-regressivo.json`) montado por `scripts/ci/relatorio.ts` a partir do `resultado.json` do Playwright; o Markdown (Summary, texto do check e comentário da PR) é sempre derivado dele.
+
+- **Grafo do run:** os jobs `Funcionalidade · <id>` (um por funcionalidade com spec executada) são só de **exibição**: não sobem compose, não têm token nem checkout de PR e saem vermelhos se a funcionalidade falhou (flaky vira aviso). O portão continua no `fechar`. Funcionalidade "sem cobertura" não vira job.
+- **Summary** do job `Rodar o E2E` (step `Relatório`, `if: always()`): cabeçalho com veredito e recomendação, motivos (de onde veio cada funcionalidade), tabela por funcionalidade, falhas sem ANSI (arquivo:linha, tentativas, 15 linhas do erro), flaky, `<details>` por funcionalidade, digests e Vínculos. Até 900 KB.
+- **Balde "sem funcionalidade":** a spec sem tag `@f-*` (e o `setup`, marcado "(preparação)") nunca some e reprova como qualquer outra.
+- **Anotações:** o reporter `github` do Playwright (`--reporter=list,github,html,json`) anota cada spec que falhou (10 `error` por step, 50 por job; o Summary é a lista completa).
+- **Artefatos:** `relatorio-regressivo-<run>` (`.md` e `.json`), `relatorio-html-<run>` (o `playwright-report/`, à parte do zip `e2e-<run>`; abre com `npx playwright show-report`) e o `e2e-<run>`.
+- **Check:** o `fechar` passa o JSON ao `montarCheck` do brabo-ci (que devolve `summary` e `text`, 65 535 caracteres cada, com aviso de corte) e envia o `text`. O job `e2e` entrega ao `fechar` só um resumo compacto (até 300 specs, erro até 1000 caracteres) e o `fechar` o **sanitiza**: ids do catálogo, números no intervalo, texto sem ANSI e sem `|`, crase, `<` nem `@menção`.
+- **Comentário fixo na PR de origem** (decisão do dono, 07/11/2026): um só, marcado `<!-- relatorio-regressivo -->` e escrito por bot, **criado só quando o run é vermelho** e editado a cada run (vira verde se já existia). Exige `issues: write` no token do App do `fechar`. Falhar em comentar só gera aviso.
+- **Recomendação** (RN-1051): verde aprova (flaky, com aviso); `digest` e `assinatura` bloqueiam; `spec` em funcionalidade que a PR toca (pelos `motivos` do payload) bloqueia; `spec` fora da mudança ou "sem funcionalidade" aceita com justificativa; `ambiente` e `sem-resposta` mandam rodar de novo. Na `dev` o texto leva "atestado (não bloqueia)". Sem `motivos` no portão da `main`, bloqueia por cautela.
+- **Payload:** `motivos` (`{id: [caminhos]}`, até 50 ids, 5 caminhos de 200 caracteres) e `semDono` (até 20) são opcionais e nunca reprovam o payload (`validarMotivos`); o qa antigo os ignora.
+- **Payload, forma nova:** o GitHub aceita no máximo 10 propriedades no `client_payload`, então o `brabo-ci` agrupa as três chaves em `selecao: {motivos, semDono, tocadas}`. O `e2e-pr.yml` (`RAW_SELECAO`) e o `validar-payload.ts` aceitam `selecao` e, por compatibilidade, as chaves soltas; se vierem as duas, vale `selecao`.
+
 ## Vínculos no run (AT-773)
 
 Cada run do `e2e-pr` mostra de onde veio: o `run-name` é `E2E ← brabo-api#48 · a1b2c3d · autor · c=<run_id>-<attempt>` (`Regressivo ← ...` na dev). A
@@ -86,3 +109,22 @@ Cada run do `e2e-pr` mostra de onde veio: o `run-name` é `E2E ← brabo-api#48 
 (o `fechar` o conclui) e nunca reprova. A action `vinculos` do `brabo-ci` escreve a tabela `## Vínculos` e o Mermaid no Summary de `e2e-pr` (jobs
 `e2e`, `anunciar`, `fechar`), `golden-set-*`, `ci` e `varrer-orfaos`. No `fechar` o `vinculos.md` entra no resumo do check, e o
 `alarmar-prova.sh` o anexa à issue (`VINCULOS_MD`). Uma `origem` inválida no payload é descartada com aviso, nunca reprova.
+
+## Infraestrutura comum das specs (AT-815 R1, RN-1064)
+
+**RN-1064.** As specs do E2E semeiam estado só por estes caminhos, sem LLM e sem tocar o banco:
+
+1. **Evento pela rota pública.** `e2e/suporte/eventos.ts` (`anexarEvento`, `eventosDaSessao`, `esperarEvento`): `POST .../sessions/:s/events` com o Bearer do login de semeadura. Semeia o que o log guarda (`agent.response`, `question.opened`, `dev.idle_tripped`...).
+2. **Rotas internas pelo token de serviço.** `e2e/suporte/interno.ts`: mapa de módulos, épico, história, tarefa, veredito de gate e handoff, pelas mesmas rotas e use cases que o engine usa (cabeçalho `x-brabo-service-token`). O token é o `BRABO_SERVICE_TOKEN` que o PRÓPRIO job gerou no `.env` do compose (aleatório por run). O `scripts/ci/com-token-de-servico.sh` o lê, o mascara com `::add-mask::` e o entrega como `E2E_SERVICE_TOKEN` só ao processo do Playwright. Ele nunca é impresso nem gravado em artefato (decisão P3 do dono, 08/11/2026), e `com-token-de-servico.spec.ts` prova que só o comando de máscara o contém no log. Sem a variável, o helper lança, e a spec que o usa só roda no CI.
+3. **Execução sem LLM.** `e2e/suporte/execucao.ts` (`semearExecucao`): repo local, mapa, regra de negócio, história `ready` ligada ao módulo, tarefa e ativação com `devAgentImpl: 'noop'`. O `execucao-noop.spec.ts` (`@f-execucao`) é a prova: `dev.working` e `dev.awaiting_gate` (emitido só depois de a PR abrir) chegam no log da sessão de execução.
+   Commit conflitante: `e2e/suporte/git.ts` (`semearCommitConflitante`, `mergearPr`): a ação `open_infra_pr` commita o mesmo caminho do Noop na `main` e o `git_merge` a mergeia; o merge da PR do Noop então falha com a lista de arquivos (`git-conflito.spec.ts`, `@f-git`). Só rotas públicas.
+4. **Um login de navegador por arquivo.** `contextoLogado(browser)` em `e2e/suporte/navegador.ts`, no `beforeAll` de um `describe.configure({ mode: 'serial' })`; cada chamada custa um login do balde do lockout por IP.
+5. **Pendência (AT-833).** O `execucao-noop.spec.ts` está em `test.fixme`: o Noop cai na guarda de container da RN-502 (`dev.blocked_by_container`, sem container `running` no compose de instalação). Volta quando o engine dispensar a guarda para o Noop.
+
+**Catálogo (decisão P4).** Os ids `execucao` (dev agents, disjuntor, Rearmar, execução parada, aba Executores) e `chat-e-pendencias` (fio, pendências, perguntas em aberto) cobrem arquivos que antes só rodavam o smoke. `projetos` perdeu o glob `lib/engine/dev`, agora de `execucao`. `AvisoDePrPronta` e `DestravarExecucao` entram no glob quando chegarem à `dev`.
+
+## Rodar de novo (AT-790, RN-1067)
+**RN-1067.** O "Fechar o check" aceita reexecução. Se o check do `check_run_id` já está `completed` (rodar de novo os jobs que falharam no mesmo run), o `fechar-check.ts` não o reabre: cria um check run NOVO com o mesmo nome e o mesmo `head_sha` e o fecha com o resultado novo; o GitHub mostra o mais recente e a PR fica com o resultado atual. O Summary diz que houve reexecução e cita o check anterior, que não é alterado. As defesas valem igual para `in_progress` e `completed`: nome esperado (`E2E do brabo-qa` ou `Regressivo do brabo-qa`), `head_sha` validado e check do nosso App. O token do App já leva `checks: write` no repo de origem (o POST usa o mesmo). Antes disso, a reexecução passava o E2E e falhava com `check não tocado: status inesperado: completed`.
+
+## Tetos da api no compose de teste (AT-840)
+O passo "Gerar o .env" do `e2e-pr.yml` grava `RATE_LIMIT_USER=5000`, `RATE_LIMIT_IP=10000` e `AUTH_LOCKOUT_IP_THRESHOLDS=200:5`. O catálogo inteiro faz mais requisições por minuto que o padrão (300 por usuário, 600 por IP) e a api responde 429 (run 42506755991); o lockout por IP conta todo login, inclusive os de sucesso. O passo é o mesmo no regressivo da `dev` e no portão, então a medida cobre os dois. A api só recebe os valores depois que o `docker-compose.install.yml` do brabo-infra os repassa; até lá o `.env` não tem efeito e não quebra nada. Os mecanismos continuam provados nas suítes da api.

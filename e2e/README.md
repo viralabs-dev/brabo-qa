@@ -147,9 +147,14 @@ IP** do próprio produto (`AUTH_LOCKOUT_IP_THRESHOLDS`, default
 uniforme** de senha errada — de propósito: distinguir os dois diria ao
 atacante quando ele acertou o e-mail.
 
-Cada execução gasta exatamente **4 logins** (o `setup`, o spec de
-autenticação, a semeadura por HTTP e o login próprio de
-`turno-pelo-canal.spec.ts`). A semeadura continua custando UM por mais specs
+Cada execução gasta **16 logins** (inclui `turno-do-agente-delta`; `backlog-aceito-todas` só fala por HTTP e não gasta; R3: 11 na R2 mais 5: `aprovacoes-aprovar-inline`, `backlog-aba`, `conhecimento-c4` e 2 de `autenticacao-revogacao`, que fala só por HTTP): o `setup`, o spec de
+autenticação, a semeadura por HTTP, o login próprio de
+`turno-pelo-canal.spec.ts` e UM por arquivo novo que abre navegador
+(`sessao-e-canal-frame`, `turno-do-agente-fio`, `execucao-parada`,
+`execucao-pr-pronta`, `git-mergear-no-chat`, `backlog-perguntas-em-aberto` e
+`time-e-handoffs-aceite-no-chat`). O teto é 20 em 15 minutos: spec nova com
+navegador precisa caber nele, e uma retentativa que reinicia o worker custa
+mais um login de semeadura. A semeadura continua custando UM por mais specs
 que existam: `autenticar()` memoiza o token pela execução inteira, e com
 `workers: 1` os arquivos rodam no mesmo processo. Só um spec que precise de
 sessão de navegador NOVA acrescenta um login, e o diz. Uma execução por vez, como
@@ -165,11 +170,27 @@ Saídas, em ordem de preferência:
 sem ela, a próxima pessoa caça um bug de credencial que não existe. Foi o que
 quase aconteceu ao escrever esta camada.
 
+## Tetos da api no job (AT-840)
+
+O `e2e-pr.yml` grava no `.env` do compose `RATE_LIMIT_USER=5000`, `RATE_LIMIT_IP=10000` e `AUTH_LOCKOUT_IP_THRESHOLDS=200:5` (formato `falhas:segundos`). Com o catálogo inteiro, as specs passam do rate limit padrão (300 por usuário e 600 por IP por minuto) e a api devolve 429 (run 42506755991). O mecanismo continua provado nas suítes da api; aqui os tetos só tiram o ruído. Vale para o regressivo da `dev` e para o portão, porque os dois usam o mesmo passo. O compose de instalação precisa repassar as variáveis (brabo-infra `bugfix/repassa-limites-da-api`); sem o repasse o `.env` não tem efeito e nada quebra.
+
+## Semeadura comum (AT-815 R1, RN-1064)
+
+`suporte/eventos.ts` (evento pela rota pública), `suporte/interno.ts` (mapa, história, tarefa, gate e handoff pelas rotas internas) e `suporte/execucao.ts` (execução Noop, sem LLM) e `suporte/git.ts` (commit conflitante na `main` do repo local, pela PR de infra, sem Docker) são os caminhos de semeadura das specs. As rotas internas exigem `E2E_SERVICE_TOKEN`, que no CI vem do `.env` do próprio run por `scripts/ci/com-token-de-servico.sh`: mascarado, nunca impresso nem gravado em artefato. Localmente, exporte o `BRABO_SERVICE_TOKEN` do `.env` do compose como `E2E_SERVICE_TOKEN` (sem imprimi-lo). Login de navegador: um por ARQUIVO (`contextoLogado` no `beforeAll`, `describe` em modo serial). O `execucao-noop.spec.ts` e o `aprovacoes-trava-de-merge.spec.ts` não abrem navegador e não gastam login além da semeadura. `suporte/chat.ts` abre as abas do bloco de pendências do chat (`abrirFila`) e `suporte/eventos.ts` ouve os frames do canal (`ouvirCanal`). `semearExecucao` decide a imagem do projeto por padrão (libera `/code/*`); `decidirImagem: false` semeia sem ela, como `execucao-pr-pronta` e `git-mergear-no-chat`, que provam que o chat não depende dessa decisão (AT-843). O disjuntor da execução se configura no projeto (`maxConsecutiveBlocked` em `semearExecucao`), porque o `ActivateExecutionDto` ainda não o aceita. Detalhes em `docs/regressivo/como-funciona.md`.
+
+## Provider dublê da api (AT-815 R4, RN-1065)
+
+`turno-do-agente-delta` (`@f-turno-do-agente`, o `agent.delta` entre `working` e `idle`) e `backlog-aceito-todas` (`@f-backlog`, o Criativo lista e fecha 7 perguntas de dois autores) usam o `DubleLLMProvider` da api, que responde por roteiro e grava custo 0 e modelo `duble-llm`. O job já o liga: `suporte/compose-duble.yml` (segundo `-f` do compose, só no passo "Subir o compose") põe `LLM_DUBLE=1` e monta `suporte/llm-duble-roteiro.json` na api. **Exige api `v2.2.0-dev.14` ou mais nova** (AT-850): a api só carrega o dublê em imagem sem a marca `prd` (RN-1065), e antes dela toda imagem, `-dev` inclusive, era `prd` (o run 42515015341 logou `LLM_DUBLE=1 ignorado: imagem de produção (prd)`). Com imagem `prd` as duas specs falham. LLM real nunca entra no regressivo (P2). O roteiro é do agente `criativo` (passo 0 texto, passo 1 `list_open_questions` mais 7 `answer_open_question`, passo 2 fecho), e `semearSessaoComDuble` vincula um modelo `ollama` ao workspace da semeadura (sem binding o turno acaba em "Nenhum modelo vinculado"). O dublê não prova qualidade de modelo.
+
+## Capturas da doc (AT-859, ADR 0286)
+
+`capturas/doc.captura.ts` fotografa as telas que a doc do `brabo` usa, nos temas claro e escuro, em 1366×768. Não é spec: sem `@f-`, fora de `testes/`, com config própria (`playwright.capturas.config.ts`), então o `pnpm test` e o portão da `main` não a rodam. Roda com `pnpm exec playwright test -c playwright.capturas.config.ts`, contra o compose de teste com o dublê (`suporte/compose-duble.yml`) apontando para `capturas/roteiro.json` (o roteiro didático do encurtador de links, diferente do `suporte/llm-duble-roteiro.json` das specs). A conta é o `owner@brabo.dev` do seed, nunca o acesso rápido. A saída (`capturas/saida/`, ignorada pelo git, ou `CAPTURAS_SAIDA`) leva os PNG e o `capturas.json`. `suporte/ocultar.ts` cobre dado pessoal com `mask` e FAZ A CAPTURA FALHAR se o texto visível tiver `/home/`, o usuário da máquina, um token ou um e-mail fora do domínio de teste. As telas dos passos 4 a 6 e dos READMEs (`adr-no-chat`, `arquitetura`, `plano-e-modo-automatico`, `dev-agent`, `merges-no-chat`, AT-872) vêm de estado semeado, e a semeadura usa rotas internas: rode sob `scripts/ci/com-token-de-servico.sh <.env do compose> -- pnpm exec playwright test -c playwright.capturas.config.ts` (o passo do workflow faz o mesmo). Ajustes de estado por tela (AT-874): `arquitetura` rola até a lista "ADRs" no `preparar`; `merges-no-chat` semeia a regra e o épico com nomes do encurtador (`regra` e `epico` do `PlanoDeExecucao`, padrão do E2E nos demais specs); `dev-agent` liga o modo automático dos 3 QAs (`PUT /projects/:p/agent-autonomy`) para o cartão "Modo automático para o time" não cobrir o fio. Detalhes em `docs/capturas/como-funciona.md`.
+
 ## O que NÃO está coberto
 
 Declarado, não esquecido (ver as Consequências do ADR 0120): diferenças
 entre navegadores (só chromium roda) e o **streaming do turno** — o
-`agent.delta`. A aprovação inline saiu desta lista na AT-068, e o CICLO do
+`agent.delta` (coberto desde a AT-815 R4, ver "Provider dublê da api"). A aprovação inline saiu desta lista na AT-068, e o CICLO do
 turno pelo canal (`working` → `agent.error` → `idle`) saiu na AT-338; o delta
 continua.
 

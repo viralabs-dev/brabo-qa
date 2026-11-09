@@ -5,3 +5,5 @@ e2e/playwright-report/
 .env.*
 !.env.example
 .DS_Store
+e2e/capturas/saida/
+e2e/capturas/.resultado/

@@ -1,0 +1,323 @@
+name: capturas-da-doc
+
+run-name: ${{ format('Capturas da doc · {0}', github.event_name == 'schedule' && 'agendado' || format('manual · {0}', github.actor)) }}
+
+# AT-859, ADR 0286: o brabo-qa fotografa as telas que a doc do `brabo` mostra (cenário `e2e/capturas/doc.captura.ts`, com a
+# ocultação da AT-864 embutida) e o App entrega os PNGs no `brabo` por UMA PR fixa, `chore/capturas-da-doc`, que passa pela escada
+# inteira. Só segue quando o MAJOR.MINOR do `web` do `componentes.json` mudou desde a última captura.
+#
+# A PUBLICAÇÃO ESTÁ DESLIGADA: o job `publicar` só roda com a variável do repositório `CAPTURAS_PUBLICAR=true`, que ninguém criou.
+# Ligar é depois do merge desta PR e da conferência das imagens com zoom (README, "Capturas da doc").
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+    inputs:
+      forcar:
+        description: 'Captura mesmo com o MAJOR.MINOR do web em dia'
+        required: false
+        type: boolean
+        default: false
+      api_tag:
+        description: 'Tag -dev.N da api (vazio = a mais nova). O dublê de LLM só carrega em imagem sem a marca prd (RN-1065)'
+        required: false
+        default: ''
+      engine_tag:
+        description: 'Tag -dev.N do engine (vazio = a mais nova). O dev Noop da captura do dev agent (AT-872) sem a guarda de container só existe nas -dev (engine#58)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: capturas-da-doc
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '26.10.0'
+  PNPM_VERSION: '11.3.0'
+  BRANCH: chore/capturas-da-doc
+
+jobs:
+  # Lê as pins do `brabo` (repo público, sem token) e decide. Não executa nada que venha de fora além de JSON.
+  decidir:
+    name: Decidir
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    outputs:
+      seguir: ${{ steps.decidir.outputs.seguir }}
+      imagens: ${{ steps.tags.outputs.imagens }}
+      compose_ref: ${{ steps.tags.outputs.compose_ref }}
+      web: ${{ steps.tags.outputs.web }}
+      api: ${{ steps.tags.outputs.api }}
+      engine: ${{ steps.tags.outputs.engine }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Ler as pins e o manifesto atual do brabo
+        run: |
+          set -euo pipefail
+          base=https://raw.githubusercontent.com/viralabs-dev/brabo/dev
+          curl -fsSL "$base/componentes.json" -o componentes.json
+          # 404 no manifesto = primeira captura: segue.
+          curl -fsSL "$base/docs/assets/capturas.json" -o capturas-atual.json || echo '[]' > capturas-atual.json
+
+      - name: Decidir
+        id: decidir
+        env:
+          FORCAR: ${{ inputs.forcar }}
+        run: |
+          set -euo pipefail
+          seguir="$(node scripts/ci/capturas.ts decidir componentes.json capturas-atual.json)"
+          if [ "${FORCAR:-false}" = true ]; then seguir=seguir=true; fi
+          echo "$seguir" >> "$GITHUB_OUTPUT"
+          if [ "$seguir" = seguir=false ]; then echo "As capturas estão em dia com o MAJOR.MINOR do web; nada a fazer." >> "$GITHUB_STEP_SUMMARY"; fi
+
+      # As imagens saem das pins (Releases finais). Exceção, a api: o provider dublê (RN-1065) só carrega em imagem SEM a marca `prd`,
+      # então ela vem da `-dev.N` mais nova (ou da `api_tag`). `ls-remote` de repo público, sem token.
+      - name: Montar as tags
+        id: tags
+        if: ${{ steps.decidir.outputs.seguir == 'true' }}
+        env:
+          API_TAG: ${{ inputs.api_tag }}
+          ENGINE_TAG: ${{ inputs.engine_tag }}
+        run: |
+          set -euo pipefail
+          # `head` fecha o pipe e mata o git com SIGPIPE sob pipefail (run 42533650837); `awk NR==1` lê até o fim e o grep tira as refs ^{}
+          dev_mais_nova() { git ls-remote --tags --sort=-v:refname "https://github.com/viralabs-dev/brabo-$1" 'refs/tags/v*-dev.*' | grep -v '\^{}$' | awk 'NR==1' | sed 's#.*refs/tags/##'; }
+          [ -n "$API_TAG" ] || API_TAG="$(dev_mais_nova api)"
+          [ -n "$ENGINE_TAG" ] || ENGINE_TAG="$(dev_mais_nova engine)"
+          printf '%s' "$API_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+-dev\.[0-9]+$' || { echo "::error::sem tag -dev.N da api: $API_TAG"; exit 1; }
+          printf '%s' "$ENGINE_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+-dev\.[0-9]+$' || { echo "::error::sem tag -dev.N do engine: $ENGINE_TAG"; exit 1; }
+          pin() { jq -er --arg s "$1" '.imagens[$s] | "\(.imagem):\(.tag)"' componentes.json; }
+          tag() { jq -er --arg s "$1" '.imagens[$s].tag' componentes.json; }
+          {
+            echo "imagens=$(jq -cn --arg api "ghcr.io/viralabs-dev/brabo-api:$API_TAG" --arg engine "ghcr.io/viralabs-dev/brabo-engine:$ENGINE_TAG" --arg web "$(pin web)" --arg broker "$(pin broker)" --arg backup "$(pin backup)" '{api:$api,engine:$engine,web:$web,broker:$broker,backup:$backup}')"
+            # A pin do infra (v1.3.0) não repassa RATE_LIMIT_* à api (infra#38): a tela de gastos levava 429 e mostrava erro.
+            # shortcut: tag -dev fixa da infra; voltar à pin do componentes.json quando ela passar da infra#38.
+            echo "compose_ref=v1.4.0-dev.7"
+            echo "web=$(tag web)"
+            echo "api=$API_TAG"
+            echo "engine=$ENGINE_TAG"
+          } >> "$GITHUB_OUTPUT"
+
+  # Executa o navegador e o compose: por isso NÃO tem o token do App. O artefato é DADO para o `publicar`, que o valida.
+  capturar:
+    name: Capturar
+    needs: decidir
+    if: ${{ needs.decidir.outputs.seguir == 'true' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    env:
+      IMAGENS: ${{ needs.decidir.outputs.imagens }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413  # v6.1.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6  # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo-infra
+          ref: ${{ needs.decidir.outputs.compose_ref }}
+          path: brabo-infra
+          persist-credentials: false
+
+      - name: Resolver as tags para digest
+        run: node scripts/ci/aguardar-digest.ts digests.json
+
+      # Só digest que o release do repo de origem assinou. A api `-dev.N` sai do `ci.yml`, as finais do `release.yml`.
+      - name: Verificar a assinatura (cosign) de cada digest
+        run: |
+          set -uo pipefail
+          falhou=0
+          for s in api engine web broker backup; do
+            ref="$(jq -r --arg s "$s" '.[$s]' digests.json)"
+            cosign verify "$ref" \
+              --certificate-identity-regexp '^https://github.com/viralabs-dev/brabo-(api|engine|web|broker|infra)/\.github/workflows/(release|ci)\.yml@' \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com >/dev/null || { echo "::error::assinatura de $s não confere"; falhou=1; }
+          done
+          exit "$falhou"
+
+      # Mesmos campos do `e2e-pr.yml`, novos a cada run. O roteiro do dublê é o DIDÁTICO deste repo.
+      - name: Gerar o .env
+        working-directory: brabo-infra/docker
+        run: |
+          set -euo pipefail
+          umask 077
+          : > .env
+          put() { echo "::add-mask::$2"; echo "$1=$2" >> .env; }
+          b64() { openssl rand -base64 "$1" | tr -d '\n'; }
+          for s in api engine web broker backup; do
+            echo "BRABO_${s^^}_IMAGE=$(jq -r --arg s "$s" '.[$s]' "$GITHUB_WORKSPACE/digests.json")" >> .env
+          done
+          put GIT_OAUTH_STATE_SECRET "$(b64 32)"
+          put AUTH_JWT_SECRET "$(b64 32)"
+          put AUTH_TOKEN_PEPPER "$(b64 32)"
+          put BRABO_SERVICE_TOKEN "$(b64 32)"
+          put CREDENTIALS_MASTER_KEY "$(b64 32)"
+          put SECRET_KEY_BASE "$(b64 64)"
+          put NEO4J_PASSWORD "$(openssl rand -hex 24)"
+          { echo "RATE_LIMIT_USER=5000"; echo "RATE_LIMIT_IP=10000"; echo "AUTH_LOCKOUT_IP_THRESHOLDS=200:5"; } >> .env
+          echo "LLM_DUBLE_ROTEIRO_ARQUIVO=$GITHUB_WORKSPACE/e2e/capturas/roteiro.json" >> .env
+          senha="$(openssl rand -hex 16)"
+          echo "::add-mask::$senha"
+          echo "E2E_PASSWORD=$senha" >> "$GITHUB_ENV"
+
+      - name: Subir o compose
+        working-directory: brabo-infra
+        run: docker compose -f docker/docker-compose.install.yml -f "$GITHUB_WORKSPACE/e2e/suporte/compose-duble.yml" up -d --wait
+
+      # A conta é a do seed de produção (`owner@brabo.dev`, fictícia). O acesso rápido não existe em imagem com marca (RN-984).
+      - name: Semear o usuário
+        working-directory: brabo-infra
+        run: >
+          docker compose -f docker/docker-compose.install.yml exec -T
+          -e BRABO_SEED_PASSWORD="$E2E_PASSWORD" -e BRABO_FORCE_SEED=1 api node db/seed.js
+
+      - name: Instalar o Playwright
+        working-directory: e2e
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+
+      - name: Capturar
+        working-directory: e2e
+        env:
+          CI: 'true'
+          E2E_WEB_URL: http://localhost:8088
+          E2E_API_URL: http://localhost:3000
+          CAPTURAS_SAIDA: ${{ github.workspace }}/capturas-saida
+          CAPTURAS_WEB: ${{ needs.decidir.outputs.web }}
+          CAPTURAS_API: ${{ needs.decidir.outputs.api }}
+          CAPTURAS_ENGINE: ${{ needs.decidir.outputs.engine }}
+        # O token de serviço (rotas internas da semeadura, AT-872) entra só neste passo: mascarado, nunca impresso, fora do artefato.
+        run: bash "$GITHUB_WORKSPACE/scripts/ci/com-token-de-servico.sh" "$GITHUB_WORKSPACE/brabo-infra/docker/.env" -- pnpm exec playwright test -c playwright.capturas.config.ts
+
+      # Antes do artefato: o mesmo validador que o `publicar` roda.
+      - name: Validar o artefato
+        run: node scripts/ci/capturas.ts validar capturas-saida
+
+      - name: Logs dos containers
+        if: always()
+        working-directory: brabo-infra
+        run: docker compose -f docker/docker-compose.install.yml logs --no-color > "$GITHUB_WORKSPACE/containers.log" 2>&1 || true
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: capturas-da-doc
+          if-no-files-found: error
+          retention-days: 14
+          path: capturas-saida
+
+      # Só em falha: os logs e o outputDir do Playwright (error-context.md, trace) podem ajudar a achar a causa e NÃO vão no artefato que o `publicar` consome.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        if: failure()
+        with:
+          name: capturas-da-doc-falha
+          if-no-files-found: ignore
+          include-hidden-files: true
+          retention-days: 7
+          path: |
+            containers.log
+            e2e/capturas/.resultado
+
+  # DESLIGADO até o merge (variável `CAPTURAS_PUBLICAR`). Único job com o token do App; não executa nada do artefato.
+  # TODO(humano): conferir se a instalação do App `viralabs-dev-brabo` no `brabo` concede `contents: write` e `pull-requests: write`.
+  # A leitura foi só do que o `regenera-gerados.yml` já faz no `brabo` (abre PR lá), e isso não prova as duas permissões para o App deste job.
+  publicar:
+    name: Publicar a PR no brabo
+    needs: [decidir, capturar]
+    if: ${{ vars.CAPTURAS_PUBLICAR == 'true' && needs.decidir.outputs.seguir == 'true' && github.ref == 'refs/heads/dev' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510  # v3.3.0
+        with:
+          client-id: ${{ secrets.BRABO_APP_ID }}
+          private-key: ${{ secrets.BRABO_APP_PRIVATE_KEY }}
+          owner: viralabs-dev
+          repositories: brabo
+          permission-contents: write
+          permission-pull-requests: write
+
+      # Os scripts de validação vêm DESTE repo na `dev`, nunca do artefato.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: dev
+          path: qa
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: viralabs-dev/brabo
+          ref: dev
+          path: brabo
+          token: ${{ steps.app.outputs.token }}
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: capturas-da-doc
+          path: artefato
+
+      # A fronteira de confiança: só `.png` nomeado no manifesto, até 400 KB cada, e o JSON validado.
+      - name: Validar o artefato
+        run: node qa/scripts/ci/capturas.ts validar artefato
+
+      - name: Commitar e abrir, atualizar ou fechar a PR
+        working-directory: brabo
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          REPO: viralabs-dev/brabo
+        run: |
+          set -euo pipefail
+          aberta=$(gh pr list -R "$REPO" --head "$BRANCH" --base dev --state open --json number --jq '.[0].number // empty')
+          rm -rf docs/assets/capturas
+          mkdir -p docs/assets/capturas
+          cp "$GITHUB_WORKSPACE"/artefato/*.png docs/assets/capturas/
+          # O manifesto do site fica em docs/assets/capturas.json (ordem estável, para o diff ser só o que mudou).
+          jq -S '.' "$GITHUB_WORKSPACE/artefato/capturas.json" > docs/assets/capturas.json
+          git add -A docs/assets/capturas docs/assets/capturas.json
+          if git diff --cached --quiet; then
+            if [ -n "$aberta" ]; then
+              # shellcheck disable=SC2016  # as crases são texto literal da mensagem
+              gh pr close "$aberta" -R "$REPO" --delete-branch --comment 'As capturas da `dev` já estão em dia; nada a atualizar.'
+            fi
+            exit 0
+          fi
+          git -c user.name='viralabs-dev-brabo[bot]' -c user.email='noreply@github.com' \
+            commit -q -m 'docs: atualiza as capturas da doc' -m 'Geradas pelo brabo-qa (capturas-da-doc.yml, AT-859, ADR 0286).'
+          # mesma árvore que a PR aberta já tem: não reempurra (re-rodaria o CI e derrubaria a aprovação)
+          if git fetch -q origin "$BRANCH" 2>/dev/null && [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse 'FETCH_HEAD^{tree}')" ]; then
+            echo "A PR já tem estas capturas; nada a empurrar."
+          else
+            git push -f origin "HEAD:refs/heads/$BRANCH"
+          fi
+          if [ -z "$aberta" ]; then
+            # shellcheck disable=SC2016  # as crases são texto literal do corpo da PR
+            gh pr create -R "$REPO" --base dev --head "$BRANCH" \
+              --title 'docs: atualiza as capturas da doc' \
+              --body "$(printf '%s\n\n%s\n' 'Aberta por `capturas-da-doc.yml` do `brabo-qa` (AT-859, ADR 0286): o MAJOR.MINOR do web mudou. As imagens têm a ocultação da AT-864 embutida; esta PR passa pela escada inteira, e a aprovação do dono é a conferência com zoom.' "Execução: $GITHUB_SERVER_URL/viralabs-dev/brabo-qa/actions/runs/$GITHUB_RUN_ID")"
+          fi

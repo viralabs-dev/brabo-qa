@@ -1,71 +1,140 @@
 # brabo-qa
 
-Testes que atravessam repositórios do Brabo: E2E de navegador, golden-sets, smoke das imagens de produção e os
-instrumentos de medição (Jev, idioma). Extraído do monorepo original, hoje
-[`brabo-legacy`](https://github.com/viralabs-dev/brabo-legacy) (AT-703, ADR 0252); `#N` nos commits aponta para lá.
+[![CI dev](https://img.shields.io/github/actions/workflow/status/viralabs-dev/brabo-qa/ci.yml?branch=dev&label=CI%20dev&style=flat-square)](https://github.com/viralabs-dev/brabo-qa/actions/workflows/ci.yml?query=branch%3Adev) [![CI main](https://img.shields.io/github/actions/workflow/status/viralabs-dev/brabo-qa/ci.yml?branch=main&label=CI%20main&style=flat-square)](https://github.com/viralabs-dev/brabo-qa/actions/workflows/ci.yml?query=branch%3Amain) [![dev](https://img.shields.io/github/v/tag/viralabs-dev/brabo-qa?include_prereleases&filter=*-dev*&label=dev&color=informational&style=flat-square)](https://github.com/viralabs-dev/brabo-qa/tags) [![Licença: MIT](https://img.shields.io/badge/licença-MIT-blue.svg?style=flat-square)](LICENSE) [![Documentação](https://img.shields.io/badge/docs-viralabs--dev.github.io/brabo-8A2BE2.svg?style=flat-square)](https://viralabs-dev.github.io/brabo/prd/) [![Apoie no Ko-fi](https://img.shields.io/badge/Ko--fi-me%20pague%20um%20caf%C3%A9-FF5E5B?logo=ko-fi&logoColor=white&style=flat-square)](https://ko-fi.com/daneiel)
+
+Testes que atravessam repositórios do Brabo: fluxo de navegador de ponta a ponta, golden-sets de RAG e QA e os instrumentos de medição.
+
+## Para que existe
+
+Prova o Brabo inteiro, de fora. Nenhum repo sozinho enxerga o fluxo que passa por api, engine e web ao mesmo tempo; este repo enxerga, e segura a PR para a `main` quando esse fluxo quebra.
+
+## Onde se encaixa
+
+Este repo é o portão de ponta a ponta. A PR para a `main` de `brabo-api`, `brabo-engine`, `brabo-web`, `brabo-broker`, `brabo-infra` e deste repo só entra com o check `E2E do brabo-qa` verde. Ele lê os irmãos em checkout ao lado e nunca copia o código deles.
+
+<!-- mapa:inicio -->
+<!-- Gerado do repos.yml do brabo por brabo-ci:scripts/ci/mapa-dos-repos.ts. Não edite à mão. -->
+
+**brabo-qa** — E2E de navegador (Playwright), golden-sets e catálogo de funcionalidades — o portão da `main`. O brabo-ci dispara o `e2e-pr` dele e lê o `funcionalidades.yml`; api, engine, web, broker e infra o chamam como portão.
+
+| repo | propósito | como é usado | depende de | é usado por |
+|---|---|---|---|---|
+| [brabo](https://github.com/viralabs-dev/brabo) | Porta de entrada do produto — documentação agregada, site, instalador e release. | Quem instala usa o `install.sh` e as imagens e o binário das tags de `componentes.json`; o brabo-infra o clona nas aferições cruzadas. | brabo-api (imagem, doc), brabo-engine (imagem, doc), brabo-web (imagem, doc), brabo-broker (imagem, doc), brabo-runner (imagem, doc), brabo-infra (imagem, código, doc), brabo-contracts (contrato, doc), brabo-ci (doc, workflow), brabo-qa (doc) | brabo-ci (contrato), brabo-infra (código), brabo-workspace (código) |
+| [brabo-api](https://github.com/viralabs-dev/brabo-api) | API do produto (NestJS, Drizzle, PostgreSQL/pgvector) — schema, RBAC, LLM, metering e gates. | Imagem publicada por tag e consumida pelo brabo e pelo brabo-infra; o brabo-web, o brabo-engine e o brabo-qa leem o código ou o `openapi.json` dele. | brabo-contracts (contrato), brabo-infra (código), brabo-qa (workflow), brabo-ci (workflow) | brabo (imagem, doc), brabo-engine (código), brabo-web (contrato), brabo-contracts (contrato), brabo-infra (código), brabo-qa (código), brabo-workspace (código) |
+| [brabo-engine](https://github.com/viralabs-dev/brabo-engine) | Engine (Elixir/OTP, Phoenix, Oban) — agentes, sessões, gates e roteamento de runners. | Imagem publicada por tag, usada pelo brabo e pelo brabo-infra. | brabo-contracts (contrato), brabo-api (código), brabo-runner (código), brabo-qa (workflow), brabo-ci (workflow) | brabo (imagem, doc), brabo-infra (código), brabo-qa (código), brabo-workspace (código) |
+| [brabo-web](https://github.com/viralabs-dev/brabo-web) | Interface web (React 19, Vite) — telas, i18n e design system. | Imagem publicada por tag, usada pelo brabo e pelo brabo-infra. | brabo-contracts (contrato), brabo-api (contrato), brabo-qa (workflow), brabo-ci (workflow) | brabo (imagem, doc), brabo-infra (código), brabo-qa (código), brabo-workspace (código) |
+| [brabo-runner](https://github.com/viralabs-dev/brabo-runner) | CLI `brabo-runner` na máquina do usuário — PTY, container local e espelho. | Binário publicado por tag, instalado pelo brabo; o brabo-engine e o brabo-qa leem o código dele nos testes. | brabo-contracts (contrato), brabo-ci (workflow) | brabo (imagem, doc), brabo-engine (código), brabo-infra (código), brabo-qa (código), brabo-workspace (código) |
+| [brabo-broker](https://github.com/viralabs-dev/brabo-broker) | Único processo com o socket do Docker do servidor. | Imagem publicada por tag, usada pelo brabo e pelo brabo-infra. | brabo-contracts (contrato), brabo-qa (workflow), brabo-ci (workflow) | brabo (imagem, doc), brabo-infra (código), brabo-qa (código), brabo-workspace (código) |
+| [brabo-contracts](https://github.com/viralabs-dev/brabo-contracts) | Contratos compartilhados — os pacotes `shared` e `docker-port`, `areas.json` e `fluxo.yml`. | Consumido por TAG (pacote no GitHub Packages ou arquivo baixado por raw na mesma tag); uma tag nova pede bump em api, web, runner, broker, engine, qa e infra. | brabo-api (contrato), brabo-ci (workflow) | brabo (contrato, doc), brabo-api (contrato), brabo-engine (contrato), brabo-web (contrato), brabo-runner (contrato), brabo-broker (contrato), brabo-infra (código), brabo-qa (contrato), brabo-workspace (código) |
+| [brabo-ci](https://github.com/viralabs-dev/brabo-ci) | Workflows reutilizáveis e a política de PR, escada de aprovação, promoção, tag e Dependabot. | Cada repo chama `uses: viralabs-dev/brabo-ci/...@<sha>`, fixado por SHA. | brabo-qa (contrato, workflow), brabo (contrato) | brabo (doc, workflow), brabo-api (workflow), brabo-engine (workflow), brabo-web (workflow), brabo-runner (workflow), brabo-broker (workflow), brabo-contracts (workflow), brabo-infra (workflow), brabo-qa (workflow), brabo-workspace (código, workflow) |
+| [brabo-infra](https://github.com/viralabs-dev/brabo-infra) | Composes, Dockerfiles de integração, `deploy/k8s`, scripts de dev, release e cadeia de suprimentos. | O brabo clona o brabo-infra no ref de `componentes.json` para subir a instalação; o brabo-api e o brabo-qa o clonam no CI. | brabo-api (código), brabo-engine (código), brabo-web (código), brabo-broker (código), brabo-runner (código), brabo-contracts (código), brabo (código), brabo-qa (workflow), brabo-ci (workflow) | brabo (imagem, código, doc), brabo-api (código), brabo-qa (código), brabo-workspace (código) |
+| **brabo-qa** | E2E de navegador (Playwright), golden-sets e catálogo de funcionalidades — o portão da `main`. | O brabo-ci dispara o `e2e-pr` dele e lê o `funcionalidades.yml`; api, engine, web, broker e infra o chamam como portão. | brabo-api (código), brabo-engine (código), brabo-web (código), brabo-runner (código), brabo-broker (código), brabo-infra (código), brabo-contracts (contrato), brabo-ci (workflow) | brabo (doc), brabo-api (workflow), brabo-engine (workflow), brabo-web (workflow), brabo-broker (workflow), brabo-ci (contrato, workflow), brabo-infra (workflow), brabo-workspace (código) |
+| [brabo-workspace](https://github.com/viralabs-dev/brabo-workspace) | Pasta-mãe `~/dev/brabo/` com os clones lado a lado e o `clonar-tudo.sh`. | Quem desenvolve roda `clonar-tudo.sh` uma vez; as sessões do Claude abrem nela. | brabo (código), brabo-api (código), brabo-engine (código), brabo-web (código), brabo-runner (código), brabo-broker (código), brabo-contracts (código), brabo-ci (código, workflow), brabo-infra (código), brabo-qa (código) | — |
+
+```mermaid
+flowchart LR
+  brabo["brabo"]
+  brabo_api["brabo-api"]
+  brabo_engine["brabo-engine"]
+  brabo_web["brabo-web"]
+  brabo_runner["brabo-runner"]
+  brabo_broker["brabo-broker"]
+  brabo_contracts["brabo-contracts"]
+  brabo_ci["brabo-ci"]
+  brabo_infra["brabo-infra"]
+  brabo_qa["brabo-qa"]
+  brabo_workspace["brabo-workspace"]
+  brabo -->|doc| brabo_qa
+  brabo_api -->|workflow| brabo_qa
+  brabo_engine -->|workflow| brabo_qa
+  brabo_web -->|workflow| brabo_qa
+  brabo_broker -->|workflow| brabo_qa
+  brabo_ci -->|contrato| brabo_qa
+  brabo_ci -->|workflow| brabo_qa
+  brabo_infra -->|workflow| brabo_qa
+  brabo_qa -->|código| brabo_api & brabo_engine & brabo_web & brabo_runner & brabo_broker & brabo_infra
+  brabo_qa -->|contrato| brabo_contracts
+  brabo_qa -->|workflow| brabo_ci
+  brabo_workspace -->|código| brabo_qa
+  classDef atual fill:#fde68a,stroke:#b45309,color:#000
+  class brabo_qa atual
+```
+<!-- mapa:fim -->
+
+## Como é usado
+
+Este repo não é importado por ninguém. Os outros repos o usam pelo CI, de três jeitos:
+
+- **Portão da `main`:** a PR de origem dispara o E2E contra o compose de produção do `brabo-infra`, sobre as imagens por digest, e o check `E2E do brabo-qa` fecha na própria PR. Detalhes em [`docs/e2e-portao/como-funciona.md`](docs/e2e-portao/como-funciona.md).
+- **Golden-sets do engine:** o workflow copia `golden/engine/test/` para o `test/` do `brabo-engine` e roda o ExUnit contra o seed do `brabo-api`.
+- **Layout da documentação:** o `brabo` usa este repo como referência do layout.
+
+Exemplo copiável, que dispara uma rodada do golden-set de QA sob demanda no ambiente do CI (precisa do `gh` autenticado com acesso ao repo):
+
+```bash
+gh workflow run golden-set-qa.yml -R viralabs-dev/brabo-qa --ref dev
+```
+
+## Como desenvolver
+
+Pré-requisitos: Node 26 e pnpm 11.3.0, os mesmos do CI. Os irmãos `brabo-*` ficam ao lado deste repo (o `brabo-workspace` clona todos). Os scripts leem o código deles.
+
+```bash
+# scripts: typecheck e specs (com os irmãos ao lado)
+pnpm --dir scripts install --frozen-lockfile
+pnpm --dir scripts typecheck
+pnpm --dir scripts test
+
+# e2e: no PR, só o typecheck (o teste de navegador é manual)
+pnpm --dir e2e install --frozen-lockfile
+pnpm --dir e2e typecheck
+```
 
 | Pasta | O que é |
 | --- | --- |
-| `e2e/` | Playwright (só chromium, ADR 0120). Lockfile próprio, **não** é membro de workspace. |
-| `golden/engine/test/` | Golden-sets ExUnit (`qa_automacao_agent_golden_test.exs`, `rag_golden_test.exs`) e os `floor.json`. Rodam **dentro** do `brabo-engine` (o workflow os copia para `test/`) e chamam o seed do `brabo-api`. |
-| `scripts/jev/`, `scripts/idioma/` | Instrumentos de medição. Leem e reexportam fontes de `brabo-api` e `brabo-engine` em checkout **irmão** (`../brabo-api`, `../brabo-engine`); nunca copiam. |
-| `.github/workflows/golden-set-*.yml` | AGENDADOS (ADR 0138/0168), nunca em PR. Fazem checkout dos irmãos na `dev`. |
+| `e2e/` | Playwright, só chromium (ADR 0120). Lockfile próprio; não é membro de workspace. |
+| `golden/engine/test/` | Golden-sets ExUnit e os `floor.json`. Rodam dentro do `brabo-engine`. |
+| `scripts/jev/`, `scripts/idioma/` | Instrumentos de medição. Leem e reexportam fontes de `brabo-api` e `brabo-engine` em checkout irmão; nunca copiam. |
+| `.github/workflows/` | `ci` e `e2e-pr` (PR), `golden-set-*` (agendados, ADR 0138/0168). |
 
-O roteiro do TP-01 mora no Vault (`personal/projetos/brabo/`), não aqui.
+O E2E manual e o estado dos golden-sets estão em [`docs/rodadas-manuais.md`](docs/rodadas-manuais.md).
 
-## CI de PR
+## O que o CI garante
 
-`scripts` (typecheck + specs), `e2e` (typecheck), `actionlint` e a conferência dos caminhos dos irmãos.
+No PR deste repo, o workflow `ci` roda:
 
-## E2E como portão da main (AT-765)
+- **scripts:** typecheck e specs dos scripts, com os irmãos ao lado;
+- **e2e:** typecheck do Playwright;
+- **cadeia:** actionlint e pins do `brabo-ci`;
+- **Caminhos dos irmãos:** confere que os arquivos que os golden-sets pedem aos irmãos existem.
 
-As PRs para a `main` de `brabo-api`, `-engine`, `-web`, `-broker`, `-infra` e deste repo só entram com o check `E2E do brabo-qa` verde.
-O `e2e-pr.yml` roda o Playwright contra o `docker-compose.install.yml` do `brabo-infra` sobre as imagens por digest (assinatura verificada,
-digest em execução conferido) e fecha o check na PR de origem; o `varrer-orfaos.yml` fecha, de hora em hora, o que ficou sem resposta por 90 min.
-`/qa-aceitar <justificativa>` (só o dono) aceita um vermelho por `spec`, `ambiente` ou `sem-resposta`. O `e2e-pr.yml` tem dois jobs: `e2e` executa código de PR e não tem token do App; `fechar` (checkout limpo da `dev`) revalida o payload e só então cria o token do App, com `checks: write` apenas no repo validado. Esse token mas escrita no brabo-qa equivale a poder aprovar o portão: trate o acesso de escrita aqui como o de um aprovador. Detalhes e prints: [`docs/e2e-portao/como-funciona.md`](docs/e2e-portao/como-funciona.md).
+O portão da `main` vive nas PRs dos outros repos: o check `E2E do brabo-qa` fica vermelho se o E2E quebrar, e `/qa-aceitar <justificativa>` (só o dono) aceita um vermelho por `spec`, `ambiente` ou `sem-resposta`. Quem tem escrita neste repo pode aprovar esse portão: trate o acesso daqui como o de um aprovador.
 
-## Regressivo por funcionalidade (AT-769)
+O regressivo por funcionalidade (`funcionalidades.yml`, validado por `scripts/ci/funcionalidades.ts`) mapeia caminhos de cada repo para as 16 funcionalidades do Brabo. Funcionalidade sem spec aparece como "sem cobertura" e não reprova. Detalhes em [`docs/regressivo/como-funciona.md`](docs/regressivo/como-funciona.md).
 
-`funcionalidades.yml` lista as 14 funcionalidades do Brabo e mapeia caminhos de cada repo para elas; as specs de `e2e/testes/` se ligam por tag `@f-<id>`. O validador (`scripts/ci/funcionalidades.ts`) roda no `pnpm test` de `scripts/`: reprova id repetido, glob que não casa arquivo nos repos irmãos e tag sem funcionalidade; funcionalidade sem spec aparece como "sem cobertura" e não reprova. O `e2e-pr.yml` aceita `modo: completo|funcionalidades` (o padrão `completo` é o portão da `main`, sem filtro); no `funcionalidades` roda só as tags `@f-<id>` e o resumo do check traz a tabela por funcionalidade. O `run-name` do `e2e-pr` mostra a origem e a correlação (`c=`), o job `anunciar` aponta o check da PR para o run, e a action `vinculos` do `brabo-ci` escreve a tabela de vínculos no Summary. Detalhes: [`docs/regressivo/como-funciona.md`](docs/regressivo/como-funciona.md).
+## Documentação
 
-## O que já roda e o que ainda é manual
+- [`docs/e2e-portao/como-funciona.md`](docs/e2e-portao/como-funciona.md): o portão da `main`, com o `fechar`, o token do App e os prints.
+- [`docs/regressivo/como-funciona.md`](docs/regressivo/como-funciona.md): o regressivo por funcionalidade e o relatório de decisão.
+- [`docs/capturas/como-funciona.md`](docs/capturas/como-funciona.md): as capturas da doc do `brabo`, a ocultação de dado pessoal e a PR do App.
+- [`docs/rodadas-manuais.md`](docs/rodadas-manuais.md): E2E de navegador manual e golden-sets agendados.
+- [`CHANGELOG.md`](CHANGELOG.md), [`funcionalidades.yml`](funcionalidades.yml) e [`CLAUDE.md`](CLAUDE.md).
+- Documentação central do Brabo: [repo `brabo`](https://github.com/viralabs-dev/brabo) e [página do produto](https://viralabs-dev.github.io/brabo/prd/).
+- O histórico veio do monorepo `brabo-legacy` (ADR 0252). Os `#N` nos commits apontam para lá.
 
-- **Golden-set do RAG** (`golden-set-rag.yml`): agendado todo dia às 06:00 UTC desde 05/11/2026. As duas
-  rodadas agendadas até 06/11 falharam; a rodada manual de 06/11 com `api_ref` passou.
-- **Golden-set do QA** (`golden-set-qa.yml`): agendado aos sábados, 01:17 UTC; ainda não teve rodada.
-- **E2E de navegador** (`e2e/`): só manual, contra o compose de produção do `brabo-infra`; não roda no CI.
+## Como replicar no seu projeto
 
-```bash
-# E2E contra o compose de produção do brabo-infra
-SMOKE_KEEP_UP=1 bash "${BRABO_INFRA_DIR:-../brabo-infra}/docker/smoke.sh" && pnpm --dir e2e install && pnpm --dir e2e navegadores && pnpm --dir e2e test
-# golden-sets (workflow_dispatch): gh workflow run golden-set-rag.yml / golden-set-qa.yml  -> exigem ≥ piso do floor.json
-# para testar uma branch do brabo-api e/ou outra imagem do Ollama:
-gh workflow run golden-set-rag.yml -R viralabs-dev/brabo-qa --ref dev -f api_ref=<branch> -f ollama_image=<imagem>
-```
+O que serve a outro projeto é o padrão, não os testes do Brabo:
 
-## Repositórios do Brabo
+- o portão de PR cruzado (`e2e-pr.yml`): o job `fechar` faz checkout limpo da `dev` e só então cria o token do App, com escrita restrita ao repo validado;
+- o regressivo por funcionalidade (`funcionalidades.yml` com `scripts/ci/funcionalidades.ts`).
 
-O Brabo é dividido em repositórios por camada (ADR 0252), e a documentação central está no
-[brabo](https://github.com/viralabs-dev/brabo) e em https://viralabs-dev.github.io/brabo/prd/.
-
-**Depende de:** [brabo-ci](https://github.com/viralabs-dev/brabo-ci), [brabo-api](https://github.com/viralabs-dev/brabo-api), [brabo-engine](https://github.com/viralabs-dev/brabo-engine), [brabo-broker](https://github.com/viralabs-dev/brabo-broker), [brabo-infra](https://github.com/viralabs-dev/brabo-infra).
-
-**É usado por:** [brabo](https://github.com/viralabs-dev/brabo) (layout da documentação).
-
-| Repositório | Papel |
-| --- | --- |
-| [brabo](https://github.com/viralabs-dev/brabo) | Porta de entrada: documentação central, instalador (`install.sh`) e release do produto. |
-| [brabo-api](https://github.com/viralabs-dev/brabo-api) | API (NestJS, Drizzle, PostgreSQL com pgvector). |
-| [brabo-engine](https://github.com/viralabs-dev/brabo-engine) | Engine (Elixir/OTP, Phoenix, Oban): agentes, gates, sessões e runners. |
-| [brabo-web](https://github.com/viralabs-dev/brabo-web) | Interface web (React, Vite, TanStack, Tailwind). |
-| [brabo-runner](https://github.com/viralabs-dev/brabo-runner) | CLI que roda na máquina do usuário e se conecta à engine. |
-| [brabo-broker](https://github.com/viralabs-dev/brabo-broker) | Broker de containers: o único processo que fala com o Docker do servidor. |
-| [brabo-contracts](https://github.com/viralabs-dev/brabo-contracts) | Contratos compartilhados (`shared`, `docker-port`, `contracts`). |
-| [brabo-infra](https://github.com/viralabs-dev/brabo-infra) | Composes, Kubernetes, backup e restore, `docker-bake.hcl` e as aferições cruzadas. |
-| [brabo-ci](https://github.com/viralabs-dev/brabo-ci) | Workflows reutilizáveis: política de PR, escada de aprovação, promoção e carimbo de versão. |
-| [brabo-qa](https://github.com/viralabs-dev/brabo-qa) | Testes entre repositórios: E2E de navegador, golden-sets e instrumentos de medição. |
-| [brabo-workspace](https://github.com/viralabs-dev/brabo-workspace) | Pasta-mãe que reúne os clones `brabo-*` lado a lado. |
+Copie os dois, troque os repos e os caminhos, e adapte o catálogo de funcionalidades ao seu produto. O guia de adoção é o [`adotar.md` do brabo-ci](https://github.com/viralabs-dev/brabo-ci/blob/dev/scripts/ci/docs/tutorials/adotar.md).
 
 ## Apoie
 
 Se o projeto te ajuda, você pode [pagar um café no Ko-fi](https://ko-fi.com/daneiel).
+
+## Licença
+
+MIT. Veja o [LICENSE](LICENSE).
