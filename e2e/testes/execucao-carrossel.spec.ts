@@ -9,9 +9,8 @@ import { contextoLogado } from '../suporte/navegador.ts';
  * Duas tarefas em dois módulos, `web` com `dependsOn: ['api']`. O spec abre a
  * sessão CRIATIVA (não a de execução) e prova: a faixa aparece com "x de N",
  * o dev dependente cita a fundação de que espera, minimizar tira os cartões e
- * deixa só estado, tempo e gasto, e a escolha sobrevive ao reload. O web ainda
- * não tem `data-testid` aí: os seletores são o papel (`progressbar`, `status`,
- * `article` com `role=group`) e o `aria-expanded`; nada de texto de tela.
+ * deixa só estado, tempo e gasto, e a escolha sobrevive ao reload. Os seletores
+ * são `data-testid` (faixa, minimizar e cartão/chip por agente); nada de texto de tela.
  * Sem LLM.
  */
 
@@ -21,9 +20,9 @@ let exec: ExecucaoSemeada;
 let context: BrowserContext;
 let page: Page;
 
-const faixa = () => page.locator('section:has([role="progressbar"])');
-const cartao = (dev: string) => faixa().locator('article[role="group"]', { hasText: dev });
-const alternar = () => faixa().locator('button[aria-expanded]');
+const faixa = () => page.locator('[data-testid="carrossel-executores"]');
+const cartao = (dev: string) => faixa().locator(`[data-testid="carrossel-cartao-${dev}"]`);
+const alternar = () => faixa().locator('[data-testid="carrossel-minimizar"]');
 
 test.beforeAll(async ({ browser }) => {
   test.setTimeout(240_000);
@@ -53,10 +52,7 @@ test('a faixa aparece no chat do Criativo com o "x de N" e um cartão por dev', 
   await expect(cartao('dev-web')).toBeVisible({ timeout: 45_000 });
 });
 
-// FIXME(AT-880): o web só lê `task.module`, que o claim preenche; a tarefa do `dev-web` nunca foi pega (espera `api`),
-// então o cartão cai em "Sem tarefa disponível agora" (visto no CI da PR). O helper `motivoDoOcio` precisa cair
-// para `story.moduleIds` (o shortcut dele já avisa). Tirar o `fixme` quando o web corrigir.
-test.fixme('o dev dependente mostra o motivo do ócio: cita o módulo de que espera', { tag: '@f-execucao' }, async () => {
+test('o dev dependente mostra o motivo do ócio: cita o módulo de que espera', { tag: '@f-execucao' }, async () => {
   // O motivo é derivado do module_map + backlog (RN-1073); `dev-web` só fica ocioso depois do claim vazio.
   await expect(cartao('dev-web').locator('p', { hasText: 'api' })).toBeVisible({ timeout: 60_000 });
 });
