@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- E2E (AT-880): o regressivo de `execucao` ganha `execucao-carrossel.spec.ts` (`@f-execucao`): o carrossel de executores no chat do Criativo com o "x de N", o motivo do ócio do dev dependente (RN-1073) e o modo minimizado (só estado, tempo e gasto) que persiste ao recarregar. O teste do motivo do ócio está em `test.fixme`: o web não acha a causa quando a tarefa do dependente ainda não tem `module` (só o claim o preenche). Seletores por papel e `aria-expanded`, porque o web não tem `data-testid` aí. O glob web de `execucao` em `funcionalidades.yml` inclui `CarrosselDeExecutores` e `executores-ao-vivo`.
+
 - Capturas da doc (AT-878, ADR 0289): a recaptura segue a tag do `web` e só pede o dono quando a imagem muda. `capturas.ts` ganha o diff de pixels (`diferenca`, pixelmatch, limiar de 0,02%) e o `mudancas.json` (`versao` | `visual`, validado na fronteira do `publicar`); `deveCapturar` compara a tag inteira, PATCH incluso. O `capturas-da-doc.yml` aceita `repository_dispatch` (`capturas-pin-mudou`) e o `publicar` tem dois caminhos com a mesma App: `versao` (só `capturas.json`, branch `chore/capturas-versao`) e `visual` (só os PNG mudados mais o manifesto, `chore/capturas-da-doc`, escada inteira). `ocultar.ts` fixa hash da sessão, hash da branch, "iniciada às" e "há N min" antes do screenshot (`fixarNaPagina`), e o cenário espera o texto e as rolagens assentarem: duas capturas do mesmo build deixam de passar do limiar. Devdeps do `scripts/`: `pixelmatch` e `pngjs`.
 
 - CI: repina o brabo-ci na release final `v1.4.0` (`5320046`), para a promoção `dev → main` de 09/11/2026 (a `main` só aceita release final).
