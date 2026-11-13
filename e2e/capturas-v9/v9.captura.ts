@@ -138,7 +138,7 @@ async function fotografar(page: Page, t: Tela, th: 'dark' | 'light'): Promise<vo
     await page.waitForTimeout(2500);
     await t.antes?.(page);
     await page.setViewportSize({ width: 1440, height: 900 });
-    const extra = await page.evaluate(() => Math.max(0, ...[...document.querySelectorAll('*')].map((e) => e.scrollHeight - e.clientHeight)));
+    const extra = await page.evaluate(() => Math.max(0, ...[...Array.from(document.querySelectorAll("*"))].map((e) => e.scrollHeight - e.clientHeight)));
     if (extra > 0) { await page.setViewportSize({ width: 1440, height: Math.min(900 + extra, 4000) }); await page.waitForTimeout(500); }
     await fixarNaPagina(page);
     await conferirSemDadoSensivel(page, nome);
