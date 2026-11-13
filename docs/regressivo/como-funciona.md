@@ -128,3 +128,7 @@ Cada run do `e2e-pr` mostra de onde veio: o `run-name` é `E2E ← brabo-api#48 
 
 ## Tetos da api no compose de teste (AT-840)
 O passo "Gerar o .env" do `e2e-pr.yml` grava `RATE_LIMIT_USER=5000`, `RATE_LIMIT_IP=10000` e `AUTH_LOCKOUT_IP_THRESHOLDS=200:5`. O catálogo inteiro faz mais requisições por minuto que o padrão (300 por usuário, 600 por IP) e a api responde 429 (run 42506755991); o lockout por IP conta todo login, inclusive os de sucesso. O passo é o mesmo no regressivo da `dev` e no portão, então a medida cobre os dois. A api só recebe os valores depois que o `docker-compose.install.yml` do brabo-infra os repassa; até lá o `.env` não tem efeito e não quebra nada. Os mecanismos continuam provados nas suítes da api.
+
+## Funcionalidade sem spec de propósito: `container-e-broker`
+
+A prova de compose do QA (AT-922, ADR 0297) não tem spec aqui. O compose de produção que o `e2e-pr` sobe deixa o broker desligado (`sem_broker_na_instalacao`), e a prova precisa do broker com o socket do Docker e de um container de projeto. Ela fica coberta por unidade em cada repo (broker, api, engine) e pelo TP-01. O mapa caminho → funcionalidade cobre os arquivos dela para a PR que os tocar saber que a funcionalidade existe.

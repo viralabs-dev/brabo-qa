@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Regressivo (AT-922, ADR 0297): `container-e-broker` passa a mapear os caminhos da prova de compose (api: `provar-compose-de-qa.use-case.ts` já cai em `containers/**`, mais o controller `internal-qa-environments` e o `container-broker.client`; engine: `gates/prova_de_compose.ex`; broker: `src/prova-de-compose.ts` já cai em `src/**`). Sem spec `container-e-broker-compose.spec.ts`: o compose de produção do E2E sobe o broker desligado (`sem_broker_na_instalacao`) e a prova exige broker com o socket do Docker mais um container de projeto, então a funcionalidade segue sem cobertura no regressivo (só listada). A prova é coberta por unidade em cada repo e pelo TP-01.
+
 - Capturas da v9 (AT-897): `e2e/capturas-v9/v9.captura.ts` e `playwright.capturas-v9.config.ts` fotografam as 25 telas da v9 a 1440 px nos dois temas (50 PNG) do produto de pé com o provider dublê, para a nota "Comparação v9" do Vault. Não é a captura da doc (`e2e/capturas/`, 1366×768, ADR 0286/0289) nem roda no CI. O estado da demo é semeado por HTTP e rotas internas, sem turno de agente.
 - Scripts (AT-924): `jev/vivo/ferramentas-dev.json` regenerado do engine. O `@registry` do dev ganhou `consultar_impacto_do_modulo` (engine#91) e o `report_done` ganhou `como_usar` (engine#89), e o spec `vivo.spec.ts` (10 ferramentas) reprovava com o JSON de 9.
 
