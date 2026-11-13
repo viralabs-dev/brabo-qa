@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Capturas da v9 (AT-897): `e2e/capturas-v9/v9.captura.ts` e `playwright.capturas-v9.config.ts` fotografam as 25 telas da v9 a 1440 px nos dois temas (50 PNG) do produto de pé com o provider dublê, para a nota "Comparação v9" do Vault. Não é a captura da doc (`e2e/capturas/`, 1366×768, ADR 0286/0289) nem roda no CI. O estado da demo é semeado por HTTP e rotas internas, sem turno de agente.
+- Scripts (AT-924): `jev/vivo/ferramentas-dev.json` regenerado do engine. O `@registry` do dev ganhou `consultar_impacto_do_modulo` (engine#91) e o `report_done` ganhou `como_usar` (engine#89), e o spec `vivo.spec.ts` (10 ferramentas) reprovava com o JSON de 9.
 
 - E2E (AT-927): `llm-e-gasto.spec.ts` (`@f-llm-e-gasto`) dá spec à funcionalidade, que reprovava o regressivo da api#99 com "No tests found": a aba Gastos (`?tab=spend`) carrega sem `role=alert` e o `spend-report` responde; o catálogo de modelos lista modelos, com o dublê `ollama` entre eles. Sem LLM pago. Funcionalidades ainda sem spec (só listadas): `projetos`, `container-e-broker`, `runner`.
 
