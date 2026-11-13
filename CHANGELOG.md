@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Capturas da doc: o botão "Novo projeto" da sidebar do web v1.4.0 (RN-1329) vira `getByRole('button', { name: 'Novo projeto' })` (o `sidebar-group-action` sumiu), e o `compose_ref` sai da pin `infra.ref` do `componentes.json` (v1.5.0) em vez da `-dev` fixa.
+- Capturas da doc: o botão "Novo projeto" da sidebar do web v1.4.0 (RN-1329) vira `[data-slot="sidebar-menu-button"]` com o texto "Novo projeto" (o `sidebar-group-action` sumiu), e o `compose_ref` sai da pin `infra.ref` do `componentes.json` (v1.5.0) em vez da `-dev` fixa.
 - Regressivo (AT-626): `llm-e-gasto` mapeia no web a seção `RoteadorDeFerramentasSection` (brabo-web#107, Configurações › Modelos), que agora existe no `dev`.
 - Regressivo (AT-626): `llm-e-gasto` passa a mapear `infra: docker/laya/**` (Dockerfile, `servico.py` e `baixar-checkpoint.py` do laya no brabo-infra). A api já cai em `src/**/llm/**`, então `src/infrastructure/llm/laya-*.ts` não ganhou glob novo. O glob web do roteador de ferramentas (`src/routes/settings/*oteador*`) fica para quando o arquivo entrar no `dev` do brabo-web: o validador reprova glob sem arquivo casado.
 
