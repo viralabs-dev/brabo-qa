@@ -7,3 +7,5 @@ e2e/playwright-report/
 .DS_Store
 e2e/capturas/saida/
 e2e/capturas/.resultado/
+e2e/capturas-v9/saida/
+e2e/capturas-v9/.resultado/
