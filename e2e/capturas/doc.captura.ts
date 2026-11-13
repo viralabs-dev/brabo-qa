@@ -144,11 +144,11 @@ test('projetos: a lista de projetos', async () => {
 
 test('novo projeto: o assistente de criação', async () => {
   await page.goto('/');
-  await page.locator('[data-slot="sidebar-group-action"]').click();
+  await page.getByRole('button', { name: 'Novo projeto' }).click();
   await page.locator('[role="dialog"]').waitFor();
   // O estado do diálogo não sobrevive ao `goto` do `fotografar`: reabre depois de cada recarga.
   await fotografar(page, 'novo-projeto', 'Assistente de novo projeto', async () => {
-    await page.locator('[data-slot="sidebar-group-action"]').click();
+    await page.getByRole('button', { name: 'Novo projeto' }).click();
     await page.locator('[role="dialog"]').waitFor();
   });
 });
