@@ -1,20 +1,28 @@
 name: capturas-da-doc
 
-run-name: ${{ format('Capturas da doc · {0}', github.event_name == 'schedule' && 'agendado' || format('manual · {0}', github.actor)) }}
+run-name: ${{ format('Capturas da doc · {0}', github.event_name == 'schedule' && 'agendado' || github.event_name == 'repository_dispatch' && 'pin mudou' || format('manual · {0}', github.actor)) }}
 
 # AT-859, ADR 0286: o brabo-qa fotografa as telas que a doc do `brabo` mostra (cenário `e2e/capturas/doc.captura.ts`, com a
-# ocultação da AT-864 embutida) e o App entrega os PNGs no `brabo` por UMA PR fixa, `chore/capturas-da-doc`, que passa pela escada
-# inteira. Só segue quando o MAJOR.MINOR do `web` do `componentes.json` mudou desde a última captura.
+# ocultação da AT-864 embutida). Só segue quando a TAG do `web` do `componentes.json` mudou desde a última captura (PATCH incluso).
+#
+# AT-878, ADR 0289: o `capturar` compara cada PNG novo com o da `dev` do `brabo` (pixelmatch, limiar de 0,02% dos pixels) e grava o
+# veredito em `mudancas.json`. O `publicar` tem dois caminhos, os dois com a mesma App:
+#  - `versao` (nada passou do limiar): só `docs/assets/capturas.json` na branch `chore/capturas-versao`, que dispensa a escada;
+#  - `visual` (algum PNG mudou): só os PNG mudados mais o manifesto na branch `chore/capturas-da-doc`, que passa pela escada
+#    inteira, e a aprovação do dono é a conferência com zoom.
+# O gatilho `repository_dispatch` (`capturas-pin-mudou`) vem do `brabo` quando a pin do web muda na `dev`.
 #
 # A PUBLICAÇÃO ESTÁ DESLIGADA: o job `publicar` só roda com a variável do repositório `CAPTURAS_PUBLICAR=true`, que ninguém criou.
 # Ligar é depois do merge desta PR e da conferência das imagens com zoom (README, "Capturas da doc").
 on:
   schedule:
     - cron: '17 6 * * *'
+  repository_dispatch:
+    types: [capturas-pin-mudou]
   workflow_dispatch:
     inputs:
       forcar:
-        description: 'Captura mesmo com o MAJOR.MINOR do web em dia'
+        description: 'Captura mesmo com a tag do web em dia'
         required: false
         type: boolean
         default: false
@@ -38,7 +46,8 @@ concurrency:
 env:
   NODE_VERSION: '26.10.0'
   PNPM_VERSION: '11.3.0'
-  BRANCH: chore/capturas-da-doc
+  BRANCH_VISUAL: chore/capturas-da-doc
+  BRANCH_VERSAO: chore/capturas-versao
 
 jobs:
   # Lê as pins do `brabo` (repo público, sem token) e decide. Não executa nada que venha de fora além de JSON.
@@ -78,7 +87,7 @@ jobs:
           seguir="$(node scripts/ci/capturas.ts decidir componentes.json capturas-atual.json)"
           if [ "${FORCAR:-false}" = true ]; then seguir=seguir=true; fi
           echo "$seguir" >> "$GITHUB_OUTPUT"
-          if [ "$seguir" = seguir=false ]; then echo "As capturas estão em dia com o MAJOR.MINOR do web; nada a fazer." >> "$GITHUB_STEP_SUMMARY"; fi
+          if [ "$seguir" = seguir=false ]; then echo "As capturas estão em dia com a tag do web; nada a fazer." >> "$GITHUB_STEP_SUMMARY"; fi
 
       # As imagens saem das pins (Releases finais). Exceção, a api: o provider dublê (RN-1065) só carrega em imagem SEM a marca `prd`,
       # então ela vem da `-dev.N` mais nova (ou da `api_tag`). `ls-remote` de repo público, sem token.
@@ -212,9 +221,25 @@ jobs:
         # O token de serviço (rotas internas da semeadura, AT-872) entra só neste passo: mascarado, nunca impresso, fora do artefato.
         run: bash "$GITHUB_WORKSPACE/scripts/ci/com-token-de-servico.sh" "$GITHUB_WORKSPACE/brabo-infra/docker/.env" -- pnpm exec playwright test -c playwright.capturas.config.ts
 
-      # Antes do artefato: o mesmo validador que o `publicar` roda.
+      # Antes de comparar: só `.png` com nome do manifesto entra na comparação.
       - name: Validar o artefato
         run: node scripts/ci/capturas.ts validar capturas-saida
+
+      # AT-878: o veredito sai DESTE job (sem token), e o `publicar` o valida. Os PNG atuais vêm da `dev` do `brabo` (repo público).
+      - name: Comparar com as imagens da dev do brabo
+        run: |
+          set -euo pipefail
+          base=https://raw.githubusercontent.com/viralabs-dev/brabo/dev/docs/assets
+          mkdir atual
+          curl -fsSL "$base/capturas.json" -o capturas-atual.json || echo '[]' > capturas-atual.json
+          for nome in $(jq -r '.[].arquivo' capturas-atual.json | grep -E '^[a-z0-9-]+-(claro|escuro)\.png$'); do
+            curl -fsSL "$base/capturas/$nome" -o "atual/$nome"
+          done
+          pnpm --dir scripts install --frozen-lockfile
+          node scripts/ci/capturas.ts diferenca atual capturas-saida capturas-saida/mudancas.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Validar o artefato com o veredito
+        run: node scripts/ci/capturas.ts validar capturas-saida veredito
 
       - name: Logs dos containers
         if: always()
@@ -282,9 +307,9 @@ jobs:
           name: capturas-da-doc
           path: artefato
 
-      # A fronteira de confiança: só `.png` nomeado no manifesto, até 400 KB cada, e o JSON validado.
+      # A fronteira de confiança: só `.png` nomeado no manifesto, até 400 KB cada, e o JSON e o veredito validados.
       - name: Validar o artefato
-        run: node qa/scripts/ci/capturas.ts validar artefato
+        run: node qa/scripts/ci/capturas.ts validar artefato veredito
 
       - name: Commitar e abrir, atualizar ou fechar a PR
         working-directory: brabo
@@ -293,31 +318,49 @@ jobs:
           REPO: viralabs-dev/brabo
         run: |
           set -euo pipefail
-          aberta=$(gh pr list -R "$REPO" --head "$BRANCH" --base dev --state open --json number --jq '.[0].number // empty')
-          rm -rf docs/assets/capturas
-          mkdir -p docs/assets/capturas
-          cp "$GITHUB_WORKSPACE"/artefato/*.png docs/assets/capturas/
+          veredito="$(jq -r .veredito "$GITHUB_WORKSPACE/artefato/mudancas.json")"
+          aberta() { gh pr list -R "$REPO" --head "$1" --base dev --state open --json number --jq '.[0].number // empty'; }
           # O manifesto do site fica em docs/assets/capturas.json (ordem estável, para o diff ser só o que mudou).
           jq -S '.' "$GITHUB_WORKSPACE/artefato/capturas.json" > docs/assets/capturas.json
+          if [ "$veredito" = versao ]; then
+            ramo="$BRANCH_VERSAO"; outro="$BRANCH_VISUAL"
+            versao_web="$(jq -r '.[0].web' docs/assets/capturas.json)"
+            titulo="docs: as capturas da doc conferem com o web $versao_web"
+            corpo="Aberta por \`capturas-da-doc.yml\` do \`brabo-qa\` (AT-878, ADR 0289): nenhuma imagem mudou acima do limiar de 0,02% dos pixels, então a PR só atualiza as versões de \`docs/assets/capturas.json\`. Não tem PNG, e o \`capturas-check\` do \`brabo\` reprova se tiver."
+          else
+            ramo="$BRANCH_VISUAL"; outro="$BRANCH_VERSAO"
+            titulo='docs: atualiza as capturas da doc'
+            lista="$(jq -r '.mudancas[] | "- `\(.arquivo)`: \((.fracao * 10000 | round) / 100)% dos pixels"' "$GITHUB_WORKSPACE/artefato/mudancas.json")"
+            corpo="Aberta por \`capturas-da-doc.yml\` do \`brabo-qa\` (AT-859, AT-878, ADR 0286 e 0289): a tela mudou acima do limiar de 0,02% dos pixels. Só estes PNG vêm na PR, e ela passa pela escada inteira; a aprovação do dono é a conferência com zoom.
+
+          $lista"
+            # só os PNG mudados: um nome que sumiu da captura nova é apagado da doc
+            for nome in $(jq -r '.mudancas[].arquivo' "$GITHUB_WORKSPACE/artefato/mudancas.json"); do
+              if [ -f "$GITHUB_WORKSPACE/artefato/$nome" ]; then cp "$GITHUB_WORKSPACE/artefato/$nome" "docs/assets/capturas/$nome"; else rm -f "docs/assets/capturas/$nome"; fi
+            done
+          fi
+          # o veredito novo substitui a PR do outro caminho
+          if [ -n "$(aberta "$outro")" ]; then
+            gh pr close "$(aberta "$outro")" -R "$REPO" --delete-branch --comment "Substituída: a captura mais nova tem o veredito \`$veredito\`."
+          fi
+          aberta_ramo="$(aberta "$ramo")"
           git add -A docs/assets/capturas docs/assets/capturas.json
           if git diff --cached --quiet; then
-            if [ -n "$aberta" ]; then
+            if [ -n "$aberta_ramo" ]; then
               # shellcheck disable=SC2016  # as crases são texto literal da mensagem
-              gh pr close "$aberta" -R "$REPO" --delete-branch --comment 'As capturas da `dev` já estão em dia; nada a atualizar.'
+              gh pr close "$aberta_ramo" -R "$REPO" --delete-branch --comment 'As capturas da `dev` já estão em dia; nada a atualizar.'
             fi
             exit 0
           fi
           git -c user.name='viralabs-dev-brabo[bot]' -c user.email='noreply@github.com' \
-            commit -q -m 'docs: atualiza as capturas da doc' -m 'Geradas pelo brabo-qa (capturas-da-doc.yml, AT-859, ADR 0286).'
+            commit -q -m "$titulo" -m 'Geradas pelo brabo-qa (capturas-da-doc.yml, AT-859, AT-878, ADR 0286 e 0289).'
           # mesma árvore que a PR aberta já tem: não reempurra (re-rodaria o CI e derrubaria a aprovação)
-          if git fetch -q origin "$BRANCH" 2>/dev/null && [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse 'FETCH_HEAD^{tree}')" ]; then
+          if git fetch -q origin "$ramo" 2>/dev/null && [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse 'FETCH_HEAD^{tree}')" ]; then
             echo "A PR já tem estas capturas; nada a empurrar."
           else
-            git push -f origin "HEAD:refs/heads/$BRANCH"
+            git push -f origin "HEAD:refs/heads/$ramo"
           fi
-          if [ -z "$aberta" ]; then
-            # shellcheck disable=SC2016  # as crases são texto literal do corpo da PR
-            gh pr create -R "$REPO" --base dev --head "$BRANCH" \
-              --title 'docs: atualiza as capturas da doc' \
-              --body "$(printf '%s\n\n%s\n' 'Aberta por `capturas-da-doc.yml` do `brabo-qa` (AT-859, ADR 0286): o MAJOR.MINOR do web mudou. As imagens têm a ocultação da AT-864 embutida; esta PR passa pela escada inteira, e a aprovação do dono é a conferência com zoom.' "Execução: $GITHUB_SERVER_URL/viralabs-dev/brabo-qa/actions/runs/$GITHUB_RUN_ID")"
+          if [ -z "$aberta_ramo" ]; then
+            gh pr create -R "$REPO" --base dev --head "$ramo" --title "$titulo" \
+              --body "$(printf '%s\n\n%s\n' "$corpo" "Execução: $GITHUB_SERVER_URL/viralabs-dev/brabo-qa/actions/runs/$GITHUB_RUN_ID")"
           fi

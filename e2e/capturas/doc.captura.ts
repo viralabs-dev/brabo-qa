@@ -9,7 +9,7 @@ import { contextoLogado } from '../suporte/navegador.ts';
 import { abrirFila } from '../suporte/chat.ts';
 import { aprovarOsGates, esperarGateAberto, semearExecucao } from '../suporte/execucao.ts';
 import { chamarInterno, criarEpico, criarHistoria, criarMapaDeModulos, criarTarefa, ligarModulos } from '../suporte/interno.ts';
-import { COR_DA_MASCARA, conferirSemDadoSensivel, mascaras } from '../suporte/ocultar.ts';
+import { COR_DA_MASCARA, conferirSemDadoSensivel, fixarNaPagina, mascaras } from '../suporte/ocultar.ts';
 
 /**
  * As capturas das telas que a doc do `brabo` mostra (AT-859, ADR 0286). Não é spec: não leva `@f-`, vive fora de
@@ -63,6 +63,8 @@ async function fotografar(page: Page, nome: string, tela: string, preparar?: () 
     await page.goto(url);
     await page.waitForLoadState('networkidle');
     await preparar?.();
+    // Hash da sessão e da branch, "iniciada às" e "há N min" viram valor fixo: o diff de pixels só vê mudança de tela (AT-878).
+    await fixarNaPagina(page);
     // Tela de erro não ensina nada: falha a captura em vez de publicá-la.
     const corpo = await page.locator('body').innerText();
     if (/Não foi possível|Não consegui descobrir|Limite de requisi/i.test(corpo)) throw new Error(`${nome}-${tema}: a tela mostra um erro, não a tela da doc: ${corpo.slice(0, 300)}`);
@@ -271,7 +273,11 @@ test('dev-agent: o fio do dev agent na execução', async () => {
   ({ taskId: tarefaDaExecucao } = await esperarGateAberto(token, execucao));
   await page.goto(`/projects/${execucao.projectId}/sessions/${execucao.execucaoId}`);
   await page.waitForLoadState('networkidle');
-  await fotografar(page, 'dev-agent', 'Dev agent trabalhando na execução');
+  // O cartão "Pendências deste projeto" ("Saiu da fila: 1 PR pronta") aparece por alguns segundos e some sozinho: sem esperar, a
+  // imagem saía com ou sem ele conforme o instante (AT-878).
+  await fotografar(page, 'dev-agent', 'Dev agent trabalhando na execução', async () => {
+    await page.getByText('Pendências deste projeto').waitFor({ state: 'hidden', timeout: 30_000 });
+  });
 });
 
 test('merges no chat: a PR pronta para o dono', async () => {
@@ -280,5 +286,16 @@ test('merges no chat: a PR pronta para o dono', async () => {
   await fotografar(page, 'merges-no-chat', 'PR pronta para o merge no chat', async () => {
     await abrirFila(page, 'prontas');
     await page.locator('[data-testid="pr-pronta"]').first().waitFor({ timeout: 45_000 });
+    // O feed (só ~68 px visíveis atrás do cartão de pendências) parava em um ponto de rolagem diferente a cada carga e mostrava
+    // linhas diferentes por trás dele (AT-878). Rola ao fim até a altura e a posição pararem de mudar.
+    await page.locator('[class*="_messages_"]').first().evaluate(async (el) => {
+      for (let i = 0, iguais = 0, ultima = ''; i < 50 && iguais < 4; i++) {
+        el.scrollTop = el.scrollHeight;
+        await new Promise((ok) => setTimeout(ok, 150));
+        const atual = `${el.scrollHeight}/${el.scrollTop}`;
+        iguais = atual === ultima && el.scrollTop + el.clientHeight >= el.scrollHeight - 1 ? iguais + 1 : 0;
+        ultima = atual;
+      }
+    });
   });
 });

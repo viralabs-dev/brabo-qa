@@ -1,0 +1,11 @@
+{
+  "agentes": {
+    "criativo": [
+      {
+        "texto": "Ótima ideia: um encurtador de links. Para eu desenhar o produto, me diga quem vai usar. Vou assumir que é uma pessoa que cola um endereço longo e recebe um código curto de 7 caracteres, que redireciona para o endereço original.\n\nRegras que já proponho:\n- só endereços http e https são aceitos;\n- cada clique no link curto é registrado com a data;\n- quem criou o link vê a contagem de cliques no painel.\n\nO que ainda não consegui decidir sozinho virou pergunta aberta na fila acima: aceite a sugestão ou escreva a sua.",
+        "inputTokens": 120,
+        "outputTokens": 140
+      }
+    ]
+  }
+}
