@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Regressivo (AT-626): `llm-e-gasto` mapeia no web a seção `RoteadorDeFerramentasSection` (brabo-web#107, Configurações › Modelos), que agora existe no `dev`.
 - Regressivo (AT-626): `llm-e-gasto` passa a mapear `infra: docker/laya/**` (Dockerfile, `servico.py` e `baixar-checkpoint.py` do laya no brabo-infra). A api já cai em `src/**/llm/**`, então `src/infrastructure/llm/laya-*.ts` não ganhou glob novo. O glob web do roteador de ferramentas (`src/routes/settings/*oteador*`) fica para quando o arquivo entrar no `dev` do brabo-web: o validador reprova glob sem arquivo casado.
 
 - Regressivo (AT-922, ADR 0297): `container-e-broker` passa a mapear os caminhos da prova de compose (api: `provar-compose-de-qa.use-case.ts` já cai em `containers/**`, mais o controller `internal-qa-environments` e o `container-broker.client`; engine: `gates/prova_de_compose.ex`; broker: `src/prova-de-compose.ts` já cai em `src/**`). Sem spec `container-e-broker-compose.spec.ts`: o compose de produção do E2E sobe o broker desligado (`sem_broker_na_instalacao`) e a prova exige broker com o socket do Docker mais um container de projeto, então a funcionalidade segue sem cobertura no regressivo (só listada). A prova é coberta por unidade em cada repo e pelo TP-01.
