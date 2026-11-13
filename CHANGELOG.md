@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Scripts (AT-924): `jev/vivo/ferramentas-dev.json` regenerado do engine. O `@registry` do dev ganhou `consultar_impacto_do_modulo` (engine#91) e o `report_done` ganhou `como_usar` (engine#89), e o spec `vivo.spec.ts` (10 ferramentas) reprovava com o JSON de 9.
+
 - E2E (AT-927): `llm-e-gasto.spec.ts` (`@f-llm-e-gasto`) dá spec à funcionalidade, que reprovava o regressivo da api#99 com "No tests found": a aba Gastos (`?tab=spend`) carrega sem `role=alert` e o `spend-report` responde; o catálogo de modelos lista modelos, com o dublê `ollama` entre eles. Sem LLM pago. Funcionalidades ainda sem spec (só listadas): `projetos`, `container-e-broker`, `runner`.
 
 - E2E (AT-881): o caso "o dev dependente mostra o motivo do ócio" sai do `test.fixme` (o web passa a dar o motivo também para tarefa sem `module`, web#67). `execucao-carrossel.spec.ts` deixa os seletores de papel e `aria-expanded` e usa os `data-testid` do web: `carrossel-executores` (faixa), `carrossel-minimizar` (botão) e `carrossel-cartao-<agentId>` (cartão, ou chip quando minimizado). O `role=progressbar` dentro da faixa fica.
