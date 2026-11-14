@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- E2E (AT-950, brabo-web#109): `abrirPendencias` e `abrirMaisAcoesSeExistir` em `e2e/suporte/chat.ts` abrem as pendências do chat nos dois webs (Sheet à direita ou bloco inline, pelo evento `brabo:abrir-fila`); `backlog-perguntas-em-aberto`, `execucao-parada` e `git-mergear-no-chat` deixam de esperar o painel inline, e o primeiro aceita uma pergunta por vez no Sheet. As asserções de regra não mudaram.
+
 - Regressivo (AT-950): `funcionalidades.yml` mapeia as telas de sessão do web (`SessionPage`, `SessionComposer`, `SessionFio`, `session-fio`, `session-timeline-montagem`, `SessionTopbar`, `ContextAside`) a `sessao-e-canal` e `turno-do-agente`; `PendenciasDeOutrasSessoes`, `PerguntasEmAberto`, `PaginadorDaFila` e `StructuredQuestionCard` a `sessao-e-canal`; `ApprovalCard`, `MergearNoChat` e `AvisoDePrPronta` a `aprovacoes`. O spec do validador prova o mapa contra o `SessionPage.tsx` e o `PendenciasDeOutrasSessoes.tsx`.
 
 - Capturas da doc: o botão "Novo projeto" da sidebar do web v1.4.0 (RN-1329) vira `[data-slot="sidebar-menu-button"]` com o texto "Novo projeto" (o `sidebar-group-action` sumiu), e o `compose_ref` sai da pin `infra.ref` do `componentes.json` (v1.5.0) em vez da `-dev` fixa.
