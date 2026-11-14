@@ -23,7 +23,7 @@ funcionalidades:
     caminhos:
       api: ['src/**/sessions/**']
       engine: ['lib/engine/{sessions,session_events}/**', 'lib/engine_web/channels/**']
-      web: ['src/**/{ProjectChatShell,JanelaDoAgente,ProjectSessionsTab,ActivityFeed}*']
+      web: ['src/**/{ProjectChatShell,JanelaDoAgente,ProjectSessionsTab,ActivityFeed}*', 'src/**/{SessionPage,SessionComposer,SessionFio,session-fio,session-timeline-montagem,SessionTopbar,ContextAside}*', 'src/**/{PendenciasDeOutrasSessoes,PerguntasEmAberto,PaginadorDaFila,StructuredQuestionCard}*']
   - id: turno-do-agente
     nome: Turno do agente
     descricao: o turno sobe pelo canal, o Harness roda e o desfecho (inclusive falha de credencial) volta
@@ -31,7 +31,7 @@ funcionalidades:
     status: ativa
     caminhos:
       engine: ['lib/engine/{harness,agents,prompts}/**']
-      web: ['src/**/{ProjectChatShell,JanelaDoAgente,ProjectSessionsTab,ActivityFeed}*']
+      web: ['src/**/{ProjectChatShell,JanelaDoAgente,ProjectSessionsTab,ActivityFeed}*', 'src/**/{SessionPage,SessionComposer,SessionFio,session-fio,session-timeline-montagem,SessionTopbar,ContextAside}*']
   - id: aprovacoes
     nome: Aprovações e modo automático
     descricao: "`proposed_action`, fila, decisão no chat, modo automático e tetos"
@@ -40,7 +40,7 @@ funcionalidades:
     caminhos:
       api: ['src/**/{actions,execution}/**']
       engine: ['lib/engine/actions/**']
-      web: ['src/**/{ApprovalCard,ProjectApprovalsTab,PainelDaFila,ModoAutomatico,MergearNoChat}*']
+      web: ['src/**/{ApprovalCard,ProjectApprovalsTab,PainelDaFila,ModoAutomatico,MergearNoChat,AvisoDePrPronta}*']
   - id: time-e-handoffs
     nome: Time de agentes
     descricao: catálogo de agentes, áreas, instruções, delegação e handoff
