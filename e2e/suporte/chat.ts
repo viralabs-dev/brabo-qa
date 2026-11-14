@@ -12,12 +12,15 @@ const PAINEL = '[data-testid="pendencias-de-outras-sessoes"]';
  */
 export async function abrirPendencias(page: Page, fila = 'perguntas'): Promise<boolean> {
   const painel = page.locator(PAINEL);
+  const abrir = () => page.evaluate((f) => window.dispatchEvent(new CustomEvent('brabo:abrir-fila', { detail: f })), fila);
   const limite = Date.now() + 30_000;
   while (Date.now() < limite && !(await painel.isVisible())) {
-    await page.evaluate((f) => window.dispatchEvent(new CustomEvent('brabo:abrir-fila', { detail: f })), fila);
+    await abrir();
     await page.waitForTimeout(500);
   }
   await painel.waitFor({ timeout: 1_000 });
+  // No bloco inline o painel já está visível e a aba pedida nasce fechada (`hidden`): o evento a abre.
+  await abrir();
   return (await painel.getAttribute('role')) === 'dialog';
 }
 
