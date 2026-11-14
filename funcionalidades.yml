@@ -108,7 +108,8 @@ funcionalidades:
     status: ativa
     caminhos:
       api: ['src/**/{llm,credentials}/**', 'src/infrastructure/{llm,huggingface,tokenization}/**']
-      web: ['src/**/{ModelCatalogSection,ModelPicker,CredentialSpendSection,GastoPorDia}*']
+      web: ['src/**/{ModelCatalogSection,ModelPicker,CredentialSpendSection,GastoPorDia,RoteadorDeFerramentasSection}*']
+      infra: ['docker/laya/**']
   - id: conhecimento
     nome: RAG, grafo e arquitetura
     descricao: busca, grafo, artefatos, aba de arquitetura
