@@ -110,10 +110,16 @@ test('o turno sobe, falha por credencial e o desfecho chega pelo canal da sessã
   // 2. O composer da sessão criativa: o Criativo é o destinatário único, e o
   //    `value` do seletor é o SLUG — estrutura, não rótulo traduzido.
   const destinatario = page.locator('[data-testid="destinatario-do-chat"]');
-  await expect(destinatario.locator('select')).toHaveValue('criativo', { timeout: 30_000 });
-  const composer = destinatario.locator('xpath=following-sibling::div[1]');
-  await composer.locator('textarea').fill('Quero um app de receitas.');
-  const enviar = composer.locator('button').first();
+  // shortcut: compatível com a web antes e depois da web#119 (AT-960); tirar o fallback quando a #119 estiver na dev
+  // Nova: o testid é o próprio select. Antiga: é o wrapper, com o select dentro.
+  await expect(
+    page.locator('select[data-testid="destinatario-do-chat"]').or(destinatario.locator('select')),
+  ).toHaveValue('criativo', { timeout: 30_000 });
+  await page.locator('textarea').first().fill('Quero um app de receitas.');
+  const enviar = page
+    .getByTestId('enviar-mensagem')
+    .or(page.locator('div[data-testid="destinatario-do-chat"] + div button').first())
+    .first();
   await expect(enviar).toBeEnabled();
 
   const aceite = page.waitForResponse(
