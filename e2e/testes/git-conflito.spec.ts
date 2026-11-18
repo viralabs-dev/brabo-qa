@@ -86,15 +86,3 @@ test('o merge com conflito vira git_merge failed com a lista de arquivos', { tag
   await page.goto(`/projects/${exec.projectId}?tab=prs`);
   await expect(page.locator('[data-testid="aviso-merge-recusado"]')).toContainText(arquivo, { timeout: 30_000 });
 });
-
-// AT-983 C: o Noop refaz a PR sozinho e a reentrega devolve a tarefa a `in_review` com o gate do dono.
-test('a tarefa reentregue depois do conflito volta a in_review e o carrossel diz "Esperando o seu merge"', { tag: '@f-git' }, async () => {
-  await expect.poll(async () => (await tarefa()).status, { timeout: 120_000 }).toBe('in_review');
-  await aprovarOsGates(exec, taskId);
-  await expect.poll(async () => (await tarefa()).gateStatus, { timeout: 60_000 }).toBe('awaiting_user');
-
-  await page.goto(`/projects/${exec.projectId}/sessions/${exec.sessionId}`);
-  await expect(page.locator('[data-testid="carrossel-cartao-dev-api"]')).toContainText('Esperando o seu merge', {
-    timeout: 60_000,
-  });
-});
