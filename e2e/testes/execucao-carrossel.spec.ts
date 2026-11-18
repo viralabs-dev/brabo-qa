@@ -1,6 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { autenticar } from '../suporte/api.ts';
-import { semearExecucao, type ExecucaoSemeada } from '../suporte/execucao.ts';
+import { esperarGateAberto, semearExecucao, sessaoDaExecucao, type ExecucaoSemeada } from '../suporte/execucao.ts';
+import { chamarInterno } from '../suporte/interno.ts';
 import { contextoLogado } from '../suporte/navegador.ts';
 
 /**
@@ -69,4 +70,51 @@ test('minimizar deixa só estado, tempo e gasto, e a escolha persiste ao recarre
   await page.reload();
   await expect(alternar()).toHaveAttribute('aria-expanded', 'false', { timeout: 45_000 });
   await expect(faixa().locator('article')).toHaveCount(0);
+});
+
+/**
+ * Tarefa bloqueada com o gate aberto (AT-982 D e AT-985 L4): o Noop abre a PR e o gate
+ * `awaiting_qa`; o bloqueio pela rota interna (`qa-lead`, origem `infra`) devolve a
+ * tarefa a `todo` COM o gate aberto. O cartão do QA não pode seguir "Julgando" (o último
+ * `pr.gate_changed` ainda é `awaiting_qa`) e diz que a PR espera voltar ao QA. Aqui o
+ * texto É o objeto da asserção (o estado derivado no web), por isso é pt-BR.
+ */
+test.describe('com a tarefa bloqueada e o gate aberto', () => {
+  test.describe.configure({ mode: 'serial' });
+  let bloqueada: ExecucaoSemeada;
+  let contexto: BrowserContext;
+  let pagina: Page;
+
+  test.beforeAll(async ({ browser }) => {
+    test.setTimeout(240_000);
+    const token = await autenticar();
+    bloqueada = await semearExecucao(token, {
+      modulos: [{ name: 'api' }],
+      tarefas: [{ modulo: 'api', titulo: 'Tarefa bloqueada' }],
+    });
+    const { taskId } = await esperarGateAberto(token, bloqueada);
+    await chamarInterno(sessaoDaExecucao(bloqueada), `tasks/${taskId}/block`, {
+      agentId: 'qa-lead',
+      reason: 'bloqueio semeado pelo E2E',
+      diagnosis: 'o QA falhou por dentro',
+      origin: 'infra',
+    });
+    ({ context: contexto, page: pagina } = await contextoLogado(browser));
+    await pagina.goto(`/projects/${bloqueada.projectId}/sessions/${bloqueada.sessionId}`);
+  });
+
+  test.afterAll(async () => {
+    await contexto?.close();
+  });
+
+  test('o cartão do QA não diz "Julgando" com a tarefa bloqueada', { tag: '@f-execucao' }, async () => {
+    const qa = pagina.locator('[data-testid="carrossel-executores"] [data-testid="carrossel-cartao-qa"]');
+    await expect(qa).toBeVisible({ timeout: 60_000 });
+    await expect(qa).not.toContainText('Julgando');
+  });
+
+  test('a tarefa em todo com awaiting_qa mostra "espera voltar ao QA"', { tag: '@f-execucao' }, async () => {
+    const qa = pagina.locator('[data-testid="carrossel-executores"] [data-testid="carrossel-cartao-qa"]');
+    await expect(qa).toContainText('espera voltar ao QA', { timeout: 60_000 });
+  });
 });
