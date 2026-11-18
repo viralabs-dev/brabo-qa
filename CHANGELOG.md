@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- E2E (AT-957): tira o fallback da tela antiga da sessão. `execucao-carrossel` lê só a faixa (`faixa-de-estado`, `faixa-abrir-executores`, `lista-de-executores`) e o teste de minimizar sai; `abrirPendencias` só usa o `painel-da-sessao`, devolvendo `true`.
+
 - E2E (AT-957): `abrirPendencias` devolve `true` no painel novo (`painel-da-sessao`) em qualquer `data-modo`, porque a aba Pendências mostra uma pergunta por vez também no desktop; a tela antiga segue igual.
 
 - E2E (AT-960): tira o fallback da tela antiga do composer (`.or(...)` e `.first()`) em `turno-pelo-canal`, `execucao-pr-pronta` e `git-mergear-no-chat`; ficam só os seletores novos do composer, que já estão na `dev`.
