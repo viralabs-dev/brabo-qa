@@ -52,8 +52,10 @@ test('a PR pronta aparece no aviso, o título ganha o contador e o Mergear faz o
     (r) => /\/actions\/[^/]+\/approve$/.test(r.url()) && r.request().method() === 'POST',
     { timeout: 30_000 },
   );
-  await aviso.locator('button').first().click(); // Mergear
-  await aviso.locator('button').first().click(); // Confirmar, na própria linha
+  // shortcut: compatível com a web antes e depois da web#119 (AT-960); tirar o fallback quando a #119 estiver na dev
+  await aviso.getByRole('button', { name: 'Mergear' }).click();
+  // Nova: Popover em portal (fora do aviso). Antiga: confirmação na própria linha.
+  await aviso.getByRole('button', { name: 'Confirmar' }).or(page.locator('[data-testid="mergear-confirmacao"]').getByRole('button', { name: 'Confirmar' })).first().click();
 
   const acao = (await (await proposta).json()) as { actionType?: string };
   expect(acao.actionType).toBe('git_merge');
