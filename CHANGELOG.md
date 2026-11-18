@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- E2E (AT-957): `abrirPendencias` devolve `true` no painel novo (`painel-da-sessao`) em qualquer `data-modo`, porque a aba Pendências mostra uma pergunta por vez também no desktop; a tela antiga segue igual.
+
 - E2E (AT-960): tira o fallback da tela antiga do composer (`.or(...)` e `.first()`) em `turno-pelo-canal`, `execucao-pr-pronta` e `git-mergear-no-chat`; ficam só os seletores novos do composer, que já estão na `dev`.
 
 - E2E (AT-957, brabo-web#120, compatível com a web antes e depois): `execucao-carrossel` detecta a tela (faixa `faixa-de-estado` + aba Executores, ou carrossel) e lê o cartão de cada executor em qualquer uma; o caso de minimizar só roda no carrossel antigo (`test.skip` na nova). `abrirPendencias` abre o `painel-da-sessao` pelo `contador-de-pendencias` e devolve se o `data-modo` é `sheet`. `funcionalidades.yml`: `FaixaDeEstado`, `PainelDaSessao` e `ListaDeExecutores` entram nos globs web de `execucao` e `sessao-e-canal`.

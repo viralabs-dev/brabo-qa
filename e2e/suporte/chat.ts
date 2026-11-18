@@ -27,7 +27,8 @@ export async function abrirPendencias(page: Page, fila = 'perguntas'): Promise<b
   }
   await painel.waitFor({ timeout: 1_000 });
   await abrir();
-  if (await novo.count()) return (await novo.getAttribute('data-modo')) === 'sheet';
+  // A aba Pendências do painel novo mostra uma pergunta por vez, em qualquer `data-modo` (AT-957).
+  if (await novo.count()) return true;
   // Tela antiga: no bloco inline o painel já está visível e a aba pedida nasce fechada (`hidden`): o evento a abre.
   return (await painel.getAttribute('role')) === 'dialog';
 }
