@@ -132,7 +132,7 @@ funcionalidades:
     status: ativa
     caminhos:
       engine: ['lib/engine/{dev,workers}/**']
-      web: ['src/**/{AgentCard,AgentTeamGrid,ProjectExecutorsTab,ProjectOverviewTab}*']
+      web: ['src/**/{AgentCard,AgentTeamGrid,ProjectExecutorsTab,ProjectOverviewTab,executores-ao-vivo,agent-status}*']
   - id: chat-e-pendencias
     nome: Chat e pendências
     descricao: o fio da sessão, a montagem da linha do tempo, as pendências de outras sessões e as perguntas em aberto (AT-815, decisão P4)

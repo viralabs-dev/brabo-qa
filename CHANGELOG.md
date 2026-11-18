@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Regressivo (AT-982 D, AT-984, AT-985 L4, AT-962): `execucao-carrossel` ganha o caso da tarefa bloqueada com o gate aberto (o cartão do QA não diz "Julgando" e diz "espera voltar ao QA"); `execucao-parada` prova que o bloqueio `qa-lead`/`infra` não trava o dev e o `politica` trava (`aprovarAcoesAte` aceita um filtro); spec nova `sessao-e-canal-lista-abre` (`@f-sessao-e-canal`): título abre a sessão e o lápis renomeia na lista. O glob web de `execucao` cobre `executores-ao-vivo` e `agent-status`. AT-983 C (reentrega após o conflito) fica sem caso: o Noop não reentrega a PR (a tarefa fica `todo`), e a spec já declarava a readoção fora. Mais 2 logins de navegador por execução (18 de 20).
+
 - E2E (AT-950, brabo-web#109): `abrirPendencias` e `abrirMaisAcoesSeExistir` em `e2e/suporte/chat.ts` abrem as pendências do chat nos dois webs (Sheet à direita ou bloco inline, pelo evento `brabo:abrir-fila`); `backlog-perguntas-em-aberto`, `execucao-parada` e `git-mergear-no-chat` deixam de esperar o painel inline, e o primeiro aceita uma pergunta por vez no Sheet. As asserções de regra não mudaram.
 
 - Regressivo (AT-950): `funcionalidades.yml` mapeia as telas de sessão do web (`SessionPage`, `SessionComposer`, `SessionFio`, `session-fio`, `session-timeline-montagem`, `SessionTopbar`, `ContextAside`) a `sessao-e-canal` e `turno-do-agente`; `PendenciasDeOutrasSessoes`, `PerguntasEmAberto`, `PaginadorDaFila` e `StructuredQuestionCard` a `sessao-e-canal`; `ApprovalCard`, `MergearNoChat` e `AvisoDePrPronta` a `aprovacoes`. O spec do validador prova o mapa contra o `SessionPage.tsx` e o `PendenciasDeOutrasSessoes.tsx`.
