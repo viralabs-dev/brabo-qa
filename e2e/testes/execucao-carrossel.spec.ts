@@ -21,9 +21,28 @@ let exec: ExecucaoSemeada;
 let context: BrowserContext;
 let page: Page;
 
-const faixa = () => page.locator('[data-testid="carrossel-executores"]');
-const cartao = (dev: string) => faixa().locator(`[data-testid="carrossel-cartao-${dev}"]`);
-const alternar = () => faixa().locator('[data-testid="carrossel-minimizar"]');
+// shortcut: compatível com a web antes e depois da web#120 (AT-957); tirar o fallback quando a #120 estiver na dev
+// Tela nova: faixa de uma linha + aba Executores. Tela antiga: carrossel com cartões. A nova vem primeiro.
+const faixaNova = (p: Page) => p.locator('[data-testid="faixa-de-estado"]');
+const carrossel = (p: Page) => p.locator('[data-testid="carrossel-executores"]');
+const faixa = () => faixaNova(page).or(carrossel(page));
+const alternar = () => carrossel(page).locator('[data-testid="carrossel-minimizar"]');
+
+/** Qual tela está de pé; espera a faixa (nova) ou o carrossel (antiga) aparecer. */
+async function tela(p: Page): Promise<'nova' | 'antiga'> {
+  await faixaNova(p).or(carrossel(p)).first().waitFor({ timeout: 45_000 });
+  return (await faixaNova(p).count()) ? 'nova' : 'antiga';
+}
+
+/** O cartão do executor (`agentId`): na tela nova abre a aba Executores; na antiga é o do carrossel. */
+async function cartao(p: Page, agentId: string) {
+  if ((await tela(p)) === 'nova') {
+    const lista = p.locator('[data-testid="lista-de-executores"]');
+    if (!(await lista.isVisible())) await p.locator('[data-testid="faixa-abrir-executores"]').click();
+    return lista.locator(`[data-testid="executor-${agentId}"]`);
+  }
+  return carrossel(p).locator(`[data-testid="carrossel-cartao-${agentId}"]`);
+}
 
 test.beforeAll(async ({ browser }) => {
   test.setTimeout(240_000);
@@ -49,27 +68,31 @@ test('a faixa aparece no chat do Criativo com o "x de N" e um cartão por dev', 
   await expect(barra).toBeVisible({ timeout: 45_000 });
   await expect(barra).toHaveAttribute('aria-valuemax', '2');
   await expect(barra).toHaveAttribute('aria-valuenow', '0');
-  await expect(cartao('dev-api')).toBeVisible();
-  await expect(cartao('dev-web')).toBeVisible({ timeout: 45_000 });
+  await expect(await cartao(page, 'dev-api')).toBeVisible();
+  await expect(await cartao(page, 'dev-web')).toBeVisible({ timeout: 45_000 });
 });
 
 test('o dev dependente mostra o motivo do ócio: cita o módulo de que espera', { tag: '@f-execucao' }, async () => {
   // O motivo é derivado do module_map + backlog (RN-1073); `dev-web` só fica ocioso depois do claim vazio.
-  await expect(cartao('dev-web').locator('p', { hasText: 'api' })).toBeVisible({ timeout: 60_000 });
+  const dev = await cartao(page, 'dev-web');
+  const motivo = (await tela(page)) === 'nova' ? dev.filter({ hasText: 'api' }) : dev.locator('p', { hasText: 'api' });
+  await expect(motivo).toBeVisible({ timeout: 60_000 });
 });
 
 test('minimizar deixa só estado, tempo e gasto, e a escolha persiste ao recarregar', { tag: '@f-execucao' }, async () => {
+  // shortcut: compatível com a web antes e depois da web#120 (AT-957); tirar o fallback quando a #120 estiver na dev
+  test.skip((await tela(page)) === 'nova', 'minimizar só existe no carrossel da tela antiga; a faixa nova não minimiza');
   await expect(alternar()).toHaveAttribute('aria-expanded', 'true');
   await alternar().click();
   await expect(alternar()).toHaveAttribute('aria-expanded', 'false');
-  await expect(faixa().locator('article')).toHaveCount(0);
-  await expect(faixa().locator('ul li', { hasText: 'dev-api' })).toBeVisible();
-  await expect(faixa().locator('ul li', { hasText: 'dev-web' })).toBeVisible();
-  await expect(faixa().locator('[role="progressbar"]')).toBeVisible(); // o "x de N" continua
+  await expect(carrossel(page).locator('article')).toHaveCount(0);
+  await expect(carrossel(page).locator('ul li', { hasText: 'dev-api' })).toBeVisible();
+  await expect(carrossel(page).locator('ul li', { hasText: 'dev-web' })).toBeVisible();
+  await expect(carrossel(page).locator('[role="progressbar"]')).toBeVisible(); // o "x de N" continua
 
   await page.reload();
   await expect(alternar()).toHaveAttribute('aria-expanded', 'false', { timeout: 45_000 });
-  await expect(faixa().locator('article')).toHaveCount(0);
+  await expect(carrossel(page).locator('article')).toHaveCount(0);
 });
 
 /**
@@ -108,13 +131,13 @@ test.describe('com a tarefa bloqueada e o gate aberto', () => {
   });
 
   test('o cartão do QA não diz "Julgando" com a tarefa bloqueada', { tag: '@f-execucao' }, async () => {
-    const qa = pagina.locator('[data-testid="carrossel-executores"] [data-testid="carrossel-cartao-qa"]');
+    const qa = await cartao(pagina, 'qa');
     await expect(qa).toBeVisible({ timeout: 60_000 });
     await expect(qa).not.toContainText('Julgando');
   });
 
   test('a tarefa em todo com awaiting_qa mostra "espera voltar ao QA"', { tag: '@f-execucao' }, async () => {
-    const qa = pagina.locator('[data-testid="carrossel-executores"] [data-testid="carrossel-cartao-qa"]');
+    const qa = await cartao(pagina, 'qa');
     await expect(qa).toContainText('espera voltar ao QA', { timeout: 60_000 });
   });
 });

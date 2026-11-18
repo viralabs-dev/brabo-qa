@@ -23,7 +23,7 @@ funcionalidades:
     caminhos:
       api: ['src/**/sessions/**']
       engine: ['lib/engine/{sessions,session_events}/**', 'lib/engine_web/channels/**']
-      web: ['src/**/{ProjectChatShell,JanelaDoAgente,ProjectSessionsTab,ActivityFeed}*', 'src/**/{SessionPage,SessionComposer,SessionFio,session-fio,session-timeline-montagem,SessionTopbar,ContextAside}*', 'src/**/{PendenciasDeOutrasSessoes,PerguntasEmAberto,PaginadorDaFila,StructuredQuestionCard}*']
+      web: ['src/**/{ProjectChatShell,JanelaDoAgente,ProjectSessionsTab,ActivityFeed}*', 'src/**/{SessionPage,SessionComposer,SessionFio,session-fio,session-timeline-montagem,SessionTopbar,ContextAside}*', 'src/**/{PendenciasDeOutrasSessoes,PerguntasEmAberto,PaginadorDaFila,StructuredQuestionCard,FaixaDeEstado,PainelDaSessao,ListaDeExecutores}*']
   - id: turno-do-agente
     nome: Turno do agente
     descricao: o turno sobe pelo canal, o Harness roda e o desfecho (inclusive falha de credencial) volta
@@ -132,7 +132,7 @@ funcionalidades:
     status: ativa
     caminhos:
       engine: ['lib/engine/{dev,workers}/**']
-      web: ['src/**/{AgentCard,AgentTeamGrid,ProjectExecutorsTab,ProjectOverviewTab,executores-ao-vivo,agent-status}*']
+      web: ['src/**/{AgentCard,AgentTeamGrid,ProjectExecutorsTab,ProjectOverviewTab,executores-ao-vivo,agent-status,FaixaDeEstado,PainelDaSessao,ListaDeExecutores}*']
   - id: chat-e-pendencias
     nome: Chat e pendências
     descricao: o fio da sessão, a montagem da linha do tempo, as pendências de outras sessões e as perguntas em aberto (AT-815, decisão P4)

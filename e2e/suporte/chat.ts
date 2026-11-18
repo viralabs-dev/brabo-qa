@@ -13,14 +13,22 @@ const PAINEL = '[data-testid="pendencias-de-outras-sessoes"]';
 export async function abrirPendencias(page: Page, fila = 'perguntas'): Promise<boolean> {
   const painel = page.locator(PAINEL);
   const abrir = () => page.evaluate((f) => window.dispatchEvent(new CustomEvent('brabo:abrir-fila', { detail: f })), fila);
+  // shortcut: compatível com a web antes e depois da web#120 (AT-957); tirar o fallback quando a #120 estiver na dev
+  // Tela nova: o painel da sessão (`data-modo` = `aba` no desktop, `sheet` abaixo de 1024 px) abre pelo contador.
+  const novo = page.locator('[data-testid="painel-da-sessao"]');
   const limite = Date.now() + 30_000;
   while (Date.now() < limite && !(await painel.isVisible())) {
-    await abrir();
+    if (await novo.count()) {
+      await page.locator('[data-testid="contador-de-pendencias"]').first().click({ timeout: 2_000 }).catch(() => {});
+    } else {
+      await abrir();
+    }
     await page.waitForTimeout(500);
   }
   await painel.waitFor({ timeout: 1_000 });
-  // No bloco inline o painel já está visível e a aba pedida nasce fechada (`hidden`): o evento a abre.
   await abrir();
+  if (await novo.count()) return (await novo.getAttribute('data-modo')) === 'sheet';
+  // Tela antiga: no bloco inline o painel já está visível e a aba pedida nasce fechada (`hidden`): o evento a abre.
   return (await painel.getAttribute('role')) === 'dialog';
 }
 
