@@ -10,11 +10,12 @@ import { contextoLogado } from '../suporte/navegador.ts';
  * nesses três pontos; estes são os mais estáveis (papel e rótulo acessível). Sem LLM.
  */
 
+test.describe('altura fixa da sessão', { tag: '@f-sessao-e-canal' }, () => {
 for (const [largura, altura] of [
   [1366, 768],
   [1848, 925],
 ] as const) {
-  test(`a sessão não rola e o composer cabe em ${largura}x${altura}`, { tag: '@f-sessao-e-canal' }, async ({ browser }) => {
+  test(`a sessão não rola e o composer cabe em ${largura}x${altura}`, async ({ browser }) => {
     const semeada = await semearSessao(await autenticar(), 'criativa');
     const { context, page } = await contextoLogado(browser);
     try {
@@ -49,3 +50,4 @@ for (const [largura, altura] of [
     }
   });
 }
+});

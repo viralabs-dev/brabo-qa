@@ -2,7 +2,7 @@ import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { autenticar } from '../suporte/api.ts';
 import { esperarGateAberto, semearExecucao, sessaoDaExecucao, type ExecucaoSemeada } from '../suporte/execucao.ts';
 import { chamarInterno } from '../suporte/interno.ts';
-import { contextoLogado } from '../suporte/navegador.ts';
+import { cartao, contextoLogado } from '../suporte/navegador.ts';
 
 /**
  * O carrossel de executores no chat do Criativo (AT-880, RN-1072 e RN-1073).
@@ -22,14 +22,6 @@ let page: Page;
 
 /** Faixa de uma linha no chat do Criativo. */
 const faixaDeEstado = (p: Page) => p.locator('[data-testid="faixa-de-estado"]');
-
-/** O cartão do executor (`agentId`): abre a aba Executores da faixa e lê o cartão dentro dela. */
-async function cartao(p: Page, agentId: string) {
-  await faixaDeEstado(p).waitFor({ timeout: 45_000 });
-  const lista = p.locator('[data-testid="lista-de-executores"]');
-  if (!(await lista.isVisible())) await p.locator('[data-testid="faixa-abrir-executores"]').click();
-  return lista.locator(`[data-testid="executor-${agentId}"]`);
-}
 
 test.beforeAll(async ({ browser }) => {
   test.setTimeout(240_000);
