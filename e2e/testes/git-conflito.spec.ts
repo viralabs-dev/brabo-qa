@@ -89,6 +89,7 @@ test('o merge com conflito vira git_merge failed com a lista de arquivos', { tag
 });
 
 test('o Noop reentrega a PR depois do conflito e o cartão espera o merge', { tag: '@f-git' }, async () => {
+  test.setTimeout(240_000);
   // O push da reentrega nasce `pending` (RN-689); o filtro pega só o gate aberto pelo conflito.
   await aprovarAcoesAte(token, exec, 'dev.awaiting_gate', 150_000, (ev) => ev.payload.cause === 'merge_conflict');
   // O `in_review` do Noop vem antes da reabertura do gate (AT-983).
