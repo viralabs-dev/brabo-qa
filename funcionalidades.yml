@@ -23,7 +23,7 @@ funcionalidades:
     caminhos:
       api: ['src/**/sessions/**']
       engine: ['lib/engine/{sessions,session_events}/**', 'lib/engine_web/channels/**']
-      web: ['src/**/{ProjectChatShell,JanelaDoAgente,ProjectSessionsTab,ActivityFeed}*', 'src/**/{SessionPage,SessionComposer,SessionFio,session-fio,session-timeline-montagem,SessionTopbar,ContextAside}*', 'src/**/{PendenciasDeOutrasSessoes,PerguntasEmAberto,PaginadorDaFila,StructuredQuestionCard,FaixaDeEstado,PainelDaSessao,ListaDeExecutores}*']
+      web: ['src/**/{ProjectChatShell,JanelaDoAgente,ProjectSessionsTab,ActivityFeed}*', 'src/**/{SessionPage,SessionComposer,SessionFio,session-fio,session-timeline-montagem,SessionTopbar,ContextAside}*', 'src/**/{PendenciasDeOutrasSessoes,PerguntasEmAberto,PaginadorDaFila,StructuredQuestionCard,FaixaDeEstado,PainelDaSessao,ListaDeExecutores}*', 'src/**/{session-rolagem,trilho-de-turnos,TrilhoDeTurnos,TextoDoAgente,message-scroller}*']
   - id: turno-do-agente
     nome: Turno do agente
     descricao: o turno sobe pelo canal, o Harness roda e o desfecho (inclusive falha de credencial) volta
@@ -139,4 +139,4 @@ funcionalidades:
     tema: agentes
     status: ativa
     caminhos:
-      web: ['src/**/{SessionFio,session-fio,session-timeline,SessionPage,PendenciasDeOutrasSessoes,PerguntasEmAberto,RetomarGateEstacionado}*', 'src/**/ai-elements/linha-de-trabalho*']
+      web: ['src/**/{SessionFio,session-fio,session-timeline,SessionPage,PendenciasDeOutrasSessoes,PerguntasEmAberto,RetomarGateEstacionado}*', 'src/**/{session-rolagem,trilho-de-turnos,TrilhoDeTurnos,TextoDoAgente,message-scroller}*', 'src/**/ai-elements/linha-de-trabalho*']

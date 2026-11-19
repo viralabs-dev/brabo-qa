@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- E2E (AT-959, qa#83): `cartao()` passa de `execucao-carrossel` para `suporte/navegador.ts`. Spec nova `sessao-e-canal-rolagem` ("Ir ao fim · N novas"). `sessao-e-canal-altura` leva a tag no `test.describe`. `funcionalidades.yml`: globs `session-rolagem`, `trilho-de-turnos`, `TrilhoDeTurnos`, `TextoDoAgente`, `message-scroller` em `sessao-e-canal` e `chat-e-pendencias`.
+
 - E2E (AT-956, AT-958, AT-986): spec nova `sessao-e-canal-altura` (1366x768 e 1848x925: a página não rola, o composer cabe na janela, o fio ocupa >= 70% da coluna em 1366x768). `turno-do-agente-fio` abre a linha de trabalho de cada turno antes de contar os blocos de raciocínio (com a AT-958 eles só existem abertos). `funcionalidades.yml`: globs web de `projetos` (primeiros passos, próximo passo, ComecarIdeacao, MedidorDeGasto, ProjectPage), `turno-do-agente` e `chat-e-pendencias` (`linha-de-trabalho`).
 
 - E2E (AT-957): tira o fallback da tela antiga da sessão. `execucao-carrossel` lê só a faixa (`faixa-de-estado`, `faixa-abrir-executores`, `lista-de-executores`) e o teste de minimizar sai; `abrirPendencias` só usa o `painel-da-sessao`, devolvendo `true`.
