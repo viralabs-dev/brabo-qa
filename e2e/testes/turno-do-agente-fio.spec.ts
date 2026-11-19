@@ -64,6 +64,16 @@ test('nenhum turno se repete depois de vários polls e eventos novos pelo canal'
     await expect(page.getByText(resposta(n), { exact: true })).toHaveCount(1, { timeout: 20_000 });
   }
 
+  // AT-958: o raciocínio mora dentro da linha de trabalho (fechada nos turnos concluídos); abrir
+  // todas antes de contar, senão os dois lados da comparação dão 0 e o spec não prova nada.
+  const linhas = page.locator('[data-testid="linha-de-trabalho"]');
+  for (let i = 0; i < (await linhas.count()); i++) {
+    const linha = linhas.nth(i);
+    if ((await linha.locator('[data-testid="raciocinio-do-turno"]').count()) === 0) {
+      await linha.getByRole('button').first().click();
+    }
+  }
+  await expect.poll(blocosDeRaciocinio, { message: 'nenhuma linha de trabalho abriu o raciocínio' }).toBeGreaterThan(0);
   const antes = await blocosDeRaciocinio();
   // Mais de dois polls de 3 s sem nada de novo: é aqui que o nó órfão nascia.
   await page.waitForTimeout(8_000);

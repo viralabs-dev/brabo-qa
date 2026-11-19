@@ -31,7 +31,7 @@ funcionalidades:
     status: ativa
     caminhos:
       engine: ['lib/engine/{harness,agents,prompts}/**']
-      web: ['src/**/{ProjectChatShell,JanelaDoAgente,ProjectSessionsTab,ActivityFeed}*', 'src/**/{SessionPage,SessionComposer,SessionFio,session-fio,session-timeline-montagem,SessionTopbar,ContextAside}*']
+      web: ['src/**/{ProjectChatShell,JanelaDoAgente,ProjectSessionsTab,ActivityFeed}*', 'src/**/{SessionPage,SessionComposer,SessionFio,session-fio,session-timeline-montagem,SessionTopbar,ContextAside}*', 'src/**/ai-elements/linha-de-trabalho*']
   - id: aprovacoes
     nome: Aprovações e modo automático
     descricao: "`proposed_action`, fila, decisão no chat, modo automático e tetos"
@@ -56,7 +56,7 @@ funcionalidades:
     status: ativa
     caminhos:
       engine: ['lib/engine/projects/**']
-      web: ['src/**/{NewProjectWizard,FolderBrowserModal,AdoptionPlanPage}*']
+      web: ['src/**/{NewProjectWizard,FolderBrowserModal,AdoptionPlanPage,PrimeirosPassos,ProximoPasso,ComecarIdeacao,MedidorDeGasto,ProjectPage,primeiros-passos,proximo-passo}*']
       runner: ['src/{espelho,pasta-do-projeto}*']
   - id: git
     nome: Git e PRs
@@ -139,4 +139,4 @@ funcionalidades:
     tema: agentes
     status: ativa
     caminhos:
-      web: ['src/**/{SessionFio,session-fio,session-timeline,SessionPage,PendenciasDeOutrasSessoes,PerguntasEmAberto,RetomarGateEstacionado}*']
+      web: ['src/**/{SessionFio,session-fio,session-timeline,SessionPage,PendenciasDeOutrasSessoes,PerguntasEmAberto,RetomarGateEstacionado}*', 'src/**/ai-elements/linha-de-trabalho*']
