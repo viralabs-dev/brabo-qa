@@ -44,11 +44,12 @@ test.afterAll(async () => {
 
 test('a lista traz o projeto como "nunca provisionado" e o nome abre o detalhe', { tag: '@f-container-e-broker' }, async () => {
   await page.goto('/containers');
-  const linha = page.locator('[data-testid="linha-da-tabela"]').filter({ hasText: nome });
-  await expect(linha).toBeVisible({ timeout: 30_000 });
-  await expect(linha.getByText('nunca provisionado')).toBeVisible();
+  // A tabela é uma Grade de divs: sem role de linha, o link do nome é o âncora da linha.
+  const link = page.getByRole('link', { name: nome });
+  await expect(link).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('nunca provisionado', { exact: true }).first()).toBeVisible();
 
-  await linha.getByRole('link', { name: nome }).click();
+  await link.click();
   await expect(page).toHaveURL(new RegExp(`/containers/${projectId}$`));
   await expect(page.getByRole('heading', { name: nome })).toBeVisible();
   await expect(page.locator('[data-testid="container-detalhe"]')).toBeVisible();
@@ -56,8 +57,7 @@ test('a lista traz o projeto como "nunca provisionado" e o nome abre o detalhe',
 
 test('o menu "…" da linha oferece Parar, Ver detalhes e Remover (AT-976)', { tag: '@f-container-e-broker' }, async () => {
   await page.goto('/containers');
-  const linha = page.locator('[data-testid="linha-da-tabela"]').filter({ hasText: nome });
-  await linha.getByRole('button', { name: `Mais ações de ${nome}` }).click();
+  await page.getByRole('button', { name: `Mais ações de ${nome}` }).click();
   // Sem container registrado não há o que parar nem remover: os itens existem, desabilitados.
   await expect(page.getByRole('menuitem', { name: 'Parar' })).toBeDisabled();
   await expect(page.getByRole('menuitem', { name: 'Remover' })).toBeDisabled();
