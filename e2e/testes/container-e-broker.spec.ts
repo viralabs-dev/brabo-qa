@@ -44,8 +44,8 @@ test.afterAll(async () => {
 
 test('a lista traz o projeto como "nunca provisionado" e o nome abre o detalhe', { tag: '@f-container-e-broker' }, async () => {
   await page.goto('/containers');
-  // A tabela é uma Grade de divs: sem role de linha, o link do nome é o âncora da linha.
-  const link = page.getByRole('link', { name: nome });
+  // A tabela é uma Grade de divs: sem role de linha, o link do nome (no main, o menu lateral repete o projeto) é o âncora da linha.
+  const link = page.getByRole('main').getByRole('link', { name: nome });
   await expect(link).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText('nunca provisionado', { exact: true }).first()).toBeVisible();
 
