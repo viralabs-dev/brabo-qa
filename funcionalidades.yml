@@ -83,7 +83,7 @@ funcionalidades:
       engine: ['lib/engine/gates/**']
   - id: container-e-broker
     nome: Container do projeto
-    descricao: ciclo de vida do container, ações, reinício do app, broker e a prova de compose do QA (AT-922, ADR 0297). Sem spec de propósito, ver docs/regressivo/como-funciona.md
+    descricao: ciclo de vida do container, ações, reinício do app, broker e a prova de compose do QA (AT-922, ADR 0297). Spec container-e-broker.spec.ts (tela de Containers), ver docs/regressivo/como-funciona.md
     tema: container
     status: ativa
     caminhos:
