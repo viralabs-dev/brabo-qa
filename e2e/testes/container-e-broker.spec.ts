@@ -44,7 +44,7 @@ test.afterAll(async () => {
 
 test('a lista traz o projeto como "nunca provisionado" e o nome abre o detalhe', { tag: '@f-container-e-broker' }, async () => {
   await page.goto('/containers');
-  const linha = page.getByRole('row').filter({ hasText: nome });
+  const linha = page.locator('[data-testid="linha-da-tabela"]').filter({ hasText: nome });
   await expect(linha).toBeVisible({ timeout: 30_000 });
   await expect(linha.getByText('nunca provisionado')).toBeVisible();
 
@@ -56,7 +56,7 @@ test('a lista traz o projeto como "nunca provisionado" e o nome abre o detalhe',
 
 test('o menu "…" da linha oferece Parar, Ver detalhes e Remover (AT-976)', { tag: '@f-container-e-broker' }, async () => {
   await page.goto('/containers');
-  const linha = page.getByRole('row').filter({ hasText: nome });
+  const linha = page.locator('[data-testid="linha-da-tabela"]').filter({ hasText: nome });
   await linha.getByRole('button', { name: `Mais ações de ${nome}` }).click();
   // Sem container registrado não há o que parar nem remover: os itens existem, desabilitados.
   await expect(page.getByRole('menuitem', { name: 'Parar' })).toBeDisabled();
