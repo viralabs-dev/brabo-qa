@@ -72,7 +72,7 @@ jobs:
   imagens:
     name: Imagens de terceiro do compose
     # Preso a SHA do brabo-infra `dev` (ADR 0197): as imagens de `services:` vêm do compose de lá.
-    uses: viralabs-dev/brabo-infra/.github/workflows/imagens-do-compose.yml@04519644fcb75419c5b2f01c76417a0906792d54  # dev (brabo-infra PR #2)
+    uses: viralabs-dev/brabo-infra/.github/workflows/imagens-do-compose.yml@4c7934de7545222bc377e2174213e65be5db5ce7  # dev (brabo-infra PR #2)
     with:
       infra_ref: 04519644fcb75419c5b2f01c76417a0906792d54
 
