@@ -161,7 +161,7 @@ test('modelo do time: configurações do projeto', async () => {
 
 test('ideia: o chat do Criativo', async () => {
   await page.goto(`/projects/${sessao.projectId}/sessions/${sessao.sessionId}`);
-  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ timeout: 30_000 });
+  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ state: 'attached', timeout: 30_000 });
   await fotografar(page, 'ideia-no-chat', 'Chat do Criativo');
 });
 
@@ -221,7 +221,7 @@ async function semearArquitetura(): Promise<void> {
 test('adr no chat: o Arquiteto propõe o ADR', async () => {
   await semearArquitetura();
   await page.goto(`/projects/${sessao.projectId}/sessions/${sessao.sessionId}`);
-  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ timeout: 30_000 });
+  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ state: 'attached', timeout: 30_000 });
   await fotografar(page, 'adr-no-chat', 'ADR proposto no chat');
 });
 
@@ -245,7 +245,7 @@ test('plano e modo automático: o plano do Dev Lead pendente', async () => {
     ],
   });
   await page.goto(`/projects/${sessao.projectId}/sessions/${sessao.sessionId}`);
-  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ timeout: 30_000 });
+  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ state: 'attached', timeout: 30_000 });
   await fotografar(page, 'plano-e-modo-automatico', 'Plano de execução e modo automático');
 });
 

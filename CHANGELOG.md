@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Capturas da doc (AT-1013): no web v1.6 o `pendencias-de-outras-sessoes` é o corpo do painel da sessão, que nasce oculto; as esperas de `ideia-no-chat`, `adr-no-chat` e `plano-e-modo-automatico` passam a `state: 'attached'`, e a recaptura volta a passar.
+
 - E2E (AT-1008): spec nova `container-e-broker` (tela de Containers: o projeto "nunca provisionado" na lista, o nome abre `/containers/$projectId`, o menu "…" com Parar, Ver detalhes e Remover). Sem broker no compose do `e2e-pr`, o ciclo de vida segue nas suítes de cada repo. O `container-e-broker` deixa de ser "sem spec de propósito" e o regressivo de PR de container passa a rodar um teste.
 
 - E2E (AT-1001 L2, AT-959, qa#83): `git-conflito` ganha o caso da reentrega (aprova o push do `merge_conflict`, tarefa `in_review`, gate `awaiting_user`, cartão `executor-dev-api` "Esperando o seu merge"); `cartao()` passa de `execucao-carrossel` para `suporte/navegador.ts`. Spec nova `sessao-e-canal-rolagem` ("Ir ao fim · N novas"). `sessao-e-canal-altura` leva a tag no `test.describe`. `funcionalidades.yml`: globs `session-rolagem`, `trilho-de-turnos`, `TrilhoDeTurnos`, `TextoDoAgente`, `message-scroller` em `sessao-e-canal` e `chat-e-pendencias`.
