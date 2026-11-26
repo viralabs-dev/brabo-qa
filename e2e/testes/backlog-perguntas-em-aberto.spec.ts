@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import { autenticar, semearSessao, type SessaoSemeada } from '../suporte/api.ts';
 import { anexarEvento } from '../suporte/eventos.ts';
+import { abrirPendencias } from '../suporte/chat.ts';
 import { contextoLogado } from '../suporte/navegador.ts';
 
 /**
@@ -44,14 +45,13 @@ test.afterAll(async () => {
 
 test('a fila lista as perguntas de dois autores e responder baixa o contador sem recarregar', { tag: '@f-chat-e-pendencias' }, async () => {
   await page.goto(`/projects/${semeada.projectId}/sessions/${semeada.sessionId}`);
-  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ timeout: 30_000 });
-  // O mesmo evento que o atalho "Responder perguntas" dispara (aba fechada = `hidden`).
-  await page.evaluate(() => window.dispatchEvent(new Event('brabo:abrir-perguntas')));
+  // Sheet (web compacto) ou bloco inline (web anterior); abre a aba Perguntas nos dois.
+  const noSheet = await abrirPendencias(page);
 
   const fila = page.locator('[data-testid="fila-perguntas-em-aberto"]');
   const contador = fila.locator('h4 > span');
   await expect(contador).toHaveText('4', { timeout: 30_000 });
-  await expect(fila.locator('[data-testid="pergunta-em-aberto"]')).toHaveCount(3);
+  await expect(fila.locator('[data-testid="pergunta-em-aberto"]')).toHaveCount(noSheet ? 1 : 3); // no Sheet, uma pergunta por vez
 
   const resposta = page.waitForResponse(
     (r) => /\/open-questions\/[^/]+\/answer$/.test(r.url()) && r.request().method() === 'POST',

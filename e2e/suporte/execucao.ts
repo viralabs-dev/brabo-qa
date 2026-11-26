@@ -98,11 +98,17 @@ export const sessaoDaExecucao = (e: ExecucaoSemeada) => ({ projectId: e.projectI
  * RN-689): nascem `pending` mesmo com o dev em `auto_approve`, e quem decide é
  * o usuário. Sem este gesto o Noop fica em `awaiting_approval` para sempre.
  */
-export async function aprovarAcoesAte(token: string, e: ExecucaoSemeada, tipo: string, prazoMs = 150_000) {
+export async function aprovarAcoesAte(
+  token: string,
+  e: ExecucaoSemeada,
+  tipo: string,
+  prazoMs = 150_000,
+  filtro: (ev: { payload: Record<string, unknown> }) => boolean = () => true,
+) {
   const sessao = sessaoDaExecucao(e);
   const limite = Date.now() + prazoMs;
   for (;;) {
-    const achado = (await eventosDaSessao(token, sessao)).find((ev) => ev.type === tipo);
+    const achado = (await eventosDaSessao(token, sessao)).find((ev) => ev.type === tipo && filtro(ev));
     if (achado) return achado;
     for (const id of await idsPendentes(token, { ...e, sessionId: e.execucaoId })) {
       // 409 numa corrida com outra decisão não importa: o próximo giro relê a fila.

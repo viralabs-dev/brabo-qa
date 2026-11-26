@@ -23,7 +23,7 @@ funcionalidades:
     caminhos:
       api: ['src/**/sessions/**']
       engine: ['lib/engine/{sessions,session_events}/**', 'lib/engine_web/channels/**']
-      web: ['src/**/{ProjectChatShell,JanelaDoAgente,ProjectSessionsTab,ActivityFeed}*']
+      web: ['src/**/{ProjectChatShell,JanelaDoAgente,ProjectSessionsTab,ActivityFeed}*', 'src/**/{SessionPage,SessionComposer,SessionFio,session-fio,session-timeline-montagem,SessionTopbar,ContextAside}*', 'src/**/{PendenciasDeOutrasSessoes,PerguntasEmAberto,PaginadorDaFila,StructuredQuestionCard,FaixaDeEstado,PainelDaSessao,ListaDeExecutores}*', 'src/**/{session-rolagem,trilho-de-turnos,TrilhoDeTurnos,TextoDoAgente,message-scroller}*']
   - id: turno-do-agente
     nome: Turno do agente
     descricao: o turno sobe pelo canal, o Harness roda e o desfecho (inclusive falha de credencial) volta
@@ -31,7 +31,7 @@ funcionalidades:
     status: ativa
     caminhos:
       engine: ['lib/engine/{harness,agents,prompts}/**']
-      web: ['src/**/{ProjectChatShell,JanelaDoAgente,ProjectSessionsTab,ActivityFeed}*']
+      web: ['src/**/{ProjectChatShell,JanelaDoAgente,ProjectSessionsTab,ActivityFeed}*', 'src/**/{SessionPage,SessionComposer,SessionFio,session-fio,session-timeline-montagem,SessionTopbar,ContextAside}*', 'src/**/ai-elements/linha-de-trabalho*']
   - id: aprovacoes
     nome: Aprovações e modo automático
     descricao: "`proposed_action`, fila, decisão no chat, modo automático e tetos"
@@ -40,7 +40,7 @@ funcionalidades:
     caminhos:
       api: ['src/**/{actions,execution}/**']
       engine: ['lib/engine/actions/**']
-      web: ['src/**/{ApprovalCard,ProjectApprovalsTab,PainelDaFila,ModoAutomatico,MergearNoChat}*']
+      web: ['src/**/{ApprovalCard,ProjectApprovalsTab,PainelDaFila,ModoAutomatico,MergearNoChat,AvisoDePrPronta}*']
   - id: time-e-handoffs
     nome: Time de agentes
     descricao: catálogo de agentes, áreas, instruções, delegação e handoff
@@ -56,7 +56,7 @@ funcionalidades:
     status: ativa
     caminhos:
       engine: ['lib/engine/projects/**']
-      web: ['src/**/{NewProjectWizard,FolderBrowserModal,AdoptionPlanPage}*']
+      web: ['src/**/{NewProjectWizard,FolderBrowserModal,AdoptionPlanPage,PrimeirosPassos,ProximoPasso,ComecarIdeacao,MedidorDeGasto,ProjectPage,primeiros-passos,proximo-passo}*']
       runner: ['src/{espelho,pasta-do-projeto}*']
   - id: git
     nome: Git e PRs
@@ -83,7 +83,7 @@ funcionalidades:
       engine: ['lib/engine/gates/**']
   - id: container-e-broker
     nome: Container do projeto
-    descricao: ciclo de vida do container, ações, reinício do app, broker e a prova de compose do QA (AT-922, ADR 0297). Sem spec de propósito, ver docs/regressivo/como-funciona.md
+    descricao: ciclo de vida do container, ações, reinício do app, broker e a prova de compose do QA (AT-922, ADR 0297). Spec container-e-broker.spec.ts (tela de Containers), ver docs/regressivo/como-funciona.md
     tema: container
     status: ativa
     caminhos:
@@ -132,11 +132,11 @@ funcionalidades:
     status: ativa
     caminhos:
       engine: ['lib/engine/{dev,workers}/**']
-      web: ['src/**/{AgentCard,AgentTeamGrid,ProjectExecutorsTab,ProjectOverviewTab}*']
+      web: ['src/**/{AgentCard,AgentTeamGrid,ProjectExecutorsTab,ProjectOverviewTab,executores-ao-vivo,agent-status,FaixaDeEstado,PainelDaSessao,ListaDeExecutores}*']
   - id: chat-e-pendencias
     nome: Chat e pendências
     descricao: o fio da sessão, a montagem da linha do tempo, as pendências de outras sessões e as perguntas em aberto (AT-815, decisão P4)
     tema: agentes
     status: ativa
     caminhos:
-      web: ['src/**/{SessionFio,session-fio,session-timeline,SessionPage,PendenciasDeOutrasSessoes,PerguntasEmAberto,RetomarGateEstacionado}*']
+      web: ['src/**/{SessionFio,session-fio,session-timeline,SessionPage,PendenciasDeOutrasSessoes,PerguntasEmAberto,RetomarGateEstacionado}*', 'src/**/{session-rolagem,trilho-de-turnos,TrilhoDeTurnos,TextoDoAgente,message-scroller}*', 'src/**/ai-elements/linha-de-trabalho*']

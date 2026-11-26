@@ -50,3 +50,11 @@ export async function contextoLogado(browser: Browser): Promise<{ context: Brows
   await context.addCookies(await cookiesDeUmLoginProprio());
   return { context, page: await context.newPage() };
 }
+
+/** O cartão do executor (`agentId`): abre a aba Executores da faixa e lê o cartão dentro dela. */
+export async function cartao(p: Page, agentId: string) {
+  await p.locator('[data-testid="faixa-de-estado"]').waitFor({ timeout: 45_000 });
+  const lista = p.locator('[data-testid="lista-de-executores"]');
+  if (!(await lista.isVisible())) await p.locator('[data-testid="faixa-abrir-executores"]').click();
+  return lista.locator(`[data-testid="executor-${agentId}"]`);
+}

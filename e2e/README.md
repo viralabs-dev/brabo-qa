@@ -147,7 +147,7 @@ IP** do próprio produto (`AUTH_LOCKOUT_IP_THRESHOLDS`, default
 uniforme** de senha errada — de propósito: distinguir os dois diria ao
 atacante quando ele acertou o e-mail.
 
-Cada execução gasta **16 logins** (inclui `turno-do-agente-delta`; `backlog-aceito-todas` só fala por HTTP e não gasta; R3: 11 na R2 mais 5: `aprovacoes-aprovar-inline`, `backlog-aba`, `conhecimento-c4` e 2 de `autenticacao-revogacao`, que fala só por HTTP): o `setup`, o spec de
+Cada execução gasta **18 logins** (os 16 abaixo mais `sessao-e-canal-lista-abre` e o bloco bloqueado do `execucao-carrossel`) (inclui `turno-do-agente-delta`; `backlog-aceito-todas` só fala por HTTP e não gasta; R3: 11 na R2 mais 5: `aprovacoes-aprovar-inline`, `backlog-aba`, `conhecimento-c4` e 2 de `autenticacao-revogacao`, que fala só por HTTP): o `setup`, o spec de
 autenticação, a semeadura por HTTP, o login próprio de
 `turno-pelo-canal.spec.ts` e UM por arquivo novo que abre navegador
 (`sessao-e-canal-frame`, `turno-do-agente-fio`, `execucao-parada`,

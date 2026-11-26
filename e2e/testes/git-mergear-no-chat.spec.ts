@@ -46,8 +46,9 @@ test('o Mergear da fila de PRs prontas faz o merge no repositório local', { tag
     (r) => /\/actions\/[^/]+\/approve$/.test(r.url()) && r.request().method() === 'POST',
     { timeout: 30_000 },
   );
-  await pr.locator('button').first().click(); // Mergear
-  await pr.locator('button').first().click(); // Confirmar
+  await pr.getByRole('button', { name: 'Mergear' }).click();
+  // O Popover de confirmação fica em portal, fora do pr.
+  await page.locator('[data-testid="mergear-confirmacao"]').getByRole('button', { name: 'Confirmar' }).click();
   const decidida = await aprovacao;
   expect(decidida.status(), 'a api recusou a aprovação do merge').toBeLessThan(300);
   expect(((await decidida.json()) as { status?: string }).status, 'o merge local não executou').toBe('executed');

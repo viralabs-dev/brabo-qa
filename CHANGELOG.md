@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- E2E (AT-1008): spec nova `container-e-broker` (tela de Containers: o projeto "nunca provisionado" na lista, o nome abre `/containers/$projectId`, o menu "…" com Parar, Ver detalhes e Remover). Sem broker no compose do `e2e-pr`, o ciclo de vida segue nas suítes de cada repo. O `container-e-broker` deixa de ser "sem spec de propósito" e o regressivo de PR de container passa a rodar um teste.
+
+- E2E (AT-1001 L2, AT-959, qa#83): `git-conflito` ganha o caso da reentrega (aprova o push do `merge_conflict`, tarefa `in_review`, gate `awaiting_user`, cartão `executor-dev-api` "Esperando o seu merge"); `cartao()` passa de `execucao-carrossel` para `suporte/navegador.ts`. Spec nova `sessao-e-canal-rolagem` ("Ir ao fim · N novas"). `sessao-e-canal-altura` leva a tag no `test.describe`. `funcionalidades.yml`: globs `session-rolagem`, `trilho-de-turnos`, `TrilhoDeTurnos`, `TextoDoAgente`, `message-scroller` em `sessao-e-canal` e `chat-e-pendencias`.
+
+- E2E (AT-956, AT-958, AT-986): spec nova `sessao-e-canal-altura` (1366x768 e 1848x925: a página não rola, o composer cabe na janela, o fio ocupa >= 70% da coluna em 1366x768). `turno-do-agente-fio` abre a linha de trabalho de cada turno antes de contar os blocos de raciocínio (com a AT-958 eles só existem abertos). `funcionalidades.yml`: globs web de `projetos` (primeiros passos, próximo passo, ComecarIdeacao, MedidorDeGasto, ProjectPage), `turno-do-agente` e `chat-e-pendencias` (`linha-de-trabalho`).
+
+- E2E (AT-957): tira o fallback da tela antiga da sessão. `execucao-carrossel` lê só a faixa (`faixa-de-estado`, `faixa-abrir-executores`, `lista-de-executores`) e o teste de minimizar sai; `abrirPendencias` só usa o `painel-da-sessao`, devolvendo `true`.
+
+- E2E (AT-957): `abrirPendencias` devolve `true` no painel novo (`painel-da-sessao`) em qualquer `data-modo`, porque a aba Pendências mostra uma pergunta por vez também no desktop; a tela antiga segue igual.
+
+- E2E (AT-960): tira o fallback da tela antiga do composer (`.or(...)` e `.first()`) em `turno-pelo-canal`, `execucao-pr-pronta` e `git-mergear-no-chat`; ficam só os seletores novos do composer, que já estão na `dev`.
+
+- E2E (AT-957, brabo-web#120, compatível com a web antes e depois): `execucao-carrossel` detecta a tela (faixa `faixa-de-estado` + aba Executores, ou carrossel) e lê o cartão de cada executor em qualquer uma; o caso de minimizar só roda no carrossel antigo (`test.skip` na nova). `abrirPendencias` abre o `painel-da-sessao` pelo `contador-de-pendencias` e devolve se o `data-modo` é `sheet`. `funcionalidades.yml`: `FaixaDeEstado`, `PainelDaSessao` e `ListaDeExecutores` entram nos globs web de `execucao` e `sessao-e-canal`.
+
+- E2E (AT-960): composer numa caixa só. `turno-pelo-canal` acha o `textarea` na página, usa `[data-testid="destinatario-do-chat"]` (agora o próprio `select`) e `[data-testid="enviar-mensagem"]`; `execucao-pr-pronta` e `git-mergear-no-chat` clicam "Mergear" e depois "Confirmar" dentro do Popover `[data-testid="mergear-confirmacao"]` (portal, busca na página).
+
+- Regressivo (AT-982 D, AT-984, AT-985 L4, AT-962): `execucao-carrossel` ganha o caso da tarefa bloqueada com o gate aberto (o cartão do QA não diz "Julgando" e diz "espera voltar ao QA"); `execucao-parada` prova que o bloqueio `qa-lead`/`infra` não trava o dev e o `politica` trava (`aprovarAcoesAte` aceita um filtro); spec nova `sessao-e-canal-lista-abre` (`@f-sessao-e-canal`): título abre a sessão e o lápis renomeia na lista. O glob web de `execucao` cobre `executores-ao-vivo` e `agent-status`. AT-983 C (reentrega após o conflito) fica sem caso: o Noop não reentrega a PR (a tarefa fica `todo`), e a spec já declarava a readoção fora. Mais 2 logins de navegador por execução (18 de 20).
+
+- E2E (AT-950, brabo-web#109): `abrirPendencias` e `abrirMaisAcoesSeExistir` em `e2e/suporte/chat.ts` abrem as pendências do chat nos dois webs (Sheet à direita ou bloco inline, pelo evento `brabo:abrir-fila`); `backlog-perguntas-em-aberto`, `execucao-parada` e `git-mergear-no-chat` deixam de esperar o painel inline, e o primeiro aceita uma pergunta por vez no Sheet. As asserções de regra não mudaram.
+
+- Regressivo (AT-950): `funcionalidades.yml` mapeia as telas de sessão do web (`SessionPage`, `SessionComposer`, `SessionFio`, `session-fio`, `session-timeline-montagem`, `SessionTopbar`, `ContextAside`) a `sessao-e-canal` e `turno-do-agente`; `PendenciasDeOutrasSessoes`, `PerguntasEmAberto`, `PaginadorDaFila` e `StructuredQuestionCard` a `sessao-e-canal`; `ApprovalCard`, `MergearNoChat` e `AvisoDePrPronta` a `aprovacoes`. O spec do validador prova o mapa contra o `SessionPage.tsx` e o `PendenciasDeOutrasSessoes.tsx`.
+
 - Capturas da doc: o botão "Novo projeto" da sidebar do web v1.4.0 (RN-1329) vira `[data-slot="sidebar-menu-button"]` com o texto "Novo projeto" (o `sidebar-group-action` sumiu), e o `compose_ref` sai da pin `infra.ref` do `componentes.json` (v1.5.0) em vez da `-dev` fixa.
 - Regressivo (AT-626): `llm-e-gasto` mapeia no web a seção `RoteadorDeFerramentasSection` (brabo-web#107, Configurações › Modelos), que agora existe no `dev`.
 - Regressivo (AT-626): `llm-e-gasto` passa a mapear `infra: docker/laya/**` (Dockerfile, `servico.py` e `baixar-checkpoint.py` do laya no brabo-infra). A api já cai em `src/**/llm/**`, então `src/infrastructure/llm/laya-*.ts` não ganhou glob novo. O glob web do roteador de ferramentas (`src/routes/settings/*oteador*`) fica para quando o arquivo entrar no `dev` do brabo-web: o validador reprova glob sem arquivo casado.

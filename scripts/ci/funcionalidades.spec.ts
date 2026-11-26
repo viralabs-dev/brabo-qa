@@ -1,3 +1,4 @@
+import { matchesGlob } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { carregar, validarCatalogo, type Funcionalidade } from './funcionalidades.ts';
 
@@ -51,5 +52,14 @@ describe('funcionalidades.yml real', () => {
     const { catalogo, ctx: real } = carregar();
     expect(catalogo).toHaveLength(16);
     expect(validarCatalogo(catalogo, real, !!process.env.CI).erros).toEqual([]);
+  });
+  it('telas de sessão do web caem nas funcionalidades certas', () => {
+    const { catalogo } = carregar();
+    const caem = (arquivo: string) =>
+      catalogo.filter((f) => (f.caminhos.web ?? []).some((g) => matchesGlob(arquivo, g))).map((f) => f.id);
+    expect(caem('src/routes/SessionPage.tsx')).toEqual(expect.arrayContaining(['sessao-e-canal', 'turno-do-agente']));
+    expect(caem('src/components/PendenciasDeOutrasSessoes.tsx')).toContain('sessao-e-canal');
+    expect(caem('src/components/ApprovalCard.tsx')).toContain('aprovacoes');
+    expect(caem('src/components/AvisoDePrPronta.tsx')).toContain('aprovacoes');
   });
 });
