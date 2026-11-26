@@ -200,6 +200,10 @@ async function semearArquitetura(): Promise<void> {
     { name: 'api', responsibility: 'Cria e resolve os links curtos' },
     { name: 'web', responsibility: 'Tela para colar o endereço', dependsOn: ['api'] },
   ]);
+  // AT-981 (RN-1004): o plano só sobe se o módulo de que outro depende (`api`) tem contrato do Arquiteto.
+  await chamarInterno(sessao, 'module-contracts', {
+    contratos: [{ modulo: 'api', expoe: [{ tipo: 'rota', assinatura: 'POST /links { url } -> { codigo }' }] }],
+  });
   await chamarInterno(sessao, 'c4-diagram', { systemName: 'Encurtador de links', actors: [{ name: 'Pessoa que cola o endereço' }] });
   const regra = await anexarEvento(token, sessao, 'artifact.business_rule', { kind: 'agent', id: 'po' }, {
     title: 'Só endereços http e https',
