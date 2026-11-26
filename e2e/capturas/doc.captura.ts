@@ -161,7 +161,7 @@ test('modelo do time: configurações do projeto', async () => {
 
 test('ideia: o chat do Criativo', async () => {
   await page.goto(`/projects/${sessao.projectId}/sessions/${sessao.sessionId}`);
-  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ timeout: 30_000 });
+  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ state: 'attached', timeout: 30_000 });
   await fotografar(page, 'ideia-no-chat', 'Chat do Criativo');
 });
 
@@ -200,6 +200,10 @@ async function semearArquitetura(): Promise<void> {
     { name: 'api', responsibility: 'Cria e resolve os links curtos' },
     { name: 'web', responsibility: 'Tela para colar o endereço', dependsOn: ['api'] },
   ]);
+  // AT-981 (RN-1004): o plano só sobe se o módulo de que outro depende (`api`) tem contrato do Arquiteto.
+  await chamarInterno(sessao, 'module-contracts', {
+    contratos: [{ modulo: 'api', expoe: [{ tipo: 'rota', assinatura: 'POST /links { url } -> { codigo }' }] }],
+  });
   await chamarInterno(sessao, 'c4-diagram', { systemName: 'Encurtador de links', actors: [{ name: 'Pessoa que cola o endereço' }] });
   const regra = await anexarEvento(token, sessao, 'artifact.business_rule', { kind: 'agent', id: 'po' }, {
     title: 'Só endereços http e https',
@@ -221,7 +225,7 @@ async function semearArquitetura(): Promise<void> {
 test('adr no chat: o Arquiteto propõe o ADR', async () => {
   await semearArquitetura();
   await page.goto(`/projects/${sessao.projectId}/sessions/${sessao.sessionId}`);
-  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ timeout: 30_000 });
+  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ state: 'attached', timeout: 30_000 });
   await fotografar(page, 'adr-no-chat', 'ADR proposto no chat');
 });
 
@@ -230,8 +234,8 @@ test('arquitetura: a aba com o mapa, o C4 e o ADR', async () => {
   await page.locator('svg[id^="mermaid"], svg[aria-roledescription]').first().waitFor({ timeout: 45_000 });
   await fotografar(page, 'arquitetura', 'Aba Arquitetura', async () => {
     await page.locator('svg[id^="mermaid"], svg[aria-roledescription]').first().waitFor({ timeout: 45_000 });
-    // O ADR pendente fica abaixo da dobra: rola até a lista, na mesma captura (AT-874).
-    await page.getByText('ADRs', { exact: true }).evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    // Web v1.6 (AT-1013): o ADR pendente é a faixa "espera sua aprovação" no topo da aba (a lista de ADRs virou uma vista do ToggleGroup).
+    await page.getByText('espera sua aprovação para virar PR').waitFor();
   });
 });
 
@@ -245,7 +249,7 @@ test('plano e modo automático: o plano do Dev Lead pendente', async () => {
     ],
   });
   await page.goto(`/projects/${sessao.projectId}/sessions/${sessao.sessionId}`);
-  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ timeout: 30_000 });
+  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ state: 'attached', timeout: 30_000 });
   await fotografar(page, 'plano-e-modo-automatico', 'Plano de execução e modo automático');
 });
 
@@ -284,6 +288,8 @@ test('merges no chat: a PR pronta para o dono', async () => {
   await aprovarOsGates(execucao, tarefaDaExecucao); // a PR fica pronta para o dono; NÃO mergeia (RN-825)
   await page.goto(`/projects/${execucao.projectId}/sessions/${execucao.sessionId}`);
   await fotografar(page, 'merges-no-chat', 'PR pronta para o merge no chat', async () => {
+    // Web v1.6 (AT-1013): o contador só nasce quando a releitura do backlog vê a PR pronta; abrirFila só espera 30 s por ele.
+    await page.locator('[data-testid="contador-de-pendencias"]').waitFor({ timeout: 90_000 });
     await abrirFila(page, 'prontas');
     await page.locator('[data-testid="pr-pronta"]').first().waitFor({ timeout: 45_000 });
     // O feed (só ~68 px visíveis atrás do cartão de pendências) parava em um ponto de rolagem diferente a cada carga e mostrava
