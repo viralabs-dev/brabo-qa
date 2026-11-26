@@ -26,7 +26,10 @@ test('rolado para cima, a mensagem nova acende "Ir ao fim · N novas" e o clique
     const botao = page.locator('[data-slot="message-scroller-button"] button');
     await expect(botao).toHaveCount(0);
 
-    await fio.evaluate((el) => el.scrollTo({ top: 0 }));
+    // Gesto real (roda): o web só pausa o acompanhamento com gesto do usuário (RN-1510), não com scrollTo de script.
+    await fio.hover();
+    await page.mouse.wheel(0, -9999);
+    await expect.poll(() => fio.evaluate((el) => el.scrollHeight - el.clientHeight - el.scrollTop), { timeout: 15_000 }).toBeGreaterThan(100);
     await expect(botao).toHaveText('Ir ao fim', { timeout: 15_000 });
 
     await anexarEvento(token, semeada, 'agent.response', agente, { content: 'resposta-rolagem-nova-1' });

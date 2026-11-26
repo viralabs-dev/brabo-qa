@@ -161,7 +161,7 @@ test('modelo do time: configurações do projeto', async () => {
 
 test('ideia: o chat do Criativo', async () => {
   await page.goto(`/projects/${sessao.projectId}/sessions/${sessao.sessionId}`);
-  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ timeout: 30_000 });
+  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ state: 'attached', timeout: 30_000 });
   await fotografar(page, 'ideia-no-chat', 'Chat do Criativo');
 });
 
@@ -200,6 +200,10 @@ async function semearArquitetura(): Promise<void> {
     { name: 'api', responsibility: 'Cria e resolve os links curtos' },
     { name: 'web', responsibility: 'Tela para colar o endereço', dependsOn: ['api'] },
   ]);
+  // AT-981 (RN-1004): o plano só sobe se o módulo de que outro depende (`api`) tem contrato do Arquiteto.
+  await chamarInterno(sessao, 'module-contracts', {
+    contratos: [{ modulo: 'api', expoe: [{ tipo: 'rota', assinatura: 'POST /links { url } -> { codigo }' }] }],
+  });
   await chamarInterno(sessao, 'c4-diagram', { systemName: 'Encurtador de links', actors: [{ name: 'Pessoa que cola o endereço' }] });
   const regra = await anexarEvento(token, sessao, 'artifact.business_rule', { kind: 'agent', id: 'po' }, {
     title: 'Só endereços http e https',
@@ -221,7 +225,7 @@ async function semearArquitetura(): Promise<void> {
 test('adr no chat: o Arquiteto propõe o ADR', async () => {
   await semearArquitetura();
   await page.goto(`/projects/${sessao.projectId}/sessions/${sessao.sessionId}`);
-  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ timeout: 30_000 });
+  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ state: 'attached', timeout: 30_000 });
   await fotografar(page, 'adr-no-chat', 'ADR proposto no chat');
 });
 
@@ -230,8 +234,8 @@ test('arquitetura: a aba com o mapa, o C4 e o ADR', async () => {
   await page.locator('svg[id^="mermaid"], svg[aria-roledescription]').first().waitFor({ timeout: 45_000 });
   await fotografar(page, 'arquitetura', 'Aba Arquitetura', async () => {
     await page.locator('svg[id^="mermaid"], svg[aria-roledescription]').first().waitFor({ timeout: 45_000 });
-    // O ADR pendente fica abaixo da dobra: rola até a lista, na mesma captura (AT-874).
-    await page.getByText('ADRs', { exact: true }).evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    // Web v1.6 (AT-1013): o ADR pendente é a faixa "espera sua aprovação" no topo da aba (a lista de ADRs virou uma vista do ToggleGroup).
+    await page.getByText('espera sua aprovação para virar PR').waitFor();
   });
 });
 
@@ -245,7 +249,7 @@ test('plano e modo automático: o plano do Dev Lead pendente', async () => {
     ],
   });
   await page.goto(`/projects/${sessao.projectId}/sessions/${sessao.sessionId}`);
-  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ timeout: 30_000 });
+  await page.locator('[data-testid="pendencias-de-outras-sessoes"]').waitFor({ state: 'attached', timeout: 30_000 });
   await fotografar(page, 'plano-e-modo-automatico', 'Plano de execução e modo automático');
 });
 
@@ -281,6 +285,14 @@ test('dev-agent: o fio do dev agent na execução', async () => {
 });
 
 test('merges no chat: a PR pronta para o dono', async () => {
+  // O merge automático (RN-1316) nasce LIGADO: com os gates aprovados ele mergearia a PR em ~6 s e ela sairia da fila de prontas
+  // antes da captura. A imagem é a PR esperando o dono, então desliga a chave antes de aprovar.
+  const chave = await fetch(`${API_URL}/projects/${execucao.projectId}/auto-merge`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ habilitado: false }),
+  });
+  if (!chave.ok) throw new Error(`auto-merge respondeu ${chave.status}`);
   await aprovarOsGates(execucao, tarefaDaExecucao); // a PR fica pronta para o dono; NÃO mergeia (RN-825)
   await page.goto(`/projects/${execucao.projectId}/sessions/${execucao.sessionId}`);
   await fotografar(page, 'merges-no-chat', 'PR pronta para o merge no chat', async () => {

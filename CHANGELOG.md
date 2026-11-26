@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Jev (AT-1021): o molde do kickoff do dev (`kickoffDoDev`) e o texto fixo de `kickoff.spec.ts` passam a espelhar o `report_blocked` do engine, que agora pede a causa em uma frase para leigo (`causa_para_leigo`) e 1 ou 2 `acoes` de retomada. O spec antigo fixava `...por que falhou.` e reprovava o job "Scripts (jev, idioma)" na promoção qa#94.
+
+- E2E (AT-1022, RN-1510): `sessao-e-canal-rolagem` sobe o fio com gesto real (`fio.hover()` + `mouse.wheel`) em vez de `scrollTo` de script, e espera o fio sair do fim antes de mandar a mensagem nova. O web da AT-1022 só pausa o acompanhamento com gesto do usuário; o spec passa também contra o web que pausa com qualquer rolagem.
+
+- Capturas da doc (AT-1013): `merges-no-chat` desliga o merge automático do projeto (`PUT /projects/:id/auto-merge`, RN-1316; nasce ligado desde a migration 0091) antes de aprovar os gates. Com ele ligado a api mergeava a PR em ~6 s, a tarefa ia a `done` e o contador de pendências nunca aparecia (causa raiz do estouro de 90 s da execução 45747301861). A espera de 90 s pelo contador, que era só hipótese, sai.
+
+- Capturas da doc (AT-1013): no web v1.6 o `pendencias-de-outras-sessoes` é o corpo do painel da sessão, que nasce oculto; as esperas de `ideia-no-chat`, `adr-no-chat` e `plano-e-modo-automatico` passam a `state: 'attached'`, e na tela `arquitetura` o ADR pendente é conferido pela faixa de proposta no topo da aba (a lista de ADRs virou uma vista do ToggleGroup, e `getByText('ADRs')` não existe mais); a semeadura declara o contrato do módulo `api` (`module-contracts`), que a api passou a exigir para propor o plano (RN-1004, AT-981); `merges-no-chat` espera até 90 s pelo contador de pendências antes de abrir a fila.
+
 - E2E (AT-1008): spec nova `container-e-broker` (tela de Containers: o projeto "nunca provisionado" na lista, o nome abre `/containers/$projectId`, o menu "…" com Parar, Ver detalhes e Remover). Sem broker no compose do `e2e-pr`, o ciclo de vida segue nas suítes de cada repo. O `container-e-broker` deixa de ser "sem spec de propósito" e o regressivo de PR de container passa a rodar um teste.
 
 - E2E (AT-1001 L2, AT-959, qa#83): `git-conflito` ganha o caso da reentrega (aprova o push do `merge_conflict`, tarefa `in_review`, gate `awaiting_user`, cartão `executor-dev-api` "Esperando o seu merge"); `cartao()` passa de `execucao-carrossel` para `suporte/navegador.ts`. Spec nova `sessao-e-canal-rolagem` ("Ir ao fim · N novas"). `sessao-e-canal-altura` leva a tag no `test.describe`. `funcionalidades.yml`: globs `session-rolagem`, `trilho-de-turnos`, `TrilhoDeTurnos`, `TextoDoAgente`, `message-scroller` em `sessao-e-canal` e `chat-e-pendencias`.

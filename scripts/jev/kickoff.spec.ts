@@ -23,7 +23,10 @@ describe('a porta dos moldes do engine (texto fixo)', () => {
     for (const trecho of [
       'Rode a suite de testes do projeto via `terminal` e só sinalize conclusão com',
       'Toda resposta sua deve conter pelo menos uma chamada de ferramenta.',
-      '`report_blocked` com o diagnóstico do que foi tentado e por que falhou.',
+      '`report_blocked` com o diagnóstico do que foi tentado e por que falhou, a causa ',
+      // AT-1021: a explicação do bloqueio vem do agente, com ações de retomada.
+      'em uma frase para quem não programa (`causa_para_leigo`) e 1 ou 2 `acoes` prontas ',
+      '(cada uma vira um botão de retomada).',
       // RN-684: o kickoff diz onde ler a interface de outro módulo.
       'contrato declarado pelo Arquiteto: leia com `listar_contratos_de_modulos`, ',
     ]) {
