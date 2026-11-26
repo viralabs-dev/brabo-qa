@@ -230,8 +230,8 @@ test('arquitetura: a aba com o mapa, o C4 e o ADR', async () => {
   await page.locator('svg[id^="mermaid"], svg[aria-roledescription]').first().waitFor({ timeout: 45_000 });
   await fotografar(page, 'arquitetura', 'Aba Arquitetura', async () => {
     await page.locator('svg[id^="mermaid"], svg[aria-roledescription]').first().waitFor({ timeout: 45_000 });
-    // O ADR pendente fica abaixo da dobra: rola até a lista, na mesma captura (AT-874).
-    await page.getByText('ADRs', { exact: true }).evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    // Web v1.6 (AT-1013): o ADR pendente é a faixa "espera sua aprovação" no topo da aba (a lista de ADRs virou uma vista do ToggleGroup).
+    await page.getByText('espera sua aprovação para virar PR').waitFor();
   });
 });
 
