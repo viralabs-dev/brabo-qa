@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Capturas da doc (AT-1013): no web v1.6 o `pendencias-de-outras-sessoes` é o corpo do painel da sessão, que nasce oculto; as esperas de `ideia-no-chat`, `adr-no-chat` e `plano-e-modo-automatico` passam a `state: 'attached'`, e na tela `arquitetura` o ADR pendente é conferido pela faixa de proposta no topo da aba (a lista de ADRs virou uma vista do ToggleGroup, e `getByText('ADRs')` não existe mais); a semeadura declara o contrato do módulo `api` (`module-contracts`), que a api passou a exigir para propor o plano (RN-1004, AT-981).
+- Capturas da doc (AT-1013): no web v1.6 o `pendencias-de-outras-sessoes` é o corpo do painel da sessão, que nasce oculto; as esperas de `ideia-no-chat`, `adr-no-chat` e `plano-e-modo-automatico` passam a `state: 'attached'`, e na tela `arquitetura` o ADR pendente é conferido pela faixa de proposta no topo da aba (a lista de ADRs virou uma vista do ToggleGroup, e `getByText('ADRs')` não existe mais); a semeadura declara o contrato do módulo `api` (`module-contracts`), que a api passou a exigir para propor o plano (RN-1004, AT-981); `merges-no-chat` espera até 90 s pelo contador de pendências antes de abrir a fila.
 
 - E2E (AT-1008): spec nova `container-e-broker` (tela de Containers: o projeto "nunca provisionado" na lista, o nome abre `/containers/$projectId`, o menu "…" com Parar, Ver detalhes e Remover). Sem broker no compose do `e2e-pr`, o ciclo de vida segue nas suítes de cada repo. O `container-e-broker` deixa de ser "sem spec de propósito" e o regressivo de PR de container passa a rodar um teste.
 

@@ -288,6 +288,8 @@ test('merges no chat: a PR pronta para o dono', async () => {
   await aprovarOsGates(execucao, tarefaDaExecucao); // a PR fica pronta para o dono; NÃO mergeia (RN-825)
   await page.goto(`/projects/${execucao.projectId}/sessions/${execucao.sessionId}`);
   await fotografar(page, 'merges-no-chat', 'PR pronta para o merge no chat', async () => {
+    // Web v1.6 (AT-1013): o contador só nasce quando a releitura do backlog vê a PR pronta; abrirFila só espera 30 s por ele.
+    await page.locator('[data-testid="contador-de-pendencias"]').waitFor({ timeout: 90_000 });
     await abrirFila(page, 'prontas');
     await page.locator('[data-testid="pr-pronta"]').first().waitFor({ timeout: 45_000 });
     // O feed (só ~68 px visíveis atrás do cartão de pendências) parava em um ponto de rolagem diferente a cada carga e mostrava
