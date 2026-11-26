@@ -26,7 +26,9 @@ export function kickoffDoDev(tarefa: Pick<Tarefa, 'title'>, historia: Pick<Histo
     `Implemente a task "${tarefa.title}" da story "${historia?.title ?? ''}". ` +
     'Rode a suite de testes do projeto via `terminal` e só sinalize conclusão com ' +
     '`report_done` depois de vê-la passar (exit 0). Se não conseguir concluir, ' +
-    'use `report_blocked` com o diagnóstico do que foi tentado e por que falhou.\n\n' +
+    'use `report_blocked` com o diagnóstico do que foi tentado e por que falhou, a causa ' +
+    'em uma frase para quem não programa (`causa_para_leigo`) e 1 ou 2 `acoes` prontas ' +
+    '(cada uma vira um botão de retomada).\n\n' +
     'IMPORTANTE: aja apenas por chamadas de ferramenta. Não escreva código ' +
     'nem JSON na sua resposta em texto, e não explique o que pretende fazer — ' +
     'chame `write_file` para criar cada arquivo e `terminal` para rodar a suite. ' +
