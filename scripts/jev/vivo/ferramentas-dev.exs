@@ -36,7 +36,7 @@ defmodule FerramentasDev do
 
     IO.puts(json(%{
       "fonte" => "../brabo-engine/lib/engine/dev/tools.ex (@registry) + spec/0 de cada módulo",
-      "ferramentas" => Enum.map(specs, fn {arquivo, s} -> Map.put(s, "arquivo", Path.relative_to(arquivo, @raiz)) end)
+      "ferramentas" => Enum.map(specs, fn {arquivo, s} -> Map.put(s, "arquivo", Path.relative_to(arquivo, @raiz, force: true)) end)
     }))
   end
 
