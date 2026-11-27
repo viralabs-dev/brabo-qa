@@ -2,7 +2,9 @@
 # descrição e esquema de parâmetros) de cada ferramenta do registro do dev
 # agent (`Engine.Dev.Tools.registry/0`), lido do CÓDIGO do engine. É a entrada
 # do teste ao vivo da AT-239 (`jev:vivo`): o modelo de chat recebe exatamente
-# as definições que o produto manda.
+# as definições que o produto manda. O spec `vivo.spec.ts` roda este script e exige
+# que o JSON seja igual à saída: se o `spec/0` do engine mudar, regenere com
+#   elixir scripts/jev/vivo/ferramentas-dev.exs > scripts/jev/vivo/ferramentas-dev.json
 #
 # Diferente de `../catalogo.exs`, este NÃO precisa do engine compilado nem das
 # dependências (o repo.hex.pm pode estar fora de alcance): roda com o `elixir`

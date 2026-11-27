@@ -14,7 +14,7 @@ só entra com o check **`E2E do brabo-qa`** verde (ruleset "main exige E2E"). O 
    <!-- print P1 -->
 
 2. O `e2e-pr.yml` espera as imagens existirem no GHCR (até 30 min, consultando a cada 30 s: a tag pode ainda estar sendo carimbada)
-   e verifica a assinatura de cada digest com `cosign`.
+   e verifica a assinatura de cada digest com `cosign` (`scripts/ci/verificar-assinaturas.ts`). A ausência de assinatura (`no signatures found`) espera até 10 min, a cada 15 s, porque o irmão pode ainda estar assinando; qualquer outra recusa reprova na hora.
 
    <!-- print P2 -->
 
@@ -40,7 +40,7 @@ só entra com o check **`E2E do brabo-qa`** verde (ruleset "main exige E2E"). O 
 | `spec` | uma spec do E2E falhou | sim |
 | `ambiente` | imagem ausente, compose que não subiu, head sem tag `-dev` | sim |
 | `digest` | um container roda outra imagem que a verificada | nunca |
-| `assinatura` | o `cosign verify` falhou | nunca |
+| `assinatura` | não assinada depois de 10 min, ou assinada por outra identidade | nunca |
 | `sem-resposta` | o check ficou em andamento por mais de 90 min (fechado por `varrer-orfaos.yml`, de hora em hora) | sim |
 
 ## Aceitar com justificativa

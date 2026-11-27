@@ -128,9 +128,10 @@ export function executar(
         ? { conteudo: 'conclusão registrada — suite verde confirmada', ok: true }
         : { conteudo: 'não é possível concluir: nenhum `terminal` com exit 0 (suite verde) encontrado no histórico', ok: false };
     case 'report_blocked':
-      return texto(args.reason) !== null
+      // shortcut: só confere a presença; a regra de linguagem é do engine (`ExplicacaoDoBloqueio`), subir se o jev precisar medi-la.
+      return texto(args.reason) !== null && texto(args.causa_para_leigo) !== null && Array.isArray(args.acoes) && args.acoes.length >= 1 && args.acoes.length <= 2
         ? { conteudo: 'bloqueio registrado', ok: true }
-        : { conteudo: 'report_blocked exige `reason` e `diagnosis`', ok: false };
+        : { conteudo: 'report_blocked exige `reason`, `diagnosis`, `causa_para_leigo` e `acoes` (1 a 2)', ok: false };
     default:
       return { conteudo: `ferramenta desconhecida: ${nome}`, ok: false };
   }

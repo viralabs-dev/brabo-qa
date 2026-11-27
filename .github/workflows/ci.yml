@@ -74,6 +74,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: https://npm.pkg.github.com
           scope: '@viralabs-dev'
+      # Elixir puro: o spec do jev roda `ferramentas-dev.exs` contra a fonte do engine (AT-1030). Mesmo pin do golden-set-qa.yml.
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124  # v1
+        with:
+          elixir-version: '1.20.4'
+          otp-version: '29.1.1'
       - name: Vínculos
         id: vinculos
         uses: viralabs-dev/brabo-ci/.github/actions/vinculos@53200467cadc73c5c23b90545474d4948764932f  # v1.4.0

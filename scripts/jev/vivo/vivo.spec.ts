@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -6,24 +7,11 @@ import { TAREFAS, tarefaPorId } from './tarefas.ts';
 
 const RAIZ = join(import.meta.dirname, '..', '..', '..');
 
-describe('ferramentas-dev.json (gerado de apps/engine por ferramentas-dev.exs)', () => {
-  const ferramentas = lerFerramentas();
-  const registro = readFileSync(join(RAIZ, '../brabo-engine/lib/engine/dev/tools.ex'), 'utf8');
-  const lista = /@registry \[([^\]]*)\]/.exec(registro)?.[1] ?? '';
-  const modulos = lista.split(',').map((s) => s.trim()).filter(Boolean);
-
-  it('tem uma definição por módulo do @registry do dev, na mesma ordem — regenere se divergir', () => {
-    const snake = (m: string) => m.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
-    expect(ferramentas.map((f) => f.name)).toEqual(modulos.map(snake));
-  });
-
-  it('cada descrição ainda está no .ex de origem (o começo dela), e há esquema de parâmetros', () => {
-    const j = JSON.parse(readFileSync(join(import.meta.dirname, 'ferramentas-dev.json'), 'utf8')) as { ferramentas: { arquivo: string; description: string; parameters: { type?: string } }[] };
-    for (const f of j.ferramentas) {
-      const fonte = readFileSync(join(RAIZ, f.arquivo), 'utf8').replace(/"\s*<>\s*"/g, '').replace(/\s+/g, ' ');
-      expect(fonte, f.arquivo).toContain(f.description.slice(0, 40).replace(/\s+/g, ' ').replace(/\\/g, '\\\\').replace(/"/g, '\\"'));
-      expect(f.parameters.type).toBe('object');
-    }
+describe('ferramentas-dev.json (gerado do engine por ferramentas-dev.exs)', () => {
+  it('é igual à saída do .exs contra o engine — regenere se divergir', () => {
+    const gerado = JSON.parse(execFileSync('elixir', ['scripts/jev/vivo/ferramentas-dev.exs'], { cwd: RAIZ, encoding: 'utf8' })) as { ferramentas: { name: string }[] };
+    const arquivo = JSON.parse(readFileSync(join(import.meta.dirname, 'ferramentas-dev.json'), 'utf8')) as { ferramentas: { name: string }[] };
+    expect(arquivo, 'regenere: elixir scripts/jev/vivo/ferramentas-dev.exs > scripts/jev/vivo/ferramentas-dev.json').toEqual(gerado);
   });
 });
 
