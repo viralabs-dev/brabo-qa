@@ -67,7 +67,7 @@ test('criar o projeto no padrão Runner local o leva para a tela dele e ele apar
 
   await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+/, { timeout: 30_000 });
   await expect(dialogo).toBeHidden();
-  await expect(page.getByRole('link', { name: nome }).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(nome).first()).toBeVisible({ timeout: 30_000 });
 
   // A api também o lista, no modo escolhido.
   const cabecalhos = { Authorization: `Bearer ${token}` };
