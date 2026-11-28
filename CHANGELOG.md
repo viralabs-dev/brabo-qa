@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Jev (AT-1033): o `ferramentas-dev.json` foi regenerado do engine: o `rotulo` das `acoes` do `report_blocked` ganhou a descrição nova (o que acontece no clique, em palavras do dia a dia). Sem isso o job "Scripts (jev, idioma)" reprovou na promoção qa#97.
+
 - Jev (AT-1030): o `ferramentas-dev.json` foi regenerado do engine (o `report_blocked` ganhou `causa`, `precisa_de`, `causa_para_leigo` e `acoes`; `listar_contratos_de_modulos` ganhou a descrição nova). O `vivo.spec.ts` agora roda o `ferramentas-dev.exs` e compara o objeto inteiro com o arquivo (antes só conferia nomes e os 40 primeiros caracteres da descrição); o job `scripts` do `ci.yml` instala Elixir com o mesmo pin do `golden-set-qa.yml`. O executor do jev recusa `report_blocked` sem `causa_para_leigo` ou sem 1 a 2 `acoes`, como o engine. Uma mudança de `spec/0` no engine sem regenerar o arquivo deixa o job "Scripts (jev, idioma)" vermelho, com o comando na mensagem. Uma saída antiga do `jev:vivo` não deve ser retomada: use `--saida` novo.
 
 - E2E (AT-1036, RN-1066): o `e2e-pr` usa `scripts/ci/verificar-assinaturas.ts` no lugar do `cosign verify` único. Só `no signatures found` espera (a cada 15 s, até 10 min), porque o irmão pode ainda estar assinando a `-dev.N` recém-publicada (api#167, broker#57); identidade ou emissor errado e qualquer outra recusa reprovam na hora, como antes (RN-524). A causa `assinatura` passa a significar "não assinada depois de 10 min ou assinada por outra identidade".
