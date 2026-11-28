@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- E2E (AT-1040): spec nova `projetos` (`@f-projetos`): o assistente de projeto novo abre e oferece Criar novo e Adotar existente; sem broker (compose do `e2e-pr`) o padrão é Runner local, com Container e Pasta montada inertes e o aviso `aviso-sem-broker`; criar o projeto no padrão leva à tela dele, e ele aparece na lista e na api com `executionMode` `runner`. Vale igual contra o web da `dev` e o da web#172 (ADR 0301, só muda o padrão com broker, coberto por unidade no web). Sem LLM. O regressivo de PR do web que toca `NewProjectWizard.tsx` deixa de reprovar com `No tests found`. Funcionalidade ainda sem spec (só listada): `runner`.
+
+- Jev (AT-1033): o `ferramentas-dev.json` foi regenerado do engine: o `rotulo` das `acoes` do `report_blocked` ganhou a descrição nova (o que acontece no clique, em palavras do dia a dia). Sem isso o job "Scripts (jev, idioma)" reprovou na promoção qa#97.
+
+- Jev (AT-1030): o `ferramentas-dev.json` foi regenerado do engine (o `report_blocked` ganhou `causa`, `precisa_de`, `causa_para_leigo` e `acoes`; `listar_contratos_de_modulos` ganhou a descrição nova). O `vivo.spec.ts` agora roda o `ferramentas-dev.exs` e compara o objeto inteiro com o arquivo (antes só conferia nomes e os 40 primeiros caracteres da descrição); o job `scripts` do `ci.yml` instala Elixir com o mesmo pin do `golden-set-qa.yml`. O executor do jev recusa `report_blocked` sem `causa_para_leigo` ou sem 1 a 2 `acoes`, como o engine. Uma mudança de `spec/0` no engine sem regenerar o arquivo deixa o job "Scripts (jev, idioma)" vermelho, com o comando na mensagem. Uma saída antiga do `jev:vivo` não deve ser retomada: use `--saida` novo.
+
+- E2E (AT-1036, RN-1066): o `e2e-pr` usa `scripts/ci/verificar-assinaturas.ts` no lugar do `cosign verify` único. Só `no signatures found` espera (a cada 15 s, até 10 min), porque o irmão pode ainda estar assinando a `-dev.N` recém-publicada (api#167, broker#57); identidade ou emissor errado e qualquer outra recusa reprovam na hora, como antes (RN-524). A causa `assinatura` passa a significar "não assinada depois de 10 min ou assinada por outra identidade".
+
 - Jev (AT-1021): o molde do kickoff do dev (`kickoffDoDev`) e o texto fixo de `kickoff.spec.ts` passam a espelhar o `report_blocked` do engine, que agora pede a causa em uma frase para leigo (`causa_para_leigo`) e 1 ou 2 `acoes` de retomada. O spec antigo fixava `...por que falhou.` e reprovava o job "Scripts (jev, idioma)" na promoção qa#94.
 
 - E2E (AT-1022, RN-1510): `sessao-e-canal-rolagem` sobe o fio com gesto real (`fio.hover()` + `mouse.wheel`) em vez de `scrollTo` de script, e espera o fio sair do fim antes de mandar a mensagem nova. O web da AT-1022 só pausa o acompanhamento com gesto do usuário; o spec passa também contra o web que pausa com qualquer rolagem.

@@ -148,20 +148,10 @@ jobs:
         id: aguardar
         run: node scripts/ci/aguardar-digest.ts digests.json
 
+      # Espera até 10 min SÓ o `no signatures found` (o irmão ainda assina a -dev.N); outra recusa reprova na hora (AT-1036).
       - name: Verificar a assinatura (cosign) de cada digest
         id: assinatura
-        run: |
-          set -uo pipefail
-          falhou=0
-          echo '{}' > assinaturas.json
-          for s in api engine web broker backup; do
-            ref="$(jq -r --arg s "$s" '.[$s]' digests.json)"
-            if cosign verify "$ref" \
-              --certificate-identity-regexp '^https://github.com/viralabs-dev/brabo-(api|engine|web|broker|infra)/\.github/workflows/(release|ci)\.yml@' \
-              --certificate-oidc-issuer https://token.actions.githubusercontent.com >/dev/null; then r=ok; else r=falhou; falhou=1; fi
-            jq --arg s "$s" --arg r "$r" '.[$s]=$r' assinaturas.json > a.tmp && mv a.tmp assinaturas.json
-          done
-          exit "$falhou"
+        run: node scripts/ci/verificar-assinaturas.ts digests.json
 
       # Mesmos campos do `gerar_segredos` do install.sh do brabo (que não é invocável à parte), com `openssl rand`,
       # novos a cada run. O NEO4J_PASSWORD é hex: uma `/` quebraria o parse de NEO4J_AUTH. base64 sem quebra de linha.

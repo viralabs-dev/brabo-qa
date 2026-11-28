@@ -12,6 +12,15 @@ beforeEach(() => {
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 describe('executar (ferramentas na sandbox)', () => {
+  it('report_blocked recusa sem causa_para_leigo ou sem 1 a 2 acoes, como o engine', () => {
+    const ok = { reason: 'r', diagnosis: 'd', causa_para_leigo: 'c', acoes: ['a'] };
+    expect(executar(dir, 'report_blocked', ok, []).ok).toBe(true);
+    expect(executar(dir, 'report_blocked', { ...ok, acoes: undefined }, []).ok).toBe(false);
+    expect(executar(dir, 'report_blocked', { ...ok, acoes: [] }, []).ok).toBe(false);
+    expect(executar(dir, 'report_blocked', { ...ok, acoes: ['a', 'b', 'c'] }, []).ok).toBe(false);
+    expect(executar(dir, 'report_blocked', { ...ok, causa_para_leigo: undefined }, []).ok).toBe(false);
+  });
+
   it('escreve, lê e busca dentro da raiz', () => {
     expect(executar(dir, 'write_file', { path: 'src/a.js', content: 'const x = 1;' }, [])).toEqual({ conteudo: 'escrito: src/a.js', ok: true });
     expect(executar(dir, 'read_file', { path: 'src/a.js' }, []).conteudo).toBe('const x = 1;');
