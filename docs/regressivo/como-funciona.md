@@ -133,3 +133,7 @@ O passo "Gerar o .env" do `e2e-pr.yml` grava `RATE_LIMIT_USER=5000`, `RATE_LIMIT
 ## Funcionalidade `container-e-broker` (AT-1008)
 
 O spec `container-e-broker.spec.ts` cobre a tela de Containers do workspace (AT-976, AT-1006): a lista, o menu "…" da linha (Parar, Ver detalhes, Remover) e o detalhe aberto pelo nome do projeto. O compose de produção que o `e2e-pr` sobe deixa o broker desligado (`sem_broker_na_instalacao`), então o projeto semeado é "nunca provisionado" e as ações Parar e Remover aparecem desabilitadas. A prova de compose do QA (AT-922, ADR 0297) e o ciclo de vida do container continuam cobertos por unidade em cada repo (broker, api, engine) e pelo TP-01, porque precisam do broker com o socket do Docker. Sem esse spec o regressivo de uma PR de container falhava com "No tests found".
+
+## Funcionalidade `projetos` (AT-1040)
+
+O spec `projetos.spec.ts` cobre o assistente de projeto novo (RN-513, ADR 0301): abre pelo "Novo projeto" da lateral, oferece Criar novo e Adotar existente, e cria o projeto, que aparece na lista e na api. O compose de produção que o `e2e-pr` sobe deixa o broker desligado (`sem_broker_na_instalacao`), então o padrão afirmado é Runner local, com Container e Pasta montada inertes e o aviso dito uma vez; o padrão `container` com broker confirmado fica nos testes de unidade do web. O spec passa igual antes e depois do ADR 0301. Sem LLM. Sem esse spec o regressivo de uma PR que toca `NewProjectWizard.tsx` falhava com "No tests found". A funcionalidade `runner` segue sem spec.
